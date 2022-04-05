@@ -1,6 +1,11 @@
 # COSMOFlow
 
-this code allows for cosmological parameter inference using Gravitational waves and machine learning. 
+Cosmological parameter inference using Gravitational waves and machine learning. 
+
+
+
+![alt text](https://siboehm.com/assets/img/nfn/normalizing_flow.png)
+
 
 ## Getting started
 
