@@ -435,7 +435,7 @@ f.close()
 
 ##################################### TESTING #####################################
 
-
+###### TEST 1: PP-Plot ######
 print()
 print('Making Probability-Probability plot with Validation data')
 print()
@@ -505,7 +505,7 @@ for x in range(Nruns):
 
 
 
-#TEST 2: Resample target data 
+##### TEST 2: Resample target data #####
 
 N = 50000
 
