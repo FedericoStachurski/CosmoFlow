@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from scipy.stats import ncx2
 from tqdm import tqdm
 import bilby
-from cosmology_functions import cosmology, priors
 from scipy.interpolate import splrep, splev
 from bilby.core.prior import Uniform, Sine, Constraint, Cosine
 from scipy.integrate import  quad
@@ -76,8 +75,8 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
     SNR_H1 = ifos.meta_data['H1']['optimal_SNR']
     SNR_L1 = ifos.meta_data['L1']['optimal_SNR']
     
-    obs_SNR_H1 = np.sqrt((ncx2.rvs(2, SNR_H1**2, size=1, loc = 0, scale = 1)))
-    obs_SNR_L1 =np.sqrt((ncx2.rvs(2, SNR_L1**2, size=1, loc = 0, scale = 1)))
+    obs_SNR_H1 = np.sqrt((ncx2.rvs(4, SNR_H1**2, size=1, loc = 0, scale = 1)))
+    obs_SNR_L1 =np.sqrt((ncx2.rvs(4, SNR_L1**2, size=1, loc = 0, scale = 1)))
     
     
     tot_SNR = np.sqrt((obs_SNR_H1)**2 + (obs_SNR_L1)**2)

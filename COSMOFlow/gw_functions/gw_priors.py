@@ -48,18 +48,23 @@ phase_dist = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='perio
 def draw_prior():
     "Draw from defined priors in gw_priors.py, does not have distance"
     
-    m1 = m1_dist.sample(1)[0] 
-    m2 = m2_dist.sample(1)[0] 
+    
+    while True:
+        m1 = m1_dist.sample(1)[0] 
+        m2 = m2_dist.sample(1)[0] 
 
-    if m1 > m2:
-        m1 = m1 
-        m2 = m2
-    else: 
-        temp1 = m1 
-        temp2 = m2
+        if m1+m2 <= 100:
 
-        m1 = temp2
-        m2 = temp1
+            if m1 > m2:
+                m1 = m1 
+                m2 = m2
+            else: 
+                temp1 = m1 
+                temp2 = m2
+
+                m1 = temp2
+                m2 = temp1
+            break
 
 
 
