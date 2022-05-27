@@ -80,13 +80,13 @@ def draw_prior():
     dec = dec_dist.sample(1)[0]
 
     theta_jn = theta_jn_dist.sample(1)[0]
-#     phi_jl = phi_jl_dist.sample(1)[0]
-#     phi_12 = phi_12_dist.sample(1)[0]
+    phi_jl = phi_jl_dist.sample(1)[0]
+    phi_12 = phi_12_dist.sample(1)[0]
     
-#     psi = psi_dist.sample(1)[0]
-#     phase = phase_dist.sample(1)[0]
+    psi = psi_dist.sample(1)[0]
+    phase = phase_dist.sample(1)[0]
 
-    return  m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn
+    return  m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase
 
 
 

@@ -270,5 +270,5 @@ for j in range(batches):
         output_df = pd.DataFrame({'H0': event[0], 'dl': event[1],
                                   'm1': event[2], 'm2': event[3]})
         output_df.to_csv(path_data+filename+
-                         'data_SNRth_{}_H0_70_Omega_0.3_1000.csv'.format(int(rho_th)))
+                         '_data_{}.csv'.format(int(N/batches)))
         j += 1   

@@ -11,6 +11,7 @@ from bilby.core.prior import Uniform, Sine, Constraint, Cosine
 from scipy.integrate import  quad
 import numpy.random as rn
 import sys
+import bilby.gw.utils as ut
 
 
 bilby.core.utils.log.setup_logger(log_level=0)
@@ -38,12 +39,23 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
                         tilt_2=tilt2)
 
 
-    #  Define time and frequency parameters
 
-    duration=20
-    sampling_frequency=2048
-    trigger_time=injection_dict['geocent_time']
+    def chi_eff(a1, a2, theta1, theta2, m1, m2):
+        cos_theta1 = np.cos(theta1)
+        cos_theta2 = np.cos(theta2)
+        q = m2 / m1 
+        return (a1*cos_theta1 + q*a2*cos_theta2)/(1+q) 
+
+    
+    
+    
+    #  Define time and frequency parameters
     minimum_frequency=20
+    duration=np.round(ut.calculate_time_to_merger(minimum_frequency,m1_det,m2_det, 
+                                                  chi_eff(a1, a2, tilt1, tilt2, m1_det, m2_det))+2,0) 
+    sampling_frequency=4096
+    trigger_time=injection_dict['geocent_time']
+    
 
 
 
@@ -60,11 +72,15 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
 
     #  Setup interferometers and inject signal
 
-    ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
+    ifos = bilby.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
     for ifo in ifos:
         ifo.minimum_frequency = minimum_frequency
         ifo.maximum_frequency = sampling_frequency/2.
-        #ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(psd_file='PATH/TO/MY/PSD.dat')
+        if ifo.name == 'V1':
+            ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(psd_file='AdV_psd.txt') 
+        else:     
+            ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(psd_file='aLIGO_early_psd.txt') 
+        
 
     set_strain = ifos.set_strain_data_from_power_spectral_densities(
         sampling_frequency=sampling_frequency, duration=duration,
@@ -74,10 +90,11 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
 
     SNR_H1 = ifos.meta_data['H1']['optimal_SNR']
     SNR_L1 = ifos.meta_data['L1']['optimal_SNR']
+    SNR_V1 = ifos.meta_data['V1']['optimal_SNR']
     
-    obs_SNR_H1 = np.sqrt((ncx2.rvs(4, SNR_H1**2, size=1, loc = 0, scale = 1)))
-    obs_SNR_L1 =np.sqrt((ncx2.rvs(4, SNR_L1**2, size=1, loc = 0, scale = 1)))
+    obs_SNR_H1 = SNR_H1#np.sqrt((ncx2.rvs(4, SNR_H1**2, size=1, loc = 0, scale = 1)))
+    obs_SNR_L1 = SNR_L1#np.sqrt((ncx2.rvs(4, SNR_L1**2, size=1, loc = 0, scale = 1)))
+    obs_SNR_V1 = SNR_V1
     
-    
-    tot_SNR = np.sqrt((obs_SNR_H1)**2 + (obs_SNR_L1)**2)
-    return tot_SNR[0]
+    tot_SNR = np.sqrt((obs_SNR_H1)**2 + (obs_SNR_L1)**2 + (obs_SNR_V1)**2)
+    return tot_SNR

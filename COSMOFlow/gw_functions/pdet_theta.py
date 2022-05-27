@@ -44,7 +44,7 @@ def p_theta_omega(theta, omega_0 = [0.3065, 0, 67.9]):
     #Following the GWTC-2.1 GW transient catalog, the parameters are all uniforms except for dl.
     #the prior on dl is uniform in comoving volume,with flat Lambda-CDM Hubble = 67.90 and Omega_m = 0.3065
 
-    prior_dl = bilby.gw.prior.UniformComovingVolume( minimum=50, maximum=10000, name = 'luminosity_distance',cosmology=cosmology)
+    prior_dl = bilby.gw.prior.UniformComovingVolume( minimum=50, maximum=20000, name = 'luminosity_distance',cosmology=cosmology)
 
     return prior_dl.prob(dl)
 
