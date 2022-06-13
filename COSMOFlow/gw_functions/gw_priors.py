@@ -45,46 +45,46 @@ phase_dist = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='perio
 
 
 
-def draw_prior():
+def draw_prior(N):
     "Draw from defined priors in gw_priors.py, does not have distance"
     
     
     while True:
-        m1 = m1_dist.sample(1)[0] 
-        m2 = m2_dist.sample(1)[0] 
+        m1 = m1_dist.sample(N)[0] 
+        m2 = m2_dist.sample(N)[0] 
 
-        if m1+m2 <= 100:
+#         if m1+m2 <= 100:
 
-            if m1 > m2:
-                m1 = m1 
-                m2 = m2
-            else: 
-                temp1 = m1 
-                temp2 = m2
+        if m1 > m2:
+            m1 = m1 
+            m2 = m2
+        else: 
+            temp1 = m1 
+            temp2 = m2
 
-                m1 = temp2
-                m2 = temp1
-            break
-
-
+            m1 = temp2
+            m2 = temp1
+        break
 
 
-    a1 = a_1_dist.sample(1)[0]
-    a2 = a_2_dist.sample(1)[0]
-
-    tilt1 = tilt_1_dist.sample(1)[0]
-    tilt2 = tilt_2_dist.sample(1)[0]
 
 
-    RA = RA_dist.sample(1)[0]
-    dec = dec_dist.sample(1)[0]
+    a1 = a_1_dist.sample(N)[0]
+    a2 = a_2_dist.sample(N)[0]
+
+    tilt1 = tilt_1_dist.sample(N)[0]
+    tilt2 = tilt_2_dist.sample(N)[0]
+
+
+    RA = RA_dist.sample(N)[0]
+    dec = dec_dist.sample(N)[0]
 
     theta_jn = theta_jn_dist.sample(1)[0]
-    phi_jl = phi_jl_dist.sample(1)[0]
-    phi_12 = phi_12_dist.sample(1)[0]
+    phi_jl = phi_jl_dist.sample(N)[0]
+    phi_12 = phi_12_dist.sample(N)[0]
     
-    psi = psi_dist.sample(1)[0]
-    phase = phase_dist.sample(1)[0]
+    psi = psi_dist.sample(N)[0]
+    phase = phase_dist.sample(N)[0]
 
     return  m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase
 

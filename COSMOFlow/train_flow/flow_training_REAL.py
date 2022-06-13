@@ -25,6 +25,7 @@ import shutil
 import pickle
 import bilby
 from bilby.core.prior import Uniform
+from scipy.stats import entropy
 bilby.core.utils.log.setup_logger(log_level=0)
 
 import argparse
@@ -53,6 +54,8 @@ ap.add_argument("-nblock", "--nblock", required=False,
    help="Neurons of blocks", default = 2)
 ap.add_argument("-lr", "--learning_rate", required=False,
    help="learning_rate", default = 0.005)
+ap.add_argument("-lr_scheduler", "--learning_rate_scheduler", required=False,
+   help="learning_rate", default = None)
 ap.add_argument("-linear_transform", "--linear_transform", required=False,
    help="type of transformation", default = None)
 
@@ -68,6 +71,7 @@ neurons = int(args['neurons'])
 layers = int((args['layers']))
 nblock = int(args['nblock'])
 lr = float(args['learning_rate'])
+lr_scheduler = str(args['learning_rate_scheduler'])
 epochs = int(args['epochs'])
 
 
@@ -84,6 +88,7 @@ print('neurons = {}'.format(neurons))
 print('layers = {}'.format(layers))
 print('nblocks = {}'.format(nblock))
 print('lr = {}'.format(lr))
+print('lr_scheduler = {}'.format(lr_scheduler))
 print('linear transform = {}'.format(linear_transform))
 print()
 
@@ -95,13 +100,16 @@ print()
 folder_name = str(Name)
 path = 'trained_flows_and_curves/'
 
-def kl_div(p, q):
-    "Compute KL-divergence between p and q prob arrays"
-    return np.sum(np.where(p != 0, p*np.log(p/q), 0))
 
-def js_div(p,q):
-    "Compute the JS-divergence between p and q prob arrays"
-    return 0.5*(kl_div(p,q) + kl_div(q,p))
+
+
+# def kl_div(p, q):
+#     "Compute KL-divergence between p and q prob arrays"
+#     return np.sum(np.where(p != 0, p*np.log(p/q), 0))
+
+# def js_div(p,q):
+#     "Compute the JS-divergence between p and q prob arrays"
+#     return 0.5*(kl_div(p,q) + kl_div(q,p))
 
 
 #check if directory exists
@@ -115,17 +123,25 @@ os.mkdir(path+folder_name)
 os.chdir('..')
 
 
+# def read_data(batch):
+#     path_name ="data_gwcosmo/{}/training_data/".format(data)
+#     data_name = "empty_z1.5_snr8_data_10000_batch_{}.csv".format( batch)
+#     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2'])
+#     return GW_data
+
+# list_data = [] 
+# for i in range(30):
+#     list_data.append(read_data(i+1))
+
 def read_data(batch):
-    path_name ="data_gwcosmo/{}/training_data/".format(data)
-    data_name = "empty_z1.5_snr8_data_10000_batch_{}.csv".format( batch)
+    path_name ="data_gwcosmo/{}/training_data_MLP/".format(data)
+    data_name = "_data_1000000_N_.csv"
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2'])
     return GW_data
 
 list_data = [] 
-for i in range(30):
+for i in range(1):
     list_data.append(read_data(i+1))
-
-
 
 
 GW_data = pd.concat(list_data)
@@ -152,7 +168,7 @@ def scale_data(data_to_scale):
 scaler_x, scaler_y, scaled_data = scale_data(data)
 x_train, x_val = train_test_split(scaled_data, test_size=0.25)
 
-batch_size=500
+batch_size=batch
 
 train_tensor = torch.from_numpy(np.asarray(x_train).astype('float32'))
 val_tensor = torch.from_numpy(np.asarray(x_val).astype('float32'))
@@ -227,10 +243,16 @@ best_val_loss = np.inf
 g = np.linspace(-5, 5, 1000)
 gaussian = norm.pdf(g)
 
-def JS_evaluate(samples):
-    density = gaussian_kde(samples)
-    kde_points = density.pdf(g)
-    return np.array(kde_points), js_div(kde_points, gaussian)
+
+
+
+def KL_evaluate(samples):
+    def pdf_evaluate(samples):
+        density = gaussian_kde(samples)
+        kde_points = density.pdf(g)
+        return np.array(kde_points)
+    pdf_samples = pdf_evaluate(samples)
+    return pdf_samples, entropy(pdf_samples, gaussian)
 
 ##################################### TRAINING #####################################
 #Define device GPU or CPU
@@ -250,9 +272,21 @@ print('EPOCHS = {}'.format(n_epochs))
 
 #Decay LR
 decayRate = 0.999
-#my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimiser, gamma=decayRate)
-#my_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=optimiser, base_lr=0.01, max_lr=0.03, step_size_up=75)
-#my_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, n_epochs, eta_min=0, last_epoch=- 1, verbose=False)
+
+if lr_scheduler == 'ExponentialLR':
+
+    my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimiser_adam, gamma=decayRate)
+    
+elif lr_scheduler == 'CyclicLR':
+
+    my_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(optimiser_adam, base_lr=0.01, max_lr=0.03, step_size_up=75)   
+    
+elif lr_scheduler == 'CosineAnnealingLR':
+
+    my_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser_adam, n_epochs, eta_min=0, last_epoch=- 1, verbose=False)   
+    
+
+
 
 
 # Loss
@@ -260,11 +294,11 @@ loss_dict = dict(train=[], val=[])
 
 
 #stor KL values at each epoch 
-JS_vals1 = []
-JS_vals2 = []
-JS_vals3 = []
-JS_vals4 = []
-JS_vals5 = []
+KL_vals1 = []
+KL_vals2 = []
+KL_vals3 = []
+# KL_vals4 = []
+# KL_vals5 = []
 # JS_vals6 = []
 
 for j in range(n_epochs):
@@ -326,16 +360,18 @@ for j in range(n_epochs):
     z_= latent_samples.cpu().detach().numpy()[0:5000]
 
     #KDEsdensity.pdf(g)
-    kde_points1, js_val_1 = JS_evaluate(z_[:,0])
-    kde_points2, js_val_2 = JS_evaluate(z_[:,1])
-    kde_points3, js_val_3 = JS_evaluate(z_[:,2])
+    kde_points1, js_val_1 = KL_evaluate(z_[:,0])
+    kde_points2, js_val_2 = KL_evaluate(z_[:,1])
+    kde_points3, js_val_3 = KL_evaluate(z_[:,2])
 #     kde_points4, js_val_4 = JS_evaluate(z_[:,3])
 #     kde_points5, js_val_5 = JS_evaluate(z_[:,4])
 #     kde_points6, js_val_6 = JS_evaluate(z_[:,5])
     
-    JS_vals1.append(js_val_1)
-    JS_vals2.append(js_val_2)
-    JS_vals3.append(js_val_3)
+    
+
+    KL_vals1.append(js_val_1)
+    KL_vals2.append(js_val_2)
+    KL_vals3.append(js_val_3)
 #     JS_vals4.append(js_val_4)
 #     JS_vals5.append(js_val_5)
 #     JS_vals6.append(js_val_6)
@@ -352,7 +388,7 @@ for j in range(n_epochs):
     ax1.set_ylabel('loss', fontsize = 20)
     ax1.set_xlabel('Epochs', fontsize = 20)
     ax1.set_xscale('log')
-    #ax1.set_ylim([-2.0,0.1])
+    ax1.set_ylim([-5.0,-2.0])
     ax1.set_xlim([1,n_epochs])
     ax1.xaxis.set_tick_params(labelsize=20)
     ax1.yaxis.set_tick_params(labelsize=20)
@@ -371,7 +407,7 @@ for j in range(n_epochs):
 #     ax2.plot(g, kde_points6, linewidth=3, label = r'$z_{5}$')
     ax2.plot(g, gaussian,linewidth=5,c='k',label=r'$\mathcal{N}(0;1)$')
 
-    ax2.legend(fontsize = 15)
+    ax2.legend(fontsize = 20)
     ax2.grid(True)
     ax2.set_ylabel('$p(z)$',fontsize = 20)
     ax2.set_xlabel('$z$',fontsize = 20)
@@ -379,13 +415,13 @@ for j in range(n_epochs):
     ax2.yaxis.set_tick_params(labelsize=20)
 
     #Real time JS div between gaussian and latent 
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals1,linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals2,linewidth=3,alpha = 0.6,  label = r'$z_{m1}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals3,linewidth=3,alpha = 0.6,  label = r'$z_{m2}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals1,linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals2,linewidth=3,alpha = 0.6,  label = r'$z_{m1}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals3,linewidth=3,alpha = 0.6,  label = r'$z_{m2}$')
 #     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals4,linewidth=3,alpha = 0.6,  label = r'$z_{RA}$')
 #     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals5,linewidth=3,alpha = 0.6,  label = r'$z_{dec}$')
 #     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals6,linewidth=3,alpha = 0.6,  label = r'$z_{5}$')
-    ax3.set_ylabel('JS Div', fontsize = 20)
+    ax3.set_ylabel('KLDiv', fontsize = 20)
     ax3.set_xlabel(r'Epochs', fontsize = 20)
     ax3.set_yscale('log')
     ax3.set_xscale('log')
@@ -393,7 +429,7 @@ for j in range(n_epochs):
     ax3.grid(True)
     ax3.xaxis.set_tick_params(labelsize=20)
     ax3.yaxis.set_tick_params(labelsize=20)
-    ax3.legend(fontsize = 15)
+    ax3.legend(fontsize = 20)
     fig.tight_layout()
     fig.savefig(path+folder_name+'/training.png', dpi = 50 )
         
@@ -562,8 +598,10 @@ while True:
 
 
 
-c1 = corner.corner(combined_samples, smooth = True, color = 'red', hist_kwargs = {'density' : 1})
-fig = corner.corner(data[['dl', 'm1', 'm2']], plot_datapoints=False, smooth = True, fig = c1, plot_density=True,labels=[r'$D_{L}$', r'$m_{1,z}$', r'$m_{2,z}$'], hist_kwargs = {'density' : 1})
+c1 = corner.corner(combined_samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1})
+fig = corner.corner(data[['dl', 'm1', 'm2']], plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$D_{L}$', r'$m_{1,z}$', r'$m_{2,z}$'], hist_kwargs = {'density' : 1})
+
+
 
 plt.savefig(path+folder_name+'/flow_resample.png', dpi = 100)
 
