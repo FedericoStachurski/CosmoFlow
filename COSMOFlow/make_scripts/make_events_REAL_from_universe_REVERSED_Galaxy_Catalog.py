@@ -102,7 +102,7 @@ zmax = zmax
 ### READ CATALOG ###
 print('Reading glade.hdf5 catalog')
 pathname = '/data/wiay/galaxy_catalogs'
-catalog_file = 'glade.hdf5'
+catalog_file = 'glade+.hdf5'
 
 with h5py.File(pathname+'/'+catalog_file, "r") as f:
     # List all columns
@@ -138,7 +138,7 @@ print('All sky magnitude threshold, mth = {}'.format(mth))
 
 
 #grid of z and M
-M_grid =  np.linspace(-23,-5,100)
+M_grid =  np.linspace(-2,-15,100)
 z_grid = np.linspace(0,zmax,100)
 
 

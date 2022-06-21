@@ -134,9 +134,9 @@ os.chdir('..')
 #     list_data.append(read_data(i+1))
 
 def read_data(batch):
-    path_name ="data_gwcosmo/{}/training_data_MLP/".format(data)
-    data_name = "_data_1000000_N_.csv"
-    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2'])
+    path_name ="data_gwcosmo/{}/training_data_from_MLP/".format(data)
+    data_name = "_data_100000_N_SNR_8.csv"
+    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2', 'RA', 'dec' ])
     return GW_data
 
 list_data = [] 
@@ -152,7 +152,7 @@ print((GW_data.head()))
 
 
 
-data = GW_data[['dl','m1', 'm2','H0']]
+data = GW_data[['dl','m1', 'm2','RA','dec', 'H0']]
 
 def scale_data(data_to_scale):
     target = data_to_scale[data_to_scale.columns[0:-1]]
@@ -211,7 +211,7 @@ print()
 
 
 # Define Flow
-n_inputs = 3
+n_inputs = 5
 n_conditional_inputs = 1
 n_neurons = neurons
 n_transforms = layers
@@ -232,7 +232,7 @@ flow = RealNVP(n_inputs= n_inputs,
         n_conditional_inputs = n_conditional_inputs,
         n_blocks_per_transform = n_blocks_per_transform,
         batch_norm_between_transforms=True,
-        dropout_probability=0.0,
+        dropout_probability=0.05,
         linear_transform=linear_transform)
 
 best_model = copy.deepcopy(flow.state_dict())
@@ -297,8 +297,8 @@ loss_dict = dict(train=[], val=[])
 KL_vals1 = []
 KL_vals2 = []
 KL_vals3 = []
-# KL_vals4 = []
-# KL_vals5 = []
+KL_vals4 = []
+KL_vals5 = []
 # JS_vals6 = []
 
 for j in range(n_epochs):
@@ -360,20 +360,20 @@ for j in range(n_epochs):
     z_= latent_samples.cpu().detach().numpy()[0:5000]
 
     #KDEsdensity.pdf(g)
-    kde_points1, js_val_1 = KL_evaluate(z_[:,0])
-    kde_points2, js_val_2 = KL_evaluate(z_[:,1])
-    kde_points3, js_val_3 = KL_evaluate(z_[:,2])
-#     kde_points4, js_val_4 = JS_evaluate(z_[:,3])
-#     kde_points5, js_val_5 = JS_evaluate(z_[:,4])
+    kde_points1, kl_val_1 = KL_evaluate(z_[:,0])
+    kde_points2, kl_val_2 = KL_evaluate(z_[:,1])
+    kde_points3, kl_val_3 = KL_evaluate(z_[:,2])
+    kde_points4, kl_val_4 = KL_evaluate(z_[:,3])
+    kde_points5, kl_val_5 = KL_evaluate(z_[:,4])
 #     kde_points6, js_val_6 = JS_evaluate(z_[:,5])
     
     
 
-    KL_vals1.append(js_val_1)
-    KL_vals2.append(js_val_2)
-    KL_vals3.append(js_val_3)
-#     JS_vals4.append(js_val_4)
-#     JS_vals5.append(js_val_5)
+    KL_vals1.append(kl_val_1)
+    KL_vals2.append(kl_val_2)
+    KL_vals3.append(kl_val_3)
+    KL_vals4.append(kl_val_4)
+    KL_vals5.append(kl_val_5)
 #     JS_vals6.append(js_val_6)
 
     
@@ -388,7 +388,7 @@ for j in range(n_epochs):
     ax1.set_ylabel('loss', fontsize = 20)
     ax1.set_xlabel('Epochs', fontsize = 20)
     ax1.set_xscale('log')
-    ax1.set_ylim([-5.0,-2.0])
+    ax1.set_ylim([-8.0,-2.0])
     ax1.set_xlim([1,n_epochs])
     ax1.xaxis.set_tick_params(labelsize=20)
     ax1.yaxis.set_tick_params(labelsize=20)
@@ -402,8 +402,8 @@ for j in range(n_epochs):
     ax2.plot(g, kde_points1, linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
     ax2.plot(g, kde_points2, linewidth=3,alpha = 0.6, label = r'$z_{m1}$')
     ax2.plot(g, kde_points3, linewidth=3,alpha = 0.6, label = r'$z_{m2}$')
-#     ax2.plot(g, kde_points4, linewidth=3,alpha = 0.6, label = r'$z_{RA}$')
-#     ax2.plot(g, kde_points5, linewidth=3,alpha = 0.6, label = r'$z_{dec}$')
+    ax2.plot(g, kde_points4, linewidth=3,alpha = 0.6, label = r'$z_{RA}$')
+    ax2.plot(g, kde_points5, linewidth=3,alpha = 0.6, label = r'$z_{dec}$')
 #     ax2.plot(g, kde_points6, linewidth=3, label = r'$z_{5}$')
     ax2.plot(g, gaussian,linewidth=5,c='k',label=r'$\mathcal{N}(0;1)$')
 
@@ -418,8 +418,8 @@ for j in range(n_epochs):
     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals1,linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals2,linewidth=3,alpha = 0.6,  label = r'$z_{m1}$')
     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals3,linewidth=3,alpha = 0.6,  label = r'$z_{m2}$')
-#     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals4,linewidth=3,alpha = 0.6,  label = r'$z_{RA}$')
-#     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals5,linewidth=3,alpha = 0.6,  label = r'$z_{dec}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals4,linewidth=3,alpha = 0.6,  label = r'$z_{RA}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals5,linewidth=3,alpha = 0.6,  label = r'$z_{dec}$')
 #     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals6,linewidth=3,alpha = 0.6,  label = r'$z_{5}$')
     ax3.set_ylabel('KLDiv', fontsize = 20)
     ax3.set_xlabel(r'Epochs', fontsize = 20)
@@ -513,7 +513,7 @@ def Flow_samples(conditional, n):
 np.random.seed(1234)
 Nresults =200
 Nruns = 1
-labels = ['dl', 'm1', 'm2']
+labels = ['dl', 'm1', 'm2', 'RA', 'dec']
 priors = {}
 for jj in range(3):
     priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
@@ -579,8 +579,8 @@ while True:
     samples = samples[np.where(samples[:,0] > 0)[0], :]
     samples = samples[np.where(samples[:,1] > 0)[0], :]
     samples = samples[np.where(samples[:,2] > 0)[0], :]
-#     samples = samples[np.where((samples[:,3] > 0) & (samples[:,3] <= 2*np.pi))[0], :]
-#     samples = samples[np.where((samples[:,4] > -np.pi/2) & (samples[:,4] <= np.pi/2))[0], :]
+    samples = samples[np.where((samples[:,3] > 0) & (samples[:,3] <= 2*np.pi))[0], :]
+    samples = samples[np.where((samples[:,4] > -np.pi/2) & (samples[:,4] <= np.pi/2))[0], :]
 
 #     m1 = (1/(1+a)) * samples[:,1]
 #     m2 = (1/(1+a)) * samples[:,2]
@@ -599,7 +599,7 @@ while True:
 
 
 c1 = corner.corner(combined_samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1})
-fig = corner.corner(data[['dl', 'm1', 'm2']], plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$D_{L}$', r'$m_{1,z}$', r'$m_{2,z}$'], hist_kwargs = {'density' : 1})
+fig = corner.corner(data[['dl', 'm1', 'm2', 'RA', 'dec']], plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$D_{L}$', r'$m_{1,z}$', r'$m_{2,z}$', r'RA', r'dec'], hist_kwargs = {'density' : 1})
 
 
 

@@ -9,23 +9,26 @@ import pandas as pd
 
 def read_data(batch):
     path_name ="data_for_MLP/training/"
-    data_name = "_data_{}_batch_{}.csv".format(25000, batch)
-    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=[ 'dl', 'm1z', 'm2z', 'a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 'phi_12', 'psi', 'snr'])
+    data_name = "_data_{}_batch_{}_sky.csv".format(10000, batch)
+    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=[ 'dl', 'm1z', 'm2z', 'RA', 'dec','snr'])
+                          
+                          
+#usecols=[ 'dl', 'm1z', 'm2z', 'a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 'phi_12', 'psi', 'snr'])
     return GW_data
 
 list_data = [] 
-for i in range(6):
+for i in range(3):
     list_data.append(read_data(i+1))
 
 
 GW_data = pd.concat(list_data)
-GW_data = GW_data[[ 'dl', 'm1z', 'm2z', 'a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 'phi_12', 'psi', 'snr']]
+GW_data = GW_data[[ 'dl', 'm1z', 'm2z', 'RA', 'dec', 'snr']]
 if __name__ == '__main__':
     device = "cuda:2"
 
     #['H0','z', dl, m1, m2, chi1, chi2, inc, RA, dec 'Mz', 'inc', 'q', 'SNR']
-    train_inds = [0,1,2,3,4,5,6,7,8,9,10, 11, 12]
-    test_inds = [13]
+    train_inds = [0,1,2,3,4]
+    test_inds = [5]
     print('Showing DATA')
     print(GW_data.iloc[:,:13])
   
@@ -53,14 +56,14 @@ if __name__ == '__main__':
     print('LENGTH Validation:' +str(ytest.shape[0]))
     print('TRAINING: '+str(cut)+' ; VALIDATION: '+str(1-cut))
     
-    in_features = 13
+    in_features = 5
     out_features = 1
-    layers = 3
+    layers = 6
     neurons = np.array(np.ones(layers,dtype=np.int32)*256).tolist()#[256,256,256,256,256]
     activation = nn.SiLU
     out_activation=None
     model = create_mlp(input_features=in_features,output_features=out_features,neurons=neurons,layers=layers,activation=activation,
-                       out_activation=out_activation, device=device, model_name='SNR_approxiamator',use_bn=False)
+                       out_activation=out_activation, device=device, model_name='SNR_approxiamator_sky',use_bn=False)
 
     data = [xtrain, ytrain, xtest, ytest]
 

@@ -6,18 +6,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 device = 'cpu'
 
-model_name = 'SNR_approxiamator_2'
+model_name = 'SNR_approxiamator_sky'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
 
-path_name ="data_for_MLP/data_dl_mm/testing_data/"
+path_name =r"data_for_MLP/data_sky/testing/"
 data_name = "_data_{}.csv".format(2500)
-GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=[ 'dl', 'm1z', 'm2z', 'snr'])
+GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=[ 'dl', 'm1z', 'm2z','RA', 'dec', 'snr'])
 df = GW_data
 
-x_inds = [0,1,2]
-y_inds = [3]
+x_inds = [0,1,2, 3, 4]
+y_inds = [5]
 
 xdata = df.iloc[:,x_inds].to_numpy()
 ydata = df.iloc[:,y_inds].to_numpy()
@@ -58,12 +58,12 @@ fig2 = plt.figure()
 diff = np.array(np.array(pred - truth).T)
 
 
-plt.scatter(truth, np.abs(diff), s= 3, color = 'black')#
-# plt.hist(np.array(diff), bins = 150, edgecolor = 'blue', density  = 0)
+# plt.scatter(truth, np.abs(diff), s= 3, color = 'black')#
+plt.hist(np.array(abs(diff)), bins = 'auto', edgecolor = 'blue', density  = 0)
 # plt.ylim([0,20])
-# plt.xlim([0,100])
-plt.ylabel('|pred - truth|')
-plt.xlabel('True SNR')
+plt.xlim([-1,50])
+plt.xlabel('|pred - truth|')
+plt.ylabel('Count')
 fig2.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED_difference.png', bbox_inches = 'tight', dpi =300)
 
 
