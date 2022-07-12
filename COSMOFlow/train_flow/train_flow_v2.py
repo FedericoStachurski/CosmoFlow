@@ -27,6 +27,8 @@ import bilby
 from bilby.core.prior import Uniform
 from scipy.stats import entropy
 bilby.core.utils.log.setup_logger(log_level=0)
+from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
+from torch import logit, sigmoid
 
 import argparse
 
@@ -139,7 +141,7 @@ os.chdir('..')
 
 def read_data(batch):
     path_name ="data_gwcosmo/{}/training_data_from_MLP/".format(data)
-    data_name = "_data_250000_N_SNR_8_theta_full_catalog.csv".format(batch)
+    data_name = "_data_1000000_N_SNR_8_theta_v4.csv".format(batch)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2','a1', 'a2', 'tilt1', 
                                                                               'tilt2', 'RA', 'dec', 'theta_jn' ])
     return GW_data
@@ -158,6 +160,37 @@ print((GW_data.head()))
 
 
 data = GW_data[['dl','m1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn', 'H0']]
+
+#transform Polar into cartesian and spins to sigmoids
+def spherical_to_cart(dl, ra, dec):
+    
+    x,y,z = spherical_to_cartesian(dl, dec, ra)
+    return x,y,z
+
+coordinates= data[['dl', 'RA', 'dec']]
+dl = np.array(coordinates.dl)
+ra = np.array(coordinates.RA)
+dec = np.array(coordinates.dec)
+
+x,y,z = spherical_to_cart(dl, ra, dec)
+
+data['xcoord'] = x
+data['ycoord'] = y
+data['zcoord'] = z
+
+spins = data[['a1','a2']]
+
+a1_logit = logit(torch.from_numpy(np.array(spins.a1)))
+a2_logit = logit(torch.from_numpy(np.array(spins.a2)))
+
+data['a1_logit'] = a1_logit
+data['a2_logit'] = a2_logit
+
+
+
+data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1_logit', 'a2_logit', 'tilt1', 'tilt2', 'theta_jn', 'H0']]
+
+print(data.head(10))
 
 def scale_data(data_to_scale):
     target = data_to_scale[data_to_scale.columns[0:-1]]
@@ -408,7 +441,7 @@ for j in range(n_epochs):
     ax1.set_ylabel('loss', fontsize = 20)
     ax1.set_xlabel('Epochs', fontsize = 20)
     ax1.set_xscale('log')
-    ax1.set_ylim([-12.0,-1.0])
+    ax1.set_ylim([-9,-5.5])
     ax1.set_xlim([1,n_epochs])
     ax1.xaxis.set_tick_params(labelsize=20)
     ax1.yaxis.set_tick_params(labelsize=20)
@@ -419,16 +452,16 @@ for j in range(n_epochs):
 
     ax2.set_ylim([0,0.5])
     ax2.set_xlim([-5,5])
-    ax2.plot(g, kde_points1, linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
-    ax2.plot(g, kde_points2, linewidth=3,alpha = 0.6, label = r'$z_{m1}$')
-    ax2.plot(g, kde_points3, linewidth=3,alpha = 0.6, label = r'$z_{m2}$')
-    ax2.plot(g, kde_points4, linewidth=3,alpha = 0.6, label = r'$z_{a1}$')
-    ax2.plot(g, kde_points5, linewidth=3,alpha = 0.6, label = r'$z_{a2}$')
-    ax2.plot(g, kde_points6, linewidth=3,alpha = 0.6, label = r'$z_{tilt1}$')
-    ax2.plot(g, kde_points7, linewidth=3,alpha = 0.6, label = r'$z_{tilt2}$')
-    ax2.plot(g, kde_points8, linewidth=3,alpha = 0.6, label = r'$z_{RA}$')
-    ax2.plot(g, kde_points9, linewidth=3,alpha = 0.6, label = r'$z_{dec}$')
-    ax2.plot(g, kde_points10, linewidth=3,alpha = 0.6, label = r'$z_{\theta_{JN}}$')
+    ax2.plot(g, kde_points1, linewidth=3,alpha = 0.6, label = r'$z_{1}$')
+    ax2.plot(g, kde_points2, linewidth=3,alpha = 0.6, label = r'$z_{2}$')
+    ax2.plot(g, kde_points3, linewidth=3,alpha = 0.6, label = r'$z_{3}$')
+    ax2.plot(g, kde_points4, linewidth=3,alpha = 0.6, label = r'$z_{4}$')
+    ax2.plot(g, kde_points5, linewidth=3,alpha = 0.6, label = r'$z_{5}$')
+    ax2.plot(g, kde_points6, linewidth=3,alpha = 0.6, label = r'$z_{6}$')
+    ax2.plot(g, kde_points7, linewidth=3,alpha = 0.6, label = r'$z_{7}$')
+    ax2.plot(g, kde_points8, linewidth=3,alpha = 0.6, label = r'$z_{8}$')
+    ax2.plot(g, kde_points9, linewidth=3,alpha = 0.6, label = r'$z_{9}$')
+    ax2.plot(g, kde_points10, linewidth=3,alpha = 0.6, label = r'$z_{10}$')
 #     ax2.plot(g, kde_points6, linewidth=3, label = r'$z_{5}$')
     ax2.plot(g, gaussian,linewidth=5,c='k',label=r'$\mathcal{N}(0;1)$')
 
@@ -440,16 +473,16 @@ for j in range(n_epochs):
     ax2.yaxis.set_tick_params(labelsize=20)
 
     #Real time JS div between gaussian and latent 
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals1,linewidth=3,alpha = 0.6, label = r'$z_{dl}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals2,linewidth=3,alpha = 0.6,  label = r'$z_{m1}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals3,linewidth=3,alpha = 0.6,  label = r'$z_{m2}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals4,linewidth=3,alpha = 0.6,  label = r'$z_{a1}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals5,linewidth=3,alpha = 0.6,  label = r'$z_{a2}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals6,linewidth=3,alpha = 0.6, label = r'$z_{tilt1}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals7,linewidth=3,alpha = 0.6,  label = r'$z_{tilt2}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals8,linewidth=3,alpha = 0.6,  label = r'$z_{RA}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals9,linewidth=3,alpha = 0.6,  label = r'$z_{dec}$')
-    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals10,linewidth=3,alpha = 0.6,  label = r'$z_{\theta_{JN}}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals1,linewidth=3,alpha = 0.6, label = r'$z_{l}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals2,linewidth=3,alpha = 0.6,  label = r'$z_{2}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals3,linewidth=3,alpha = 0.6,  label = r'$z_{3}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals4,linewidth=3,alpha = 0.6,  label = r'$z_{4}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals5,linewidth=3,alpha = 0.6,  label = r'$z_{5}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals6,linewidth=3,alpha = 0.6, label = r'$z_{6}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals7,linewidth=3,alpha = 0.6,  label = r'$z_{7}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals8,linewidth=3,alpha = 0.6,  label = r'$z_{8}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals9,linewidth=3,alpha = 0.6,  label = r'$z_{9}$')
+    ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), KL_vals10,linewidth=3,alpha = 0.6,  label = r'$z_{10}$')
 #     ax3.plot(np.linspace(1,j+1, len(loss_dict['train'])), JS_vals6,linewidth=3,alpha = 0.6,  label = r'$z_{5}$')
 
     ax3.set_ylabel('KLDiv', fontsize = 20)
@@ -506,9 +539,9 @@ f.close()
 
 
 
-##################################### TESTING #####################################
+# ##################################### TESTING #####################################
 
-###### TEST 1: PP-Plot ######
+# ###### TEST 1: PP-Plot ######
 
 
 print()
@@ -544,7 +577,7 @@ def Flow_samples(conditional, n):
 np.random.seed(1234)
 Nresults =200
 Nruns = 1
-labels = ['dl','m1', 'm2','a1', 'a2', 'tilt1','tilt2', 'RA', 'dec', 'theta_jn']
+labels = ['x','y', 'z','m1', 'm2','a1_log', 'a2_log', 'tilt1','tilt2', 'theta_jn']
 priors = {}
 for jj in range(10):
     priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
@@ -607,16 +640,16 @@ while True:
 #     z = cosmology.fast_dl_to_z_v2(samples[:,0], H0_samples)
     
 #     samples = np.concatenate([samples, H0_samples, z], axis=1)
-    samples = samples[np.where(samples[:,0] > 0)[0], :]
-    samples = samples[np.where(samples[:,1] > 0)[0], :]
-    samples = samples[np.where(samples[:,2] > 0)[0], :]
-    samples = samples[np.where((samples[:,3] > 0) & (samples[:,3] <= 0.99))[0], :]
-    samples = samples[np.where((samples[:,4] > 0) & (samples[:,4] <= 0.99))[0], :]
-    samples = samples[np.where((samples[:,5] > 0) & (samples[:,5] <= np.pi))[0], :]
-    samples = samples[np.where((samples[:,6] > 0) & (samples[:,6] <= np.pi))[0], :]
-    samples = samples[np.where((samples[:,7] > 0) & (samples[:,7] <= 2*np.pi))[0], :]
-    samples = samples[np.where((samples[:,8] >= -np.pi/2) & (samples[:,8] <= np.pi/2))[0], :]
-    samples = samples[np.where((samples[:,9] >= 0) & (samples[:,9] <= np.pi))[0], :]
+#     samples = samples[np.where(samples[:,0] > 0)[0], :]
+#     samples = samples[np.where(samples[:,1] > 0)[0], :]
+#     samples = samples[np.where(samples[:,2] > 0)[0], :]
+#     samples = samples[np.where((samples[:,3] > 0) & (samples[:,3] <= 0.99))[0], :]
+#     samples = samples[np.where((samples[:,4] > 0) & (samples[:,4] <= 0.99))[0], :]
+#     samples = samples[np.where((samples[:,5] > 0) & (samples[:,5] <= np.pi))[0], :]
+#     samples = samples[np.where((samples[:,6] > 0) & (samples[:,6] <= np.pi))[0], :]
+#     samples = samples[np.where((samples[:,7] > 0) & (samples[:,7] <= 2*np.pi))[0], :]
+#     samples = samples[np.where((samples[:,8] >= -np.pi/2) & (samples[:,8] <= np.pi/2))[0], :]
+#     samples = samples[np.where((samples[:,9] >= 0) & (samples[:,9] <= np.pi))[0], :]
 #     m1 = (1/(1+a)) * samples[:,1]
 #     m2 = (1/(1+a)) * samples[:,2]
 #     sumM = m1 + m2 
@@ -634,7 +667,7 @@ while True:
 
 
 c1 = corner.corner(combined_samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1})
-fig = corner.corner(data[['dl','m1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn']], plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$D_{L}$', r'$m_{1,z}$', r'$m_{2,z}$',r'$a_{1}$', r'$a_{2}$', r'$tilt_{1}$', r'$tilt_{2}$', r'RA', r'dec', r'$\theta_{JN}$'], hist_kwargs = {'density' : 1})
+fig = corner.corner(data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1_logit', 'a2_logit', 'tilt1', 'tilt2', 'theta_jn']] , plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$x[Mpc]$',r'$y[Mpc]$',r'$z[Mpc]$', r'$m_{1,z}$', r'$m_{2,z}$',r'$alog_{1}$', r'$alog_{2}$', r'$tilt_{1}$', r'$tilt_{2}$', r'$\theta_{JN}$'], hist_kwargs = {'density' : 1})
 
 
 

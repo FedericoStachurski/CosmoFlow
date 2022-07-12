@@ -43,7 +43,7 @@ np.random.seed(100)
 from MultiLayerPerceptron.validate import run_on_dataset
 from MultiLayerPerceptron.nn.model_creation import load_mlp
 device = 'cpu'
-model_name = 'SNR_approxiamator_sky'
+model_name = 'SNR_approxiamator_sky_theta_v4'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
@@ -69,13 +69,13 @@ weights = 1 / (1+catalog.z)
 
 zmax = 2
 
-type_of_data = 'testing'
+type_of_data = 'training'
 SNRth = 8
 mth = 20
 
 
 #grid of z and M
-M_grid =  np.linspace(-23,-15,25)
+M_grid =  np.linspace(-23,-15,50)
 z_grid = np.linspace(0,zmax,100)
 
 
@@ -141,9 +141,9 @@ def sample_M_from_cdf(cdf, N):
 
 if type_of_data == 'training':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
-    N = 100000
+    N = 1000000
     H0_samples = np.random.uniform(20,120,N)
-    cdfs = np.ones((N,25))
+    cdfs = np.ones((N,50))
     for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
         cdfs[i, :] = cdf_M(H0_samples[i])
     
@@ -153,7 +153,7 @@ if type_of_data == 'testing':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/testing_data_from_MLP/"
     N = 250
     H0_samples = 70*np.ones(N)
-    cdfs = np.ones((N,25))
+    cdfs = np.ones((N,50))
     for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
         cdfs[i, :] = cdf_M(H0_samples[i])
     
@@ -162,7 +162,7 @@ if type_of_data == 'testing':
 def SNR_from_MLP(GW_data):
 
     df = GW_data
-    x_inds = [0,1, 2, 3, 4]
+    x_inds = [0,1, 2, 3, 4, 5, 6 ,7, 8, 9]
     xdata = df.iloc[:,x_inds].to_numpy()
     xmeanstd = np.load(f'models/{model_name}/xdata_inputs.npy')
     net_out, time_tot, time_p_point = run_on_dataset(mlp,xdata,label_dim = None, 
@@ -186,27 +186,36 @@ observed_RA = []
 observed_dec = []
 observed_m = []
 
+observed_a1 = [] 
+observed_a2 = [] 
+observed_tilt1 = []
+observed_tilt2 = []
+observed_thetajn = []
+
 
 # inx_in = np.where(H0_samples > 0)
 H0 = H0_samples
+
+M = [] 
+for cdf in cdfs:
+    M.append(sample_M_from_cdf(cdf, 1))
+
+M = np.array(M)  
+
 while True:
     
     
     
     n = len(H0)
     
-    M = [] 
-    for cdf in cdfs:
-        M.append(sample_M_from_cdf(cdf, 1))
-        
-    M = np.array(M)    
+  
     
     
     #draw redshifts
     z = draw_cumulative_z(n, pz_int)
     
-    #Draw RA dec 
-    RA,dec = draw_RA_Dec(n)
+#     #Draw RA dec 
+#     RA,dec = draw_RA_Dec(n)
     
 
 
@@ -216,9 +225,13 @@ while True:
     #Make sure all are arrays
     z = np.array(z)
     dl = np.array(dl)
+
+    
+    
+        #sample GW priors
+    _, m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, _, _, _, _ = gw_priors.draw_prior(n)
     RA = np.array(RA)
     dec = np.array(dec)
-
     
     app_samples = cosmology.app_mag(M.flatten(),dl.flatten())
 
@@ -249,22 +262,23 @@ while True:
         
     
 
-    #sample GW priors
-    #m1, m2, _, _, _, _, _, _, _, _, _, _, _ = gw_priors.draw_prior(n)
 
 
-    m1, m2 = np.random.uniform(5,50, size=(2, n))
-    inx = np.where(m1 < m2)
-    temp1 = m1[inx]
-    temp2 = m2[inx]
-    m1[inx] = temp2
-    m2[inx] = temp1
+
+#     m1, m2 = np.random.uniform(5,50, size=(2, n))
+#     inx = np.where(m1 < m2)
+#     temp1 = m1[inx]
+#     temp2 = m2[inx]
+#     m1[inx] = temp2
+#     m2[inx] = temp1
 
 
     m1z = m1*(1+z)
     m2z = m2*(1+z)
 
-    data_dict = {'dl': dl, 'm1z':m1z, 'm2z':m2z, 'RA':RA, 'dec':dec}
+    data_dict = {    'dl':dl, 'm1z':m1z, 'm2z':m2z,'a1': a1, 'a2': a2, 'tilt1': tilt1, 'tilt2': tilt2,
+             'RA':RA, 'dec':dec,'thteta_jn':theta_jn}
+
     GW_data = pd.DataFrame(data_dict)
 
 
@@ -275,7 +289,7 @@ while True:
     
     snrs_obs = np.sqrt((ncx2.rvs(4, snrs**2, size=n, loc = 0, scale = 1)))
     GW_data['snr'] = snrs_obs
-    inx_out = np.where((GW_data.snr_true != 0 ) & (GW_data.snr >= SNRth) & (GW_data.snr < 150) & (GW_data.dl < 25000))
+    inx_out = np.where((GW_data.snr_true != 0 ) & (GW_data.snr >= SNRth) & (GW_data.snr < 150) & (GW_data.dl <= 12_000))
 
     
   
@@ -287,9 +301,17 @@ while True:
     observed_m2z.append(m2z[inx_out])
     observed_RA.append(RA[inx_out])
     observed_dec.append(dec[inx_out])
+    observed_m.append(app_samples[inx_out])
+    
+    observed_a1.append(a1[inx_out])
+    observed_a2.append(a2[inx_out])
+    observed_tilt1.append(tilt1[inx_out])
+    observed_tilt2.append(tilt2[inx_out])
+    observed_thetajn.append(theta_jn[inx_out])
     
     H0 = np.delete(H0, inx_out)
-    cdfs = np.delete(cdfs, inx_out, axis = 0 )
+    M = np.delete(M, inx_out)
+
 
 
     
@@ -308,12 +330,20 @@ observed_m1z = np.concatenate(observed_m1z )
 observed_m2z = np.concatenate(observed_m2z )
 observed_RA = np.concatenate(observed_RA )
 observed_dec = np.concatenate(observed_dec )
+observed_m = np.concatenate(observed_m )
 
+observed_a1 = np.concatenate(observed_a1 )
+observed_a2 = np.concatenate(observed_a2 )
+observed_tilt1 = np.concatenate(observed_tilt1 )
+observed_tilt2 = np.concatenate(observed_tilt2 )
+observed_thetajn = np.concatenate(observed_thetajn )
 
 
 
 output_df = pd.DataFrame({'snr': observed_snr, 'H0': observed_H0, 'dl': observed_dl,
-                          'm1': observed_m1z, 'm2': observed_m2z, 'RA': observed_RA, 'dec':observed_dec})
-output_df.to_csv(path_data+'_data_{}_N_SNR_8.csv'.format(int(N)))
+                          'm1': observed_m1z, 'm2': observed_m2z, 'RA': observed_RA, 'dec':observed_dec, 
+                          'a1': observed_a1, 'a2':observed_a2, 'tilt1': observed_tilt1, 'tilt2':observed_tilt2, 
+                          'theta_jn':observed_thetajn, 'app_mag':observed_m})
+output_df.to_csv(path_data+'_data_{}_N_SNR_8_theta_v4.csv'.format(int(N)))
 
 

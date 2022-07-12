@@ -14,6 +14,7 @@ import sys
 import bilby.gw.utils as ut
 
 
+
 bilby.core.utils.log.setup_logger(log_level=0)
 
 
@@ -22,13 +23,15 @@ bilby.core.utils.log.setup_logger(log_level=0)
 def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase):
     "compute_SNR with all 15 plus z"
     
+    geo_time = np.random.uniform(-86400, 86400, size = 1)
+    
     injection_dict=dict(mass_1=m1_det, 
                         mass_2=m2_det, 
                         luminosity_distance=dl, 
                         theta_jn=theta_jn, 
                         psi=psi, 
                         phase=phase, 
-                        geocent_time=1242442967.46, 
+                        geocent_time=1242442967.46 + geo_time, 
                         ra=RA, 
                         dec=dec, 
                         a_1=a1, 
@@ -51,8 +54,8 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
     
     #  Define time and frequency parameters
     minimum_frequency=20
-    duration=np.round(ut.calculate_time_to_merger(minimum_frequency,m1_det,m2_det, 
-                                                  chi_eff(a1, a2, tilt1, tilt2, m1_det, m2_det))+2,0) 
+    duration=np.round(ut.calculate_time_to_merger(minimum_frequency,m1_det,m2_det,0))
+    if duration < 1: duration = 1 
     sampling_frequency=4096
     trigger_time=injection_dict['geocent_time']
     
@@ -64,7 +67,7 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
     waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                               reference_frequency=20., minimum_frequency=minimum_frequency)
     waveform_generator = bilby.gw.WaveformGenerator(
-            duration=duration, sampling_frequency=sampling_frequency,
+            duration=duration+1.5, sampling_frequency=sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             waveform_arguments=waveform_arguments,
             parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
@@ -83,8 +86,8 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
         
 
     set_strain = ifos.set_strain_data_from_power_spectral_densities(
-        sampling_frequency=sampling_frequency, duration=duration,
-        start_time=(trigger_time + 2 - duration))
+        sampling_frequency=sampling_frequency, duration=duration+1.5,
+        start_time=(trigger_time - duration))
     injected_signal = ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_dict);
 
 
