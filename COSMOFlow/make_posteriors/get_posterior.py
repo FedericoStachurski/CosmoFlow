@@ -143,7 +143,7 @@ def load_hyperparameters_scalers_flow(flow_name):
     #Open flow model file flow.pt
     flow_load = torch.load( path+'flow.pt')
 
-    flow_empty = RealNVP(n_inputs= n_inputs,
+    flow_empty = CouplingNSF(n_inputs= n_inputs,
         n_transforms= n_transforms,
         n_neurons= n_neurons,
         n_conditional_inputs = n_conditional_inputs,
@@ -208,6 +208,7 @@ values_no_w = np.ones(Npoints)
  
 dH = np.diff(H0vec)[0]
 r = Nsamples
+likelihoods = [] 
 for i in tqdm(range(r)):
     
     like = p_theta_H0(conv_df.iloc[i,:],H0vec)
@@ -215,10 +216,10 @@ for i in tqdm(range(r)):
     if np.isnan(like)[0] == 0:  
         like /= (ptheta[i]*pdet[i])
 
+        likelihoods.append(like/np.sum(like*dH))
 
-
-        plt.plot(H0vec,like/np.sum(like*dH), 'k', alpha=0.1, linewidth = 1)
-        values += like
+        #plt.plot(H0vec,like/np.sum(like*dH), 'k', alpha=0.1, linewidth = 1)
+        values += like/np.sum(like*dH)
 #         values_no_w += like_no_w
 
         post = values / np.sum( values*dH)
@@ -226,16 +227,39 @@ for i in tqdm(range(r)):
 #     plt.plot(H0vec,post, 'r', alpha=(i+1)/(2*r))
 
 
-
+errors = []
+for i in range(Npoints):
+    errors.append(np.sqrt(np.var(np.vstack(np.array(likelihoods))[:,i])))
     
 
 
 #post = np.exp(values) / np.sum( np.exp(values)*dH)@
 post = values / np.sum( values*dH)
-plt.title('GW'+GW_event, fontsize = 20)
-plt.plot(H0vec,post, 'r', alpha=1, linewidth=5, label = '$p(H_{0} | \mathbf{h}, D)$, posterior')
 
-plt.plot([], [],'k', alpha=0.1, label = '$p(\Theta | H_{0})$, likelihoods')
+y_up = post + np.array(errors)
+y_down = post - np.array(errors)
+
+#Open O3 posterior
+path_O3 = '/data/wiay/federico/PhD/O3_posteriors/'
+ 
+event_O3 = path_O3 +'GW'+GW_event[0:6]
+import os
+if os.path.isdir(event_O3):
+
+    with np.load(event_O3+'/'+'GW'+GW_event[0:6]+'.npz', allow_pickle=True) as data:
+        data = data['arr_0']
+    plt.plot(data[0],data[2], 'b', alpha=1, linewidth=5, label = 'O3 GWcosmo Posterior')    
+        
+
+
+
+
+
+
+plt.title('GW'+GW_event, fontsize = 20)
+plt.plot(H0vec,post, '--k', alpha=1, linewidth=5, label = '$p(H_{0} | \mathbf{h}, D)$, posterior')
+plt.fill_between(H0vec,y_up, y_down, color = 'red', alpha = 0.5, label = '$1\sigma$')
+#plt.plot([], [],'k', alpha=0.1, label = '$p(\Theta | H_{0})$, likelihoods')
 
 plt.ylim([0.00,0.025])
 plt.xlim([30,110])

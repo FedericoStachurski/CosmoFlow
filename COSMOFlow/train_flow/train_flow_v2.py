@@ -46,6 +46,8 @@ ap.add_argument("-batch", "--batch_size", required=False,
    help="batch size of the data to pass", default = 5000)
 ap.add_argument("-train_size", "--train_size", required=False,
    help="size of trainign data percentage", default = 0.75)
+ap.add_argument("-flow_type", "--flow_type", required=False,
+   help="Number of training iterations", default = "RealNVP")
 ap.add_argument("-epochs", "--epochs", required=False,
    help="Number of training iterations", default = 1000)
 ap.add_argument("-neurons", "--neurons", required=False,
@@ -69,6 +71,7 @@ ap.add_argument("-drop_out", "--drop_out", required=False,
 args = vars(ap.parse_args())
 Name = str(args['Name_folder'])
 data = str(args['data_folder'])
+flow_type = str(args['flow_type'])
 batch = int(args['batch_size'])
 train_size = float(args['train_size'])
 neurons = int(args['neurons'])
@@ -263,15 +266,29 @@ print()
 
 
 
+if flow_type == 'RealNVP':
+    flow = RealNVP(n_inputs= n_inputs,
+            n_transforms= n_transforms,
+            n_neurons= n_neurons,
+            n_conditional_inputs = n_conditional_inputs,
+            n_blocks_per_transform = n_blocks_per_transform,
+            batch_norm_between_transforms=True,
+            dropout_probability=dp,
+            linear_transform=linear_transform)
 
-flow = RealNVP(n_inputs= n_inputs,
-        n_transforms= n_transforms,
-        n_neurons= n_neurons,
-        n_conditional_inputs = n_conditional_inputs,
-        n_blocks_per_transform = n_blocks_per_transform,
-        batch_norm_between_transforms=True,
-        dropout_probability=dp,
-        linear_transform=linear_transform)
+elif flow_type == 'CouplingNSF':
+    flow = CouplingNSF(n_inputs= n_inputs,
+            n_transforms= n_transforms,
+            n_neurons= n_neurons,
+            n_conditional_inputs = n_conditional_inputs,
+            n_blocks_per_transform = n_blocks_per_transform,
+            batch_norm_between_transforms=True,
+            dropout_probability=dp,
+            linear_transform=linear_transform)
+else: 
+    raise ValueError('Flow not implemented')
+
+
 
 best_model = copy.deepcopy(flow.state_dict())
 best_val_loss = np.inf
@@ -527,7 +544,8 @@ para = {'batch_size': batch_size,
           'n_transforms': int(n_transforms),
           'n_blocks_per_transform': int(n_blocks_per_transform),
           'n_inputs': int(n_inputs),
-          'n_conditional_inputs':int(n_conditional_inputs)
+          'n_conditional_inputs':int(n_conditional_inputs),
+          'flow_type': flow_type
           }
 
 f = open(path+folder_name+'/hyperparameters.txt','w')
