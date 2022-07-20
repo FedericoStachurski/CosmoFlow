@@ -70,12 +70,12 @@ weights = 1 / (1+catalog.z)
 zmax = 2
 
 type_of_data = 'training'
-SNRth = 8
+SNRth = 10
 mth = 20
 
 
 #grid of z and M
-M_grid =  np.linspace(-23,-15,50)
+M_grid =  np.linspace(-23,-15,25)
 z_grid = np.linspace(0,zmax,100)
 
 
@@ -141,9 +141,9 @@ def sample_M_from_cdf(cdf, N):
 
 if type_of_data == 'training':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
-    N = 1000000
+    N = 2500
     H0_samples = np.random.uniform(20,120,N)
-    cdfs = np.ones((N,50))
+    cdfs = np.ones((N,25))
     for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
         cdfs[i, :] = cdf_M(H0_samples[i])
     
@@ -153,7 +153,7 @@ if type_of_data == 'testing':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/testing_data_from_MLP/"
     N = 250
     H0_samples = 70*np.ones(N)
-    cdfs = np.ones((N,50))
+    cdfs = np.ones((N,25))
     for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
         cdfs[i, :] = cdf_M(H0_samples[i])
     
@@ -227,9 +227,9 @@ while True:
     dl = np.array(dl)
 
     
-    
+    distributions = {'mass':'Power-law'}
         #sample GW priors
-    _, m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, _, _, _, _ = gw_priors.draw_prior(n)
+    _, m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, _, _, _, _ = gw_priors.draw_prior(n, distributions)
     RA = np.array(RA)
     dec = np.array(dec)
     
@@ -344,6 +344,6 @@ output_df = pd.DataFrame({'snr': observed_snr, 'H0': observed_H0, 'dl': observed
                           'm1': observed_m1z, 'm2': observed_m2z, 'RA': observed_RA, 'dec':observed_dec, 
                           'a1': observed_a1, 'a2':observed_a2, 'tilt1': observed_tilt1, 'tilt2':observed_tilt2, 
                           'theta_jn':observed_thetajn, 'app_mag':observed_m})
-output_df.to_csv(path_data+'_data_{}_N_SNR_8_theta_v4.csv'.format(int(N)))
+output_df.to_csv(path_data+'_data_{}_N_SNR_8_theta_v5.csv'.format(int(N)))
 
 

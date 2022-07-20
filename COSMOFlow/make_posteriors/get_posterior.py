@@ -132,6 +132,8 @@ def load_hyperparameters_scalers_flow(flow_name):
     n_neurons = hyperparameters['n_neurons']
     n_transforms = hyperparameters['n_transforms']
     n_blocks_per_transform = hyperparameters['n_blocks_per_transform']
+    dropout = hyperparameters['dropout']
+    flow_type = hyperparameters['flow_type']
     
     #open scaler_x and scaler_y
     scalerfile_x = path+'scaler_x.sav'
@@ -141,22 +143,31 @@ def load_hyperparameters_scalers_flow(flow_name):
   
 
     #Open flow model file flow.pt
-    flow_load = torch.load( path+'flow.pt')
+    flow_load = torch.load( path+'flow.pt', map_location=device)
 
-    flow_empty = CouplingNSF(n_inputs= n_inputs,
-        n_transforms= n_transforms,
-        n_neurons= n_neurons,
-        n_conditional_inputs = n_conditional_inputs,
-        n_blocks_per_transform = n_blocks_per_transform,
-        batch_norm_between_transforms=True,
-        dropout_probability=0.0,
-        linear_transform=None)
-    
+    if flow_type == 'RealNVP':
+        flow_empty = RealNVP(n_inputs= n_inputs,
+            n_transforms= n_transforms,
+            n_neurons= n_neurons,
+            n_conditional_inputs = n_conditional_inputs,
+            n_blocks_per_transform = n_blocks_per_transform,
+            batch_norm_between_transforms=True,
+            dropout_probability=dropout,
+            linear_transform=None)
+    elif flow_type == 'CouplingNSF':   
+            flow_empty = CouplingNSF(n_inputs= n_inputs,
+            n_transforms= n_transforms,
+            n_neurons= n_neurons,
+            n_conditional_inputs = n_conditional_inputs,
+            n_blocks_per_transform = n_blocks_per_transform,
+            batch_norm_between_transforms=True,
+            dropout_probability=dropout,
+            linear_transform=None)
     
     flow_empty.load_state_dict(flow_load)
     flow = flow_empty
     flow.eval()
-    flow.to(device)
+    
     return flow, hyperparameters, scaler_x, scaler_y
 
 
@@ -244,11 +255,19 @@ path_O3 = '/data/wiay/federico/PhD/O3_posteriors/'
  
 event_O3 = path_O3 +'GW'+GW_event[0:6]
 import os
+from scipy import interpolate
 if os.path.isdir(event_O3):
 
     with np.load(event_O3+'/'+'GW'+GW_event[0:6]+'.npz', allow_pickle=True) as data:
         data = data['arr_0']
-    plt.plot(data[0],data[2], 'b', alpha=1, linewidth=5, label = 'O3 GWcosmo Posterior')    
+        
+    #Interpolate to normalize between 30-110 H0
+    f = interpolate.interp1d(data[0], data[2])
+    ynew = f(H0vec) 
+    post_O3 = ynew/np.sum(ynew*dH)
+        
+        
+    plt.plot(H0vec,post_O3, 'b', alpha=1, linewidth=5, label = 'O3 GWcosmo Posterior')    
         
 
 
