@@ -20,10 +20,10 @@ bilby.core.utils.log.setup_logger(log_level=0)
 
 
 #  Define injection parameters
-def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase):
+def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase, geo_time):
     "compute_SNR with all 15 plus z"
     
-    geo_time = np.random.uniform(-86400, 86400, size = 1)
+    #geo_time = np.random.uniform(-86400, 86400, size = 1)
     
     injection_dict=dict(mass_1=m1_det, 
                         mass_2=m2_det, 

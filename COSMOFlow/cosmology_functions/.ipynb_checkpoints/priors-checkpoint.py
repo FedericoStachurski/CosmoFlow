@@ -8,9 +8,10 @@ omega_m = 0.3; omega_lambda = 0.7    #cosmological parameters
 omega_k = 1- omega_lambda - omega_m
 
 @np.vectorize
-def p_z(z):
+def p_z(z, omega_m = 0.3):
     "redshift probability distribution function for Omega_M = 0.3 ad Omega_Lambda = 0.7 (not normalized)"
-
+    omega_lambda = 1 - omega_m
+    omega_k = 0 
     def E(z):
         return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda))
     
@@ -30,26 +31,45 @@ def fast_p_z(z):
     return splev(z, spl_z_pz)
  
 
-def p_M(M, H): 
+def p_M(M, H, para_dict = None ):
     "Schecter Function (B-band values) (not normalized)"
-    phi = (1.61/100)*(H/100)**3
-    alpha = -1.21
-    Mc = -19.66 + 5*np.log10(H/100)
-    return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+1))*(np.exp(-10**((2/5)*(Mc-M))))  
+    if para_dict is None:
+        phi = (1.6*10**(-2))*(H/100)**(3)
+        alpha = -1.2
+        Mc = -21 + 5*np.log10(H/50)
+    else: 
+        phi = para_dict['phi']
+        alpha = para_dict['alpha']
+        Mc = para_dict['Mc']
+    return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+1))*(np.exp(-10**((2/5)*(Mc-M))))   
 
-# @np.vectorize
-# def p_Chirp(M):
-#     "Uniform Chirp mass prior betwee 5 and 100 Msol"
-#     if M <= Mmax and M>=Mmin:
-#         return 1 / (Mmax - Mmin)
-#     else:
-#         return 0
-# %%
+
+
+def p_M_weight_L(M, H, para_dict = None ):
+    "Schecter Function (B-band values) (not normalized), luminosity weighted"
+    if para_dict is None:
+        phi = (1.6*10**(-2))*(H/100)**(3)
+        alpha = -1.2
+        Mc = -21 + 5*np.log10(H/50)
+    else: 
+        phi = para_dict['phi']
+        alpha = para_dict['alpha']
+        Mc = para_dict['Mc']
+    return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+2))*(np.exp(-10**((2/5)*(Mc-M)))) 
+
+
+def ker_p_M(M, H): 
+    "Schecter Function (B-band values) (not normalized)"
+    phi = (0.002)*(H/50)**(3)
+    alpha = -1.2
+    Mc = -21 + 5*np.log10(H/50)
+    return ((10**((2/5)*(Mc-M)))**(alpha+1))*(np.exp(-10**((2/5)*(Mc-M))))  
+
 def p_Chirp(M):
     "Uniform Chirp mass prior betwee 5 and 100 Msol"
     #print(type(M))
     if isinstance(M,float):
-        if M <= 100 and M>= 25:
+        if M <= 100 and M>= 15:
             return( 1 / (Mmax - Mmin) )
         else:
             return 0 
@@ -57,6 +77,6 @@ def p_Chirp(M):
         mass = np.zeros(len(M))
         
         for i in range(len(M)):
-            if M[i] <= 100 and M[i]>= 5:
+            if M[i] <= 100 and M[i]>= 15:
                 mass[i] = ( 1 / (Mmax - Mmin) )
         return np.array(mass).flatten()

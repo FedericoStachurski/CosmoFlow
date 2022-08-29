@@ -5,23 +5,51 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 device = 'cpu'
+import matplotlib.style
+import matplotlib as mpl
+mpl.style.use('classic')
 
-model_name = 'SNR_approxiamator_sky_theta_v4'
+model_name = 'SNR_approxiamator_full_para_HA_v6'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
 
 
 path_name =r"data_for_MLP/data_sky_theta/testing/"
-data_name = "_data_{}_sky_theta_v2.csv".format(1_000)
+data_name = "_data_full_para_uniform_snr_zoom_SNR.csv".format(1)
 GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['dl','m1z','m2z',
-                                                                          'a1','a2','tilt1',
-                                                                          'tilt2','RA',
-                                                                          'dec','thteta_jn','snr'])
+                                                                              'a1','a2','tilt1',
+                                                                              'tilt2','RA',
+                                                                              'dec','thteta_jn','phi_jl', 'phi_12', 
+                                                                              'polarization','geo_time','snr'])
+
+
+def HA(time, RA):
+    def time2angle(time):
+        time = time / 3600.0
+        return time*(15/1)*(np.pi/180)
+    LHA = (time2angle(time) - RA)*(180/np.pi)
+
+
+
+    return LHA
+
+
+ha = HA(GW_data.geo_time, GW_data.RA - np.pi)
+GW_data['HA'] = ha
+
+GW_data = GW_data[['dl','m1z','m2z',
+                  'a1','a2','tilt1',
+                  'tilt2','HA',
+                  'dec','thteta_jn','phi_jl', 'phi_12',
+                   'polarization','snr']]
+
+
 df = GW_data
 
-x_inds = [0,1,2, 3, 4, 5, 6, 7, 8, 9]
-y_inds = [10]
+
+x_inds = [0, 1,2, 3, 4, 5, 6, 7, 8, 9,10, 11, 12]
+y_inds = [13]
 
 xdata = df.iloc[:,x_inds].to_numpy()
 ydata = df.iloc[:,y_inds].to_numpy()
@@ -37,7 +65,8 @@ print('Time taken for network (in total, per point): ',f'({time_tot:.3e},{time_p
 
 truth = ydata
 pred = net_out
-pred[pred<0]=0
+pred = np.exp(pred)
+#pred[pred<0]=0
 
 truth = np.array(truth.T)[0]
 
@@ -51,11 +80,24 @@ x = np.linspace(0,1000, 100)
 fig1 = plt.figure()
 plt.loglog(pred, truth, '.k', markersize=5)
 plt.plot(x,x, 'r', linewidth=2, alpha = 0.5)
-plt.xlim([0.01,1000])
-plt.ylim([0.01,1000])
+cm = plt.cm.get_cmap('plasma')
+plt.xlim([1,100])
+plt.ylim([1,100])
 plt.ylabel('TRUE')
 plt.xlabel('PRED')
 fig1.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED.png', bbox_inches = 'tight', dpi = 300)
+
+
+fig1 = plt.figure()
+sc = plt.scatter(pred, truth, c=df.dl, vmin=100, vmax=10_000, s=35, cmap=cm)
+cbar = plt.colorbar(sc)
+cbar.set_label('Luminosity distance [Mpc]', rotation=270)
+plt.plot(x,x, 'r', linewidth=2, alpha = 0.5)
+plt.xlim([1,30])
+plt.ylim([1,30])
+plt.ylabel('TRUE')
+plt.xlabel('PRED')
+fig1.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED_zoom.png', bbox_inches = 'tight', dpi = 300)
 
 
 fig2 = plt.figure()
@@ -63,10 +105,10 @@ diff = np.array(np.array(pred - truth).T)
 
 
 # plt.scatter(truth, np.abs(diff), s= 3, color = 'black')#
-plt.hist(np.array(diff), bins = 'auto', edgecolor = 'blue', density  = 0)
+plt.hist(diff, bins = 'auto', edgecolor = 'blue', density  = 0)
 # plt.ylim([0,20])
-plt.xlim([-50,50])
-plt.xlabel('|pred - truth|')
+plt.xlim([-30,30])
+plt.xlabel('pred - truth')
 plt.ylabel('Count')
 fig2.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED_difference.png', bbox_inches = 'tight', dpi =300)
 

@@ -43,6 +43,21 @@ def p_M(M, H, para_dict = None ):
         Mc = para_dict['Mc']
     return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+1))*(np.exp(-10**((2/5)*(Mc-M))))   
 
+
+
+def p_M_weight_L(M, H, para_dict = None ):
+    "Schecter Function (B-band values) (not normalized), luminosity weighted"
+    if para_dict is None:
+        phi = (1.6*10**(-2))*(H/100)**(3)
+        alpha = -1.2
+        Mc = -21 + 5*np.log10(H/50)
+    else: 
+        phi = para_dict['phi']
+        alpha = para_dict['alpha']
+        Mc = para_dict['Mc']
+    return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+2))*(np.exp(-10**((2/5)*(Mc-M)))) 
+
+
 def ker_p_M(M, H): 
     "Schecter Function (B-band values) (not normalized)"
     phi = (0.002)*(H/50)**(3)

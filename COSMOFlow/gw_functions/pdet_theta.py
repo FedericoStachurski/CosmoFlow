@@ -18,14 +18,14 @@ def p_D_theta(theta, rth):
 #    "Output: pdet "
 
 
-    dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase = theta
+    dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, geo_time = theta
     #Compute SNR from given parameters
-    SNR = SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase)
+    SNR = SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, 0, geo_time)
     
     
     #Define pdet by calling the sf of chi2
     def pdet(x):
-        p = ncx2.sf(rth**(2), 4, x**2, loc = 0, scale = 1)
+        p = ncx2.sf(rth**(2), 6, x**2, loc = 0, scale = 1)
         return p
     
     

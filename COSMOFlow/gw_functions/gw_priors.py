@@ -21,7 +21,7 @@ bilby.core.utils.log.setup_logger(log_level=0)
 
 
 #GW prior para
-dl_dist = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance',minimum=50, maximum=20_000)
+dl_dist = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance',minimum=5, maximum=20_000)
 m1_dist = bilby.core.prior.Uniform(name='mass_1',minimum=1, maximum=100)
 m2_dist = bilby.core.prior.Uniform(name='mass_2', minimum=1, maximum=100)
 RA_dist = bilby.core.prior.Uniform(name='ra', minimum=0, maximum=2 * np.pi, boundary='periodic')
@@ -42,7 +42,9 @@ phi_jl_dist = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='per
 theta_jn_dist = Sine(name='theta_jn')
 psi_dist = Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic')
 phase_dist = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic')
-
+geotime_dist = bilby.core.prior.Uniform(name='geo_time', minimum=0, maximum=86400)
+                                        
+                                        
 def sample_PL_m1m2(Nsamples, alpha, Mmax = 100, Mmin = 5):
     def draw_cumulative(N,alpha, distribution):
         #grid = np.linspace(-23,-5,100)
@@ -85,7 +87,7 @@ def draw_prior(N, distributions):
     dl = dl_dist.sample(N)
     
     if distributions['mass'] == 'Power-law':
-        m1, m2 = sample_PL_m1m2(Nsamples = N, alpha = 2.3, Mmax = 100, Mmin = 5)
+        m1, m2 = sample_PL_m1m2(Nsamples = N, alpha = 2.3, Mmax = 50, Mmin = 5)
         
     elif distributions['mass'] == 'Uniform':
         if N == 1: 
@@ -131,8 +133,9 @@ def draw_prior(N, distributions):
     
     psi = psi_dist.sample(N)
     phase = phase_dist.sample(N)
+    geotime = geotime_dist.sample(N)
 
-    return  dl, m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase
+    return  dl, m1, m2, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, phase, geotime
 
 
 

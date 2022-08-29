@@ -24,7 +24,7 @@ type_data = 'training'
 #type_data = 'testing'
 
 
-N = 250_000
+N = 50_000
 snr = []
 #sample GW priors
 
@@ -60,7 +60,7 @@ if type_data == 'training':
 
     path_data = r"data_for_MLP/data_sky_theta/training/"
 
-    df.to_csv(path_data+'_data_{}_full_para_v1_batch_10.csv'.format(N))
+    df.to_csv(path_data+'_data_{}_full_para_v1_batch_4.csv'.format(N))
     
 if type_data == 'testing':
     data = { 'dl':dlsample, 'm1z':m1zsample, 'm2z':m2zsample,'a1': a1sample, 'a2': a2sample, 'tilt1': tilt1sample, 'tilt2': tilt2sample,
