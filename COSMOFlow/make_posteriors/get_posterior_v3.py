@@ -13,6 +13,7 @@ import corner
 from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
 from torch import logit, sigmoid
 import os 
+import multiprocessing 
 
 
 import argparse
@@ -89,17 +90,41 @@ def convert_data(df):
     
     df[ 'geocent_time'] = abs(df.geocent_time % 86400)
 
-#     spins = data[['a_1','a_2']]
-
-#     a1_logit = logit(torch.from_numpy(np.array(spins.a_1)))
-#     a2_logit = logit(torch.from_numpy(np.array(spins.a_2)))
-
-#     data['a1_logit'] = a1_logit
-#     data['a2_logit'] = a2_logit
-
-
-
     return data[['xcoord', 'ycoord', 'zcoord','mass_1', 'mass_2','a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn','phi_jl','phi_12', 'psi', 'geocent_time']]
+
+
+def logit_data(data_to_logit):
+    a1_logit = logit(torch.from_numpy(np.array(data_to_logit.a1)))
+    a2_logit = logit(torch.from_numpy(np.array(data_to_logit.a2)))
+    phijl_logit = logit(torch.from_numpy(np.array(data_to_logit.phi_jl)))
+    phi12_logit = logit(torch.from_numpy(np.array(data_to_logit.phi_12)))
+    pol_logit = logit(torch.from_numpy(np.array(data_to_logit.polarization)))
+    tc_logit = logit(torch.from_numpy(np.array(data_to_logit.geo_time)))
+
+    data_to_logit.loc[:,'a1'] = np.array(a1_logit)
+    data_to_logit.loc[:,'a2'] = np.array(a2_logit)
+    data_to_logit.loc[:,'phi_jl'] = np.array(phijl_logit)
+    data_to_logit.loc[:,'phi_12'] = np.array(phi12_logit)
+    data_to_logit.loc[:,'polarization'] = np.array(pol_logit)
+    data_to_logit.loc[:,'geo_time'] = np.array(tc_logit)
+    return data_to_logit
+
+def sigmoid_data(data_to_sigmoid):
+    a1_sigmoid= sigmoid(torch.from_numpy(np.array(data_to_sigmoid.a1)))
+    a2_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.a2)))
+    phijl_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.phi_jl)))
+    phi12_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.phi_12)))
+    pol_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.polarization)))
+    tc_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.geo_time)))
+
+    data_to_sigmoid.loc[:,'a1'] = np.array(a1_sigmoid)
+    data_to_sigmoid.loc[:,'a2'] = np.array(a2_sigmoid)
+    data_to_sigmoid.loc[:,'phi_jl'] = np.array(phijl_sigmoid)
+    data_to_sigmoid.loc[:,'phi_12'] = np.array(phi12_sigmoid)
+    data_to_sigmoid.loc[:,'polarization'] = np.array(pol_sigmoid)
+    data_to_sigmoid.loc[:,'geo_time'] = np.array(tc_sigmoid)
+    return data_to_sigmoid
+
 
 
 conv_df = convert_data(df)
@@ -107,18 +132,29 @@ df = pd.DataFrame(samples)
 df = df[[ 'luminosity_distance', 'mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2', 'ra', 'dec', 'theta_jn','phi_jl','phi_12', 'psi', 'geocent_time']]
 
 
-print('Calculating p(D|theta) and p(theta|Omega_0)')
-pdet = [] 
-ptheta = []
-for i in tqdm(range(Nsamples)):
-    
+threads = 10
+
+def compute_pDet_PTheta(N):
+    pdet = [] 
+    ptheta = []
+    i = N
+    r_th = rth
+
     theta = [df.luminosity_distance[i], df.mass_1[i]
              , df.mass_2[i], df.a_1[i], df.a_2[i], df.tilt_1[i], df.tilt_2[i], df.ra[i], df.dec[i], df.theta_jn[i],
-             df.phi_jl[i], df.phi_12[i],df.psi[i], df.geocent_time[i]]
-    
-    print( df.geocent_time[i])
-    pdet.append(pdet_theta.p_D_theta(theta, rth))
+             df.phi_jl[i], df.phi_12[i],df.psi[i], df.geocent_time[i]%86400]
+
+    pdet.append(pdet_theta.p_D_theta(theta, r_th))
     ptheta.append(pdet_theta.p_theta_omega(theta))
+        
+    return np.array(pdet), np.array(ptheta)
+
+    
+with multiprocessing.Pool(threads) as p:
+    pdet_ptheta = list(tqdm(p.imap(compute_pDet_PTheta,np.arange(Nsamples)), total = Nsamples, desc = 'Calculating p(D|theta) and p(theta|Omega_0)'))    
+pdet_ptheta = np.array(pdet_ptheta)
+
+pdet = pdet_ptheta[:, 0] ; ptheta = pdet_ptheta[:, 1] 
     
     
 def load_hyperparameters_scalers_flow(flow_name):
@@ -179,11 +215,17 @@ def load_hyperparameters_scalers_flow(flow_name):
 flow, hyper_dict, scaler_x, scaler_y = load_hyperparameters_scalers_flow(Flow)   
 
 
+
+
 def p_theta_H0(theta, conditional):
-    torch.manual_seed(np.random.randint(10000))
     dCon = np.diff(conditional)[0]
     Y_H0_conditional = scaler_y.transform(conditional.reshape(-1,1))
     scaled_theta = scaler_x.transform(np.array(theta).reshape(1,-1))
+    if hyper_dict['log_it'] is True:
+        logit_data(scaled_data)
+        scaled_data = scaled_data[np.isfinite(scaled_data).all(1)]
+
+        
     
     scaled_theta = scaled_theta.T*np.ones((1,len(Y_H0_conditional)))
     
@@ -208,7 +250,7 @@ def p_theta_H0(theta, conditional):
     Log_Prob = Flow_posterior(torch.from_numpy(scaled_theta.T).float(), data_scaled)
     
     
-    return np.exp(Log_Prob) /np.sum(np.exp(Log_Prob)*dCon)
+    return np.exp(Log_Prob) /np.sum(np.exp(Log_Prob)*dCon) 
     
 
     

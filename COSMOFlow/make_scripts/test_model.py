@@ -9,14 +9,14 @@ import matplotlib.style
 import matplotlib as mpl
 mpl.style.use('classic')
 
-model_name = 'SNR_approxiamator_full_para_HA_v6'
+model_name = 'SNR_approxiamator_full_para_HA_v8'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
 
 
 path_name =r"data_for_MLP/data_sky_theta/testing/"
-data_name = "_data_full_para_uniform_snr_zoom_SNR.csv".format(1)
+data_name = "_data_full_para_uniform_snr.csv".format(1)
 GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['dl','m1z','m2z',
                                                                               'a1','a2','tilt1',
                                                                               'tilt2','RA',
@@ -36,11 +36,11 @@ def HA(time, RA):
 
 
 ha = HA(GW_data.geo_time, GW_data.RA - np.pi)
-GW_data['HA'] = ha
+#GW_data['HA'] = ha
 
 GW_data = GW_data[['dl','m1z','m2z',
                   'a1','a2','tilt1',
-                  'tilt2','HA',
+                  'tilt2','RA','geo_time',
                   'dec','thteta_jn','phi_jl', 'phi_12',
                    'polarization','snr']]
 
@@ -48,8 +48,8 @@ GW_data = GW_data[['dl','m1z','m2z',
 df = GW_data
 
 
-x_inds = [0, 1,2, 3, 4, 5, 6, 7, 8, 9,10, 11, 12]
-y_inds = [13]
+x_inds = [0, 1,2, 3, 4, 5, 6, 7, 8, 9,10, 11, 12, 13]
+y_inds = [14]
 
 xdata = df.iloc[:,x_inds].to_numpy()
 ydata = df.iloc[:,y_inds].to_numpy()
@@ -78,23 +78,26 @@ Path(f'models/{model_name}/accuracy_plots').mkdir(parents=True, exist_ok=True)
 x = np.linspace(0,1000, 100)
 
 fig1 = plt.figure()
-plt.loglog(pred, truth, '.k', markersize=5)
-plt.plot(x,x, 'r', linewidth=2, alpha = 0.5)
 cm = plt.cm.get_cmap('plasma')
-plt.xlim([1,100])
-plt.ylim([1,100])
+sc = plt.scatter(pred, truth, c=np.log10(df.dl), vmin=2, vmax=4, s=5, cmap=cm)
+cbar = plt.colorbar(sc)
+cbar.set_label('$log_{10}(D_{L}[Mpc])$ ', rotation=270,  labelpad=15)
+plt.plot(x,x, 'k', linewidth=2, alpha = 0.9)
+
+plt.xlim([2,100])
+plt.ylim([2,100])
 plt.ylabel('TRUE')
 plt.xlabel('PRED')
 fig1.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED.png', bbox_inches = 'tight', dpi = 300)
 
 
 fig1 = plt.figure()
-sc = plt.scatter(pred, truth, c=df.dl, vmin=100, vmax=10_000, s=35, cmap=cm)
+sc = plt.scatter(pred, truth, c=np.log10(df.dl), vmin=2, vmax=4, s=25, cmap=cm)
 cbar = plt.colorbar(sc)
-cbar.set_label('Luminosity distance [Mpc]', rotation=270)
-plt.plot(x,x, 'r', linewidth=2, alpha = 0.5)
-plt.xlim([1,30])
-plt.ylim([1,30])
+cbar.set_label('$log_{10}(D_{L}[Mpc])$', rotation=270, labelpad=15)
+plt.plot(x,x, 'k', linewidth=2, alpha = 0.9)
+plt.xlim([8,12])
+plt.ylim([8,12])
 plt.ylabel('TRUE')
 plt.xlabel('PRED')
 fig1.savefig(f'models/{model_name}/accuracy_plots/TRUEvsPRED_zoom.png', bbox_inches = 'tight', dpi = 300)

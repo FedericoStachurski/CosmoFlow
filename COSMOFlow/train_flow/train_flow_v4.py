@@ -29,10 +29,11 @@ from scipy.stats import entropy
 bilby.core.utils.log.setup_logger(log_level=0)
 from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
 from torch import logit, sigmoid
+
 import argparse
 
 #For use 
-# python3 train_flow_v3.py -Name Flow_Glade_mth_v1-batch 25000 -train_size 0.8 -flow_type RealNVP -epochs 10 -neurons 128 -layers 6 -nblock 4 -lr 0.001
+# python3 train_flow_v3.py -Name Flow_Glade_mth_v1 -data_galaxy_catalog -batch 25000 -train_size 0.8 -flow_type RealNVP -epochs 10 -neurons 128 -layers 6 -nblock 4 -lr 0.001
 
 
 
@@ -67,8 +68,6 @@ ap.add_argument("-linear_transform", "--linear_transform", required=False,
    help="type of transformation", default = None)
 ap.add_argument("-drop_out", "--drop_out", required=False,
    help="drop_out", default = 0.0)
-ap.add_argument("-log_it", "--log_it", required=False,
-   help="logit the uniform distributions", default = 0)
 
 
 
@@ -86,7 +85,6 @@ lr = float(args['learning_rate'])
 lr_scheduler = str(args['learning_rate_scheduler'])
 epochs = int(args['epochs'])
 dp = float(args['drop_out'])
-log_it = int(args['log_it'])
 
 
 linear_transform = args['linear_transform']
@@ -107,7 +105,6 @@ print('linear transform = {}'.format(linear_transform))
 print('drop out = {}'.format(dp))
 print()
 
-
 folder_name = str(Name)
 path = 'trained_flows_and_curves/'
 
@@ -117,10 +114,8 @@ if os.path.exists(path+folder_name):
     #if yes, delete directory
     shutil.rmtree(path+folder_name)
 
-
 #Save model in folder
 os.mkdir(path+folder_name)
-os.mkdir(path+folder_name+'/flows_epochs')
 
 os.chdir('..')
 
@@ -145,14 +140,23 @@ print()
 print((GW_data.head()))   
 
 
+
 data = GW_data[['dl','m1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 
                                                                              'phi_12', 'polarization', 'geo_time', 'H0']]
 
 #transform Polar into cartesian and spins to sigmoids
-def spherical_to_cart(dl, ra, dec):
-    
+def spherical_to_cart(dl, ra, dec):    
     x,y,z = spherical_to_cartesian(dl, dec, ra)
     return x,y,z
+
+def MinMax_scaler(array, max_val, min_val):
+    return (np.array(array) - min_val)/(max_val - min_val)
+
+def undo_MinMax_scaler(array, max_val, min_val):
+    return (np.array(array)*(max_val - min_val)) + min_val
+
+
+
 
 coordinates= data[['dl', 'RA', 'dec']]
 dl = np.array(coordinates.dl)
@@ -161,10 +165,48 @@ dec = np.array(coordinates.dec)
 
 x,y,z = spherical_to_cart(dl, ra, dec)
 
-data.loc[:,'xcoord'] = x
-data.loc[:,'ycoord'] = y
-data.loc[:,'zcoord'] = z
+data.loc[:,['xcoord']] = x
+data.loc[:,['ycoord']] = y
+data.loc[:,['zcoord']] = z
 
+
+data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
+                                                                             'phi_12', 'polarization', 'geo_time', 'H0']]
+
+# bounded = data[['a1','a2', 'phi_jl','phi_12','polarization', 'geo_time']]
+
+
+# a1_logit = logit(torch.from_numpy(np.array(bounded.a1)))
+# a2_logit = logit(torch.from_numpy(np.array(bounded.a2)))
+# phijl_logit = logit(torch.from_numpy(np.array(bounded.phi_jl)))
+# phi12_logit = logit(torch.from_numpy(np.array(bounded.phi_12)))
+# pol_logit = logit(torch.from_numpy(np.array(bounded.polarization)))
+# tc_logit = logit(torch.from_numpy(np.array(bounded.geo_time)))
+
+# data['a1_logit'] = a1_logit
+# data['a2_logit'] = a2_logit
+# data['phijl_logit'] = phijl_logit
+# data['phi12_logit'] = phi12_logit
+# data['pol_logit'] = pol_logit
+# data['tc_logit'] = tc_logit
+
+
+
+# data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1_logit', 'a2_logit', 'tilt1', 'tilt2', 'theta_jn', 'phijl_logit', 
+#                                                                              'phi12_logit', 'pol_logit', 'tc_logit', 'H0']]
+
+# print(data.head(10))
+
+# def scale_data(data_to_scale):
+#     target = data_to_scale[data_to_scale.columns[0:-1]]
+#     conditioners = np.array(data_to_scale[data_to_scale.columns[-1]]).reshape(-1,1)
+#     scaler_x = MinMaxScaler()
+#     scaler_y = MinMaxScaler()
+#     scaled_target = scaler_x.fit_transform(target) 
+#     scaled_conditioners = scaler_y.fit_transform(conditioners)  
+#     scaled_data = np.hstack((scaled_target, scaled_conditioners))
+#     scaled_data = pd.DataFrame(scaled_data, index=data_to_scale.index, columns=data_to_scale.columns)
+#     return scaler_x, scaler_y, scaled_data
 def logit_data(data_to_logit):
     a1_logit = logit(torch.from_numpy(np.array(data_to_logit.a1)))
     a2_logit = logit(torch.from_numpy(np.array(data_to_logit.a2)))
@@ -179,50 +221,55 @@ def logit_data(data_to_logit):
     data_to_logit.loc[:,'phi_12'] = np.array(phi12_logit)
     data_to_logit.loc[:,'polarization'] = np.array(pol_logit)
     data_to_logit.loc[:,'geo_time'] = np.array(tc_logit)
-    return data_to_logit
+    return data_to_logit 
 
-def sigmoid_data(data_to_sigmoid):
-    a1_sigmoid= sigmoid(torch.from_numpy(np.array(data_to_sigmoid.a1)))
-    a2_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.a2)))
-    phijl_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.phi_jl)))
-    phi12_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.phi_12)))
-    pol_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.polarization)))
-    tc_sigmoid = sigmoid(torch.from_numpy(np.array(data_to_sigmoid.geo_time)))
-
-    data_to_sigmoid.loc[:,'a1'] = np.array(a1_sigmoid)
-    data_to_sigmoid.loc[:,'a2'] = np.array(a2_sigmoid)
-    data_to_sigmoid.loc[:,'phi_jl'] = np.array(phijl_sigmoid)
-    data_to_sigmoid.loc[:,'phi_12'] = np.array(phi12_sigmoid)
-    data_to_sigmoid.loc[:,'polarization'] = np.array(pol_sigmoid)
-    data_to_sigmoid.loc[:,'geo_time'] = np.array(tc_sigmoid)
-    return data_to_sigmoid
-
-
-
-data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
-                                                                             'phi_12', 'polarization', 'geo_time', 'H0']]
-
-print(data.head(10))
-
-def scale_data(data_to_scale):
-    target = data_to_scale[data_to_scale.columns[0:-1]]
-    conditioners = np.array(data_to_scale[data_to_scale.columns[-1]]).reshape(-1,1)
-    scaler_x = MinMaxScaler()
-    scaler_y = MinMaxScaler()
-    scaled_target = scaler_x.fit_transform(target) 
-    scaled_conditioners = scaler_y.fit_transform(conditioners)  
-    scaled_data = np.hstack((scaled_target, scaled_conditioners))
-    scaled_data = pd.DataFrame(scaled_data, index=data_to_scale.index, columns=data_to_scale.columns)
-    return scaler_x, scaler_y, scaled_data
     
-scaler_x, scaler_y, scaled_data = scale_data(data)
+def scale_data(data_to_scale):
+    data_to_scale.iloc[:,0] = MinMax_scaler(data_to_scale.iloc[:,0], 10_000, -10_000)
+    data_to_scale.iloc[:,1] = MinMax_scaler(data_to_scale.iloc[:,1], 10_000, -10_000)
+    data_to_scale.iloc[:,2] = MinMax_scaler(data_to_scale.iloc[:,2], 10_000, -10_000)
+    data_to_scale.iloc[:,3] = MinMax_scaler(data_to_scale.iloc[:,3], 112.5, 4.98)
+    data_to_scale.iloc[:,4] = MinMax_scaler(data_to_scale.iloc[:,4], 112.5, 4.98)
+    data_to_scale.iloc[:,5] = MinMax_scaler(data_to_scale.iloc[:,5], 0.99, 0)
+    data_to_scale.iloc[:,6] = MinMax_scaler(data_to_scale.iloc[:,6], 0.99, 0)
+    data_to_scale.iloc[:,7] = MinMax_scaler(data_to_scale.iloc[:,7], np.pi, 0)
+    data_to_scale.iloc[:,8] = MinMax_scaler(data_to_scale.iloc[:,8], np.pi, 0)
+    data_to_scale.iloc[:,9] = MinMax_scaler(data_to_scale.iloc[:,9], np.pi, 0)
+    data_to_scale.iloc[:,10] = MinMax_scaler(data_to_scale.iloc[:,10], 2*np.pi, 0)
+    data_to_scale.iloc[:,11] = MinMax_scaler(data_to_scale.iloc[:,11], 2*np.pi, 0)
+    data_to_scale.iloc[:,12] = MinMax_scaler(data_to_scale.iloc[:,12], np.pi, 0)
+    data_to_scale.iloc[:,13] = MinMax_scaler(data_to_scale.iloc[:,13], 86400, 0)
+    data_to_scale.iloc[:,14] = MinMax_scaler(data_to_scale.iloc[:,14], 120, 20)
+    return data_to_scale  
 
-if log_it is True:
-    logit_data(scaled_data)
-    scaled_data = scaled_data[np.isfinite(scaled_data).all(1)]
+def unscale_data(data_to_scale):
+    data_to_scale.iloc[:,0] = undo_MinMax_scaler(data_to_scale.iloc[:,0], 10_000, -10_000)
+    data_to_scale.iloc[:,1] = undo_MinMax_scaler(data_to_scale.iloc[:,1], 10_000, -10_000)
+    data_to_scale.iloc[:,2] = undo_MinMax_scaler(data_to_scale.iloc[:,2], 10_000, -10_000)
+    data_to_scale.iloc[:,3] = undo_MinMax_scaler(data_to_scale.iloc[:,3], 112.5, 4.98)
+    data_to_scale.iloc[:,4] = undo_MinMax_scaler(data_to_scale.iloc[:,4], 112.5, 4.98)
+    data_to_scale.iloc[:,5] = undo_MinMax_scaler(data_to_scale.iloc[:,5], 0.99, 0)
+    data_to_scale.iloc[:,6] = undo_MinMax_scaler(data_to_scale.iloc[:,6], 0.99, 0)
+    data_to_scale.iloc[:,7] = undo_MinMax_scaler(data_to_scale.iloc[:,7], np.pi, 0)
+    data_to_scale.iloc[:,8] = undo_MinMax_scaler(data_to_scale.iloc[:,8], np.pi, 0)
+    data_to_scale.iloc[:,9] = undo_MinMax_scaler(data_to_scale.iloc[:,9], np.pi, 0)
+    data_to_scale.iloc[:,10] = undo_MinMax_scaler(data_to_scale.iloc[:,10], 2*np.pi, 0)
+    data_to_scale.iloc[:,11] = undo_MinMax_scaler(data_to_scale.iloc[:,11], 2*np.pi, 0)
+    data_to_scale.iloc[:,12] = undo_MinMax_scaler(data_to_scale.iloc[:,12], np.pi, 0)
+    data_to_scale.iloc[:,13] = undo_MinMax_scaler(data_to_scale.iloc[:,13], 86400, 0)
+    data_to_scale.iloc[:,14] = undo_MinMax_scaler(data_to_scale.iloc[:,14], 120, 20)
+    return data_to_scale
 
+print(data.head(15))
+print()
+print('Scaling data')
+print()
+scaled_data = scale_data(data)
+scaled_data = scaled_data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
+                                                                             'phi_12', 'polarization', 'geo_time', 'H0']]
+print(scaled_data)
 
-x_train, x_val = train_test_split(scaled_data, test_size=0.25)
+x_train, x_val = train_test_split(scaled_data, test_size=train_size)
 
 batch_size=batch
 
@@ -244,18 +291,18 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
                                            shuffle=False)
 
 
-conditional_val = scaler_y.inverse_transform(np.array(Y_scale_val).reshape(-1,1))
-target_val = scaler_x.inverse_transform(X_scale_val)
+conditional_val = np.array(Y_scale_val).reshape(-1,1)
+target_val = X_scale_val
 
 path = 'train_flow/trained_flows_and_curves/'
 
-print()
-print('Saving Scalers X and Y')
-print()
-scalerfileX = path+folder_name+'/scaler_x.sav'
-scalerfileY = path+folder_name+'/scaler_y.sav'
-pickle.dump(scaler_x, open(scalerfileX, 'wb'))
-pickle.dump(scaler_y, open(scalerfileY, 'wb'))
+# print()
+# print('Saving Scalers Values')
+# print()
+# scalerfileX = path+folder_name+'/scaler_x.sav'
+# scalerfileY = path+folder_name+'/scaler_y.sav'
+# pickle.dump(scaler_x, open(scalerfileX, 'wb'))
+# pickle.dump(scaler_y, open(scalerfileY, 'wb'))
 
 
 
@@ -411,7 +458,7 @@ for j in range(n_epochs):
     train_loss /= len(train_loader)
     loss_dict['train'].append(train_loss)
     lr_upd = optimiser.param_groups[0]["lr"]
-    my_lr_scheduler.step()
+    #my_lr_scheduler.step()
 
     #Validate
     flow.eval()
@@ -425,10 +472,6 @@ for j in range(n_epochs):
             val_loss += loss.item()       
     val_loss /= len(val_loader)
     loss_dict['val'].append(val_loss)
-    
-    #Save flow model at epoch
-    if (j+1)%10 == 0:
-        torch.save(flow.state_dict(), path+folder_name+'/flows_epochs'+'/flow_epoch_{}.pt'.format(int(j+1)))
     
     if val_loss < best_val_loss:
         best_model = copy.deepcopy(flow.state_dict())
@@ -487,7 +530,7 @@ for j in range(n_epochs):
     ax1.set_ylabel('loss', fontsize = 20)
     ax1.set_xlabel('Epochs', fontsize = 20)
     ax1.set_xscale('log')
-    ax1.set_ylim([-12.5,-5.5])
+    ax1.set_ylim([np.min(loss_dict['train']),np.min(loss_dict['train'])+5])
     ax1.set_xlim([1,n_epochs])
     ax1.xaxis.set_tick_params(labelsize=20)
     ax1.yaxis.set_tick_params(labelsize=20)
@@ -558,7 +601,7 @@ for j in range(n_epochs):
 
     sys.stdout.write('\rEPOCH = {} || Training Value = {} || Validation Value = {}  '.format(j+1,round(loss_dict['train'][-1], 5), round(loss_dict['val'][-1], 5)))
     sys.stdout.flush()
-    
+
 
 flow.load_state_dict(best_model)
 
@@ -582,8 +625,7 @@ para = {'batch_size': batch_size,
           'n_blocks_per_transform': int(n_blocks_per_transform),
           'n_inputs': int(n_inputs),
           'n_conditional_inputs':int(n_conditional_inputs),
-          'flow_type': flow_type,
-          'log_it': log_it
+          'flow_type': flow_type
           }
 
 f = open(path+folder_name+'/hyperparameters.txt','w')
@@ -600,139 +642,112 @@ f.close()
 # ###### TEST 1: PP-Plot ######
 
 
-# print()
-# print('TEST 1: KS-test by plotting a PP plot')
-# print()
+print()
+print('TEST 1: KS-test by plotting a PP plot')
+print()
 
 
 
-# print()
-# print('Making Probability-Probability plot with Validation data')
-# print()
+print()
+print('Making Probability-Probability plot with Validation data')
+print()
 
-# def Flow_samples(conditional, n):
+def Flow_samples(conditional, n):
+ 
+    conditional = np.array(conditional).reshape(-1,1)
+    data = np.array(conditional)
+    data_scaled = torch.from_numpy(data.astype('float32'))
     
-#     Y_H0_conditional = scaler_y.transform(conditional.reshape(-1,1))
-
-    
-#     conditional = np.array(Y_H0_conditional)
-#     data = np.array(conditional)
-#     data_scaled = torch.from_numpy(data.astype('float32'))
-    
-#     flow.eval()
-#     flow.to('cpu')
+    flow.eval()
+    flow.to('cpu')
     
 
-#     with torch.no_grad():
-#         samples = flow.sample(n, conditional=data_scaled.to('cpu'))
-#         samples= scaler_x.inverse_transform(samples.to('cpu'))
-#     return samples 
+    with torch.no_grad():
+        samples = flow.sample(n, conditional=data_scaled.to('cpu'))
+        dictionary = {'x':np.array(samples[:,0]).flatten(), 'y':np.array(samples[:,0]).flatten(), 'z':np.array(samples[:,0]).flatten(),
+                     'm1': np.array(samples[:,0]).flatten(), 'm2': np.array(samples[:,0]).flatten(), 'a1': np.array(samples[:,0]).flatten(),
+                     'a2': np.array(samples[:,0]).flatten(), 'tilt1': np.array(samples[:,0]).flatten(), 'tilt2': np.array(samples[:,0]).flatten(),
+                     'theta_jn': np.array(samples[:,0]).flatten(), 'phi_12': np.array(samples[:,0]).flatten(), 'phi_jn': np.array(samples[:,0]).flatten(),
+                     'polarization': np.array(samples[:,0]).flatten(), 'geo_time': np.array(samples[:,0]).flatten(), 'H0': np.array(Y_H0_conditional).flatten()}
+        
+        df_scaled = pd.DataFrame(dictionary)
+        unscale_data(df_scaled)
+        
+    return df_scaled.iloc[:,:-1] 
 
+print('Unscaling validation data')
+np.random.seed(1234)
+Nresults =200
+Nruns = 1
+labels = ['x','y', 'z',
+          'm1', 'm2','a1',
+          'a2', 'tilt1','tilt2',
+          'theta_jn', 'phi_jl', 
+          'phi_12', 'psi', 'time']
 
+priors = {}
+for jj in range(14):
+    priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
 
-# np.random.seed(1234)
-# Nresults =200
-# Nruns = 1
-# labels = ['x','y', 'z','m1', 'm2','a1', 'a2', 'tilt1','tilt2', 'theta_jn', 'phi_jl', 
-#                                                                              'phi_12', 'psi', 'time']
-# priors = {}
-# for jj in range(14):
-#     priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
+for x in range(Nruns):
+    results = []
+    for ii in tqdm(range(Nresults)):
+        posterior = dict()
+        injections = dict()
+        i = 0 
+        inx = np.random.choice(len(Y_scale_val), size =1, replace = False) 
+        truths = np.array(x_val.iloc[inx, :-1]).flatten()
+        conditional_sample = np.array(x_val.iloc[inx, -1]).reshape(1,-1)
+        conditional_sample = conditional_sample *np.ones(10000)
+        samples = Flow_samples(conditional_sample, 10000)
+        #print(samples)
+        for key, prior in priors.items():
+            posterior[key] = samples.iloc[:,i]
+            #print(truths)
+            injections[key] = (truths[i]).astype('float32').item()
+            i += 1
 
+        posterior = pd.DataFrame(dict(posterior))
+        result = bilby.result.Result(
+            label="test",
+            injection_parameters=injections,
+            posterior=posterior,
+            search_parameter_keys=injections.keys(),
+        priors = priors )
+        results.append(result)
 
-
-
-# for x in range(Nruns):
-#     results = []
-#     for ii in tqdm(range(Nresults)):
-#         posterior = dict()
-#         injections = dict()
-#         i = 0 
-#         for key, prior in priors.items():
-
-#             inx = np.random.randint(len(Y_scale_val))  
-#             truths=  scaler_x.inverse_transform(X_scale_val[inx,:].reshape(1,-1))[0]
-#             conditional_sample = scaler_y.inverse_transform(Y_scale_val[inx].reshape(1,-1))[0]
-#             conditional_sample = conditional_sample *np.ones(10000)
-#             samples = Flow_samples(conditional_sample, 10000)
-#             posterior[key] = samples[:,i] 
-#             injections[key] = truths[i].astype('float32').item()
-#             i += 1
-
-#         posterior = pd.DataFrame(dict(posterior))
-#         result = bilby.result.Result(
-#             label="test",
-#             injection_parameters=injections,
-#             posterior=posterior,
-#             search_parameter_keys=injections.keys(),
-#         priors = priors )
-#         results.append(result)
-
-#     fig = bilby.result.make_pp_plot(results, filename=path+folder_name+'/PP',
-#                               confidence_interval=(0.68, 0.90, 0.99, 0.9999))
-
-
-
-
-
-
-# ##### TEST 2: Resample target data #####
-# print()
-# print('TEST 2: resampling the data space by by applying the backwards fuction from latent space to data space')
-# print()
-
-# N = 150000
-
-# combined_samples = []
-# total_H0_samples = []
-# while True: 
-    
-#     H0_samples = np.random.uniform(20,120,N)
-
-#     samples = Flow_samples(H0_samples, N)
-
-
-#     #Condtions 
-    
-# #     z = cosmology.fast_dl_to_z_v2(samples[:,0], H0_samples)
-    
-# #     samples = np.concatenate([samples, H0_samples, z], axis=1)
-# #     samples = samples[np.where(samples[:,0] > 0)[0], :]
-# #     samples = samples[np.where(samples[:,1] > 0)[0], :]
-# #     samples = samples[np.where(samples[:,2] > 0)[0], :]
-# #     samples = samples[np.where((samples[:,3] > 0) & (samples[:,3] <= 0.99))[0], :]
-# #     samples = samples[np.where((samples[:,4] > 0) & (samples[:,4] <= 0.99))[0], :]
-# #     samples = samples[np.where((samples[:,5] > 0) & (samples[:,5] <= np.pi))[0], :]
-# #     samples = samples[np.where((samples[:,6] > 0) & (samples[:,6] <= np.pi))[0], :]
-# #     samples = samples[np.where((samples[:,7] > 0) & (samples[:,7] <= 2*np.pi))[0], :]
-# #     samples = samples[np.where((samples[:,8] >= -np.pi/2) & (samples[:,8] <= np.pi/2))[0], :]
-# #     samples = samples[np.where((samples[:,9] >= 0) & (samples[:,9] <= np.pi))[0], :]
-# #     m1 = (1/(1+a)) * samples[:,1]
-# #     m2 = (1/(1+a)) * samples[:,2]
-# #     sumM = m1 + m2 
-# #     indicies = np.where(sumM <= 100)[0]
-# #     samples = samples[indicies,:]
-
-#     combined_samples = combined_samples + list(samples)
-
-    
-#     if len(np.array(combined_samples)) >= N:
-#         combined_samples = np.array(combined_samples)[:N,:]
-#         break
+    fig = bilby.result.make_pp_plot(results, filename=path+folder_name+'/PP',
+                              confidence_interval=(0.68, 0.90, 0.99, 0.9999))
 
 
 
 
-# c1 = corner.corner(combined_samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1})
-# fig = corner.corner(data[['xcoord', 'ycoord', 'zcoord', 
-#                           'm1', 'm2','a1',
-#                           'a2', 'tilt1', 'tilt2',
-#                           'theta_jn', 'phi_jl', 'phi_12',
-#                           'polarization', 'geo_time']] , plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$x[Mpc]$',r'$y[Mpc]$',r'$z[Mpc]$', r'$m_{1,z}$', r'$m_{2,z}$',r'$loga_{1}$', r'$loga_{2}$', r'$tilt_{1}$', r'$tilt_{2}$', r'$\theta_{JN}$', r'$log\phi_{JL}$',  r'$log\phi_{12}$',r'$log\psi$', r'$logt_{geo}$'], hist_kwargs = {'density' : 1})
+
+
+##### TEST 2: Resample target data #####
+print()
+print('TEST 2: resampling the data space by by applying the backwards fuction from latent space to data space')
+print()
+
+N = 150000
+
+combined_samples = []
+total_H0_samples = []
+
+H0_samples = np.random.uniform(20,120,N)
+combined_samples = np.array(Flow_samples(H0_samples, N))
 
 
 
-# plt.savefig(path+folder_name+'/flow_resample.png', dpi = 100)
+
+
+c1 = corner.corner(combined_samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1})
+fig = corner.corner(data[['xcoord', 'ycoord', 'zcoord', 
+                          'm1', 'm2','a1',
+                          'a2', 'tilt1', 'tilt2',
+                          'theta_jn', 'phi_jl', 'phi_12',
+                          'polarization', 'geo_time']] , plot_datapoints=False, smooth = True, fig = c1, levels = (0.5, 0.9), plot_density=True,labels=[r'$x[Mpc]$',r'$y[Mpc]$',r'$z[Mpc]$', r'$m_{1,z}$', r'$m_{2,z}$',r'$a_{1}$', r'$a_{2}$', r'$tilt_{1}$', r'$tilt_{2}$', r'$\theta_{JN}$', r'$\phi_{JL}$',  r'$\phi_{12}$',r'$\psi$', r'$t_{geo}$'], hist_kwargs = {'density' : 1})
 
 
 
+plt.savefig(path+folder_name+'/flow_resample.png', dpi = 100)

@@ -1,4 +1,4 @@
-# Author: Federico Stachurski 
+#Author: Federico Stachurski 
 #Procedure: generate data frame of GW observables 
 #Input: -N number of evetns, -batch_size how many batches to save from N, -SNRth threshold, -zmax redhsift maximum -mth magnitude threshold 
 #Output: data frame of galaxies
@@ -41,7 +41,7 @@ import random
 import h5py 
 import healpy as hp
 import multiprocessing
-np.random.seed(1)
+
 
 from MultiLayerPerceptron.validate import run_on_dataset
 from MultiLayerPerceptron.nn.model_creation import load_mlp
@@ -50,40 +50,17 @@ model_name = 'SNR_approxiamator_full_para_HA_v5'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
-#load Glade+
-# pathname = '/data/wiay/galaxy_catalogs'
-# catalog_file = 'glade+.hdf5'
-
-# with h5py.File(pathname+'/'+catalog_file, "r") as f:
-#     # List all columns
-#     columns = list(f.keys())
-    
-#     z = f.get('z')[:]
-#     sigmaz = f.get('sigmaz')[:] 
-#     ra = f.get('ra')[:] 
-#     dec = f.get('dec')[:] 
-#     m_B = f.get('m_B')[:]
-
-# print(columns)
-# dic = {'z': z , 'sigmaz': sigmaz , 'ra':ra, 'dec':dec, 'm_B':m_B}
-# catalog = pd.DataFrame(dic)   
-# weights = 1 / (1+catalog.z)
-# weights /= np.sum(weights)
-# galaxy_ids = np.linspace(0,len(catalog)-1, len(catalog))
-
-
-
-
-
-
 zmax = 1.5
 zmin = 0.0001
 NSIDE = 32
-type_of_data = 'training'
-SNRth = 0
+type_of_data = 'testing'
+SNRth = 10
 NSIDE = 32
 Nselect = 1*10**(1) 
-N = 10_000
+N = 250
+distributions = {'mass':'PowerLaw+Peak'}
+threads = 10
+np.random.seed(4)
 
 #Load  pixelated galaxy catalog
 Npix = hp.nside2npix(NSIDE)
@@ -94,7 +71,7 @@ def load_cat_by_pix(pix):
     loaded_pix = loaded_pix.dropna()
     return loaded_pix
 
-with multiprocessing.Pool(10) as p:
+with multiprocessing.Pool(threads) as p:
     catalog_pixelated = list(tqdm(p.imap(load_cat_by_pix,np.arange(Npix)), total = Npix, desc = 'Loading mth map, NSIDE = {}'.format(NSIDE)))
 
 
@@ -205,6 +182,24 @@ def load_pixel(pix):
     return loaded_pix, Npix
 
 
+def select_gal_from_pix(pixels_H0s):
+    pixel, H0 = pixels_H0s
+    loaded_pixel, Ngalpix = load_pixel(int(pixel))
+    loaded_pixel = loaded_pixel.dropna()
+    
+    if loaded_pixel.empty is False:
+        z_gal_selected = loaded_pixel.z 
+        repeated_H0_in_pix = np.ones(Ngalpix)*H0
+        dl_galaxies = cosmology.fast_z_to_dl_v2(np.array(z_gal_selected).flatten(),np.array(repeated_H0_in_pix).flatten())
+        #get luminsoity
+        absolute_mag = cosmology.abs_M(loaded_pixel.m_B,dl_galaxies)
+        luminosities = mag2lum(absolute_mag)
+        weights_gal = luminosities / (1+z_gal_selected)
+        weights_gal /= np.sum(weights_gal)
+        gal_id = np.random.choice(np.arange(Ngalpix), size = 1, p = weights_gal)
+        return loaded_pixel.iloc[gal_id,:]
+
+
 
 if type_of_data == 'training':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
@@ -219,6 +214,7 @@ if type_of_data == 'testing':
     path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/testing_data_from_MLP/"
     N = 250
     H0_samples = 70*np.ones(N)
+    R_nums = np.random.uniform(0,1, size = N)
     cdfs = np.ones((N,10))
     for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
         cdfs[i, :] = cdf_M(H0_samples[i])
@@ -258,34 +254,31 @@ for cdf in cdfs:
 
 list_data = []
 missed_H0 = H0
-missed_M = M
+missed_M = np.array(M)
+if type_of_data =='testing':
+    missed_R = R_nums
+
+
 
 while True:    
-    st = time.perf_counter() 
+    st = time.perf_counter()
+    start = time.time()
     n = len(missed_H0)
-    select = round_base(Nselect , base = Nselect)
-    nxN = int(n*select)
-    inx_gal = np.zeros(nxN)
+
+    inx_gal = np.zeros(n)
     #draw redshifts
-    z = draw_cumulative_z(nxN)
-    repeated_H0 = np.repeat(missed_H0, int(select))
-    repeated_M = np.repeat(missed_M, int(select))
+    z = draw_cumulative_z(n)
+#     repeated_H0 = np.repeat(missed_H0, int(select))
+#     repeated_M = np.repeat(missed_M, int(select))
     #compute distance and apparent magnitudes
-    dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0 ))
+    dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(missed_H0))
     #Make sure all are arrays
     z = np.array(z)
     dl = np.array(dl)
-    print('Dl sampled')    
-    distributions = {'mass':'PowerLaw+Peak'}
-    _, m1, m2, a1, a2, tilt1, tilt2, _, _, theta_jn, phi_jl, phi_12,psi, _ , geo_time = gw_priors.draw_prior(int(nxN), distributions)
-    
-    RA, dec = draw_RA_Dec(int(nxN))
-
-
-        
-    print('GW para sampled')
-    app_samples = cosmology.app_mag(repeated_M.flatten(),dl.flatten())
-    
+    RA, dec = draw_RA_Dec(int(n))
+    app_samples = cosmology.app_mag(missed_M.flatten(),dl.flatten())
+    end = time.time()
+    print('Dl, Ra, dec  sampled, took = {} s'.format(round(end - start, 3)))
     
     #Magnitude threshold map
     mth_list = np.array([mth_from_RAdec(NSIDE, RA, dec, map_mth)]).flatten()
@@ -301,35 +294,16 @@ while True:
 
         #Add luminosity weights in the future 
         #Random choice glaaxy id with weights 
-        pix_list = pix_list[inx_in_gal]
-        H0_in_list = repeated_H0[inx_in_gal]
-        
-        sorted_binned_pix_list, indices_unique_pix, pixel_count = np.unique(pix_list, return_counts = True, return_index = True)
-        index_H0_list = H0_in_list[indices_unique_pix]
-        
-        
-        
-        gal_selected = []
-        print('Loading {} pixels'.format(len(sorted_binned_pix_list)))
-        for j, pixel in enumerate(sorted_binned_pix_list):
-            
-            loaded_pixel, Ngalpix = load_pixel(pixel)
-            z_gal_selected = loaded_pixel.z 
+        pix_list = np.array(pix_list[inx_in_gal])
+        H0_in_list = np.array(missed_H0[inx_in_gal])
+        pixel_H0 = np.array([pix_list, H0_in_list]).T
 
-            repeated_H0_in_pix = np.ones(Ngalpix)*index_H0_list[j]
-            dl_galaxies = cosmology.fast_z_to_dl_v2(z_gal_selected,repeated_H0_in_pix)
-            #get luminsoity
-            absolute_mag = cosmology.abs_M(loaded_pixel.m_B,dl_galaxies)
-            luminosities = mag2lum(absolute_mag)
-            weights_gal = luminosities / (1+z_gal_selected)
-            weights_gal[np.isnan(weights_gal)] = 0
-            weights_gal /= np.sum(weights_gal)
-            gal_id = np.random.choice(np.arange(Ngalpix), size = pixel_count[j], p = weights_gal)
-            gal_selected.append(loaded_pixel.iloc[gal_id,:])
-        
-            
+        print('Loading {} pixels'.format(len(pix_list)))
+        start = time.time()
+        with multiprocessing.Pool(threads) as p:
+            selected_cat_pixels = list(p.imap(select_gal_from_pix,pixel_H0))   
     
-        gal_selected = pd.concat(gal_selected)
+        gal_selected = pd.concat(selected_cat_pixels)
         RA_gal = np.array(gal_selected.ra)
         dec_gal = np.array(gal_selected.dec)
         z_true_gal = np.array(gal_selected.z)
@@ -339,7 +313,7 @@ while True:
         z_obs_gal = truncnorm.rvs(a, b, loc=z_true_gal, scale=abs(sigmaz_gal), size=len(sigmaz_gal))
         m_obs_gal = np.array(gal_selected.m_B)
 
-        dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(repeated_H0[inx_in_gal]))
+        dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(missed_H0[inx_in_gal]))
 
         #Switch z values in z array with zgal and dgal
         z[inx_in_gal] = z_obs_gal
@@ -349,20 +323,41 @@ while True:
         app_samples[inx_in_gal] = m_obs_gal
         inx_gal[inx_in_gal] = 1
     
-    #print(np.where(inx_gal == 1))
+        end = time.time()
+        print('GLADE+ catalog selected, took = {} s'.format(round(end - start, 3)))
     
-    m1z = m1*(1+z)
-    m2z = m2*(1+z)
+    
+    select = round_base(Nselect*N/N_missed, base = 10)
+    if type_of_data == 'testing':
+        repeated_Rnums = np.repeat(missed_R, select) 
+    #repeat location parameters nselect times
+    repeated_H0 = np.repeat(missed_H0, select) 
+    repeated_M = np.repeat(missed_M, select)
+    repeated_z = np.repeat(z, select)   
+    repeated_dl = np.repeat(dl, select)   
+    repeated_RA = np.repeat(RA, select) 
+    repeated_dec = np.repeat(dec, select)
+    repeated_app_mag = np.repeat(app_samples, select) 
+    repeated_inx_gal = np.repeat(inx_gal, select) 
+    
+    nxN = int(n*select)
+    
+    start = time.time()
+    _, m1, m2, a1, a2, tilt1, tilt2, _, _, theta_jn, phi_jl, phi_12,psi, _ , geo_time = gw_priors.draw_prior(int(nxN), distributions)
+    end = time.time()
+    print('GW para sampled, took = {} s'.format(round(end - start, 3)))
+    m1z = m1*(1+repeated_z)
+    m2z = m2*(1+repeated_z)
     
     #Compute HA using RA and geo_time
-    ha = np.array(HA(geo_time, RA - np.pi))
+    ha = np.array(HA(geo_time, repeated_RA - np.pi))
     
-    MLP_data_dict = {'dl':dl, 'm1':m1z, 'm2':m2z,'a1': a1, 'a2': a2,
-                 'tilt1': tilt1, 'tilt2': tilt2,'HA':ha, 'dec':dec,
+    MLP_data_dict = {'dl':repeated_dl, 'm1':m1z, 'm2':m2z,'a1': a1, 'a2': a2,
+                 'tilt1': tilt1, 'tilt2': tilt2,'HA':ha, 'dec':repeated_dec,
                  'theta_jn':theta_jn, 'phi_jl':phi_jl, 'phi_12':phi_12, 'polarization':psi }   
     
-    data_dict = {'dl':dl, 'm1':m1z, 'm2':m2z,'a1': a1, 'a2': a2,
-             'tilt1': tilt1, 'tilt2': tilt2,'RA':RA, 'dec':dec,
+    data_dict = {'dl':repeated_dl, 'm1':m1z, 'm2':m2z,'a1': a1, 'a2': a2,
+             'tilt1': tilt1, 'tilt2': tilt2,'RA':repeated_RA, 'dec':repeated_dec,
              'theta_jn':theta_jn, 'phi_jl':phi_jl, 'phi_12':phi_12, 'polarization':psi , 'geo_time':geo_time}   
     
     MLP_GW_data = pd.DataFrame(MLP_data_dict)
@@ -372,14 +367,19 @@ while True:
     snrs  = SNR_from_MLP(MLP_GW_data)
     snrs_obs = np.sqrt((ncx2.rvs(6, snrs**2, size=nxN, loc = 0, scale = 1)))        
     et = time.perf_counter()
+    print('Nselect = {}'.format(int(select)))
     print('Time:',et-st)
     GW_data['snr'] = snrs_obs 
     inx_out = np.where((GW_data.snr >= SNRth))[0]   
     #print(inx_out)
     GW_data['H0'] = repeated_H0
     GW_data['M'] = repeated_M
-    GW_data['app_mag'] = app_samples
-    GW_data['inx'] = inx_gal
+    GW_data['app_mag'] = repeated_app_mag
+    GW_data['inx'] = repeated_inx_gal
+    
+    if type_of_data =='testing':
+        GW_data['R'] = repeated_Rnums
+        
     inds_to_keep = []
     for k in range(n):
         try:
@@ -390,26 +390,52 @@ while True:
         continue
         
     out_data = GW_data.loc[np.array(inds_to_keep)]
+#     print(out_data)
+#     print(repeated_H0)
     list_data.append(out_data)
-    N_missed = len(np.setxor1d(out_data['H0'].to_numpy(),repeated_H0))
-    print('H0 that we missed:', N_missed)    
-    missed_H0 = np.setxor1d(out_data['H0'].to_numpy(),repeated_H0)   
-    missed_M = np.setxor1d(out_data['M'].to_numpy(),repeated_M) 
-    if len(missed_H0) == 0 : 
-        break
+    #print(len(pd.concat(list_data)))
+#     print(len(repeated_H0))
+    
+    if type_of_data =='training':
+        missed_H0 = np.setxor1d(out_data['H0'].to_numpy(),repeated_H0)   
+        missed_M = np.setxor1d(out_data['M'].to_numpy(),repeated_M)
+        #print(missed_H0)
+        N_missed = len(missed_H0)
+        print('H0 that we missed:', N_missed)         
+
+        if len(missed_H0) == 0 : 
+            repeated_H0 = np.repeat(missed_H0, select)
+            break
+            
+    elif type_of_data =='testing':
+        missed_R = np.setxor1d(out_data['R'].to_numpy(),repeated_Rnums)
+        
+        temp = []
+        for x in R_nums:
+            temp.append(np.where(missed_R == x)[0])
+            
+        indices_R = np.concatenate(temp,axis=0)
+        #indices_R = [np.where(missed_R==x)[0][0] for x in R_nums]
+        missed_H0 = missed_H0[indices_R]
+        missed_M = missed_M[indices_R]
+
+        N_missed = len(missed_H0)
+        print('H0 that we missed:', N_missed)
+        if N_missed == 0 : 
+            repeated_H0 = np.repeat(missed_H0, select)
+            break
+        
+        
+        
+        
+        
         
 GW_data = pd.concat(list_data)    
 output_df = GW_data[['snr', 'H0', 'dl', 'm1', 'm2', 'RA', 'dec',
                      'a1', 'a2', 'tilt1', 'tilt2', 'theta_jn',
                      'phi_jl', 'phi_12', 'polarization','geo_time', 'app_mag', 'inx']]
-output_df.to_csv(path_data+'TEST2_{}_N_SNR_{}_Nelect_{}__Full_para_v2.csv'.format(int(N), int(SNRth), int(Nselect)))
+output_df.to_csv(path_data+'batch_4_{}_N_SNR_{}_Nelect_{}__Full_para_v2.csv'.format(int(N), int(SNRth), int(Nselect)))
     
   
     
-
-
-
-
-
-
 

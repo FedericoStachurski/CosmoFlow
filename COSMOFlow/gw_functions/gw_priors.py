@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 from scipy.stats import ncx2
 from tqdm import tqdm
 import bilby
-
+from scipy.stats import norm
 from cosmology_functions import cosmology, priors
 from scipy.interpolate import splrep, splev
 from bilby.core.prior import Uniform, Sine, Constraint, Cosine
 from scipy.integrate import  quad
 import numpy.random as rn
 import sys
+import multiprocessing
 np.random.seed(10)
 
 
@@ -78,6 +79,69 @@ def sample_PL_m1m2(Nsamples, alpha, Mmax = 100, Mmin = 5):
     m2 = np.array(m2_list)
     return m1, m2
 
+############# POWER LAW + PEAK ####################
+alpha, Mmin, Mmax = [3.78, 4.98, 112.5]
+mu, std = [ 32.27, 3.88]
+lamb = 0.03
+beta = 0.81
+parameters = {'alpha' : alpha,
+              'mu' : mu,
+              'std' : std,
+              'lamb' : lamb,
+              'beta' : beta,
+              'Mmin' : Mmin,
+              'Mmax' : Mmax}
+mvec = np.linspace(parameters['Mmin'],parameters['Mmax'], 2000)
+dm = np.diff(mvec)[0]
+
+def pl_m1(m1, alpha):
+    return m1**(-alpha)
+
+def pl_m2(m2, beta):
+    return m2**(-beta)
+
+def gauss(m1, mu, std):
+    return norm.pdf(m1, mu, std)
+
+cdf_pl = np.zeros(len(mvec))
+cdf_gauss = np.zeros(len(mvec))
+cdf_pl_m2 = np.zeros(len(mvec))
+for i in tqdm(range(len(mvec)), desc= 'Computing CDFS for PowerLaw+Peak distributions'):
+    cdf_pl[i] = quad(lambda m: pl_m1(m, 3.78), mvec[0], mvec[i])[0]
+    cdf_pl_m2[i] = quad(lambda m: pl_m2(m, 0.81), mvec[0], mvec[i])[0]
+    cdf_gauss[i] = quad(lambda m: gauss(m,  32.27, 3.88), mvec[0], mvec[i])[0]
+cdf_pl /= np.max(cdf_pl)
+cdf_pl_m2 /= np.max(cdf_pl_m2)
+cdf_gauss /= np.max(cdf_gauss)
+
+@np.vectorize
+def sample_m2(m1):
+    m2 = np.interp(rn.random(100),cdf_pl_m2,np.linspace(mvec[0], m1, 2000))
+    return m2[0]
+
+def sample_m1m2_POWERLAW_PEAK(N):
+    
+    
+    #random number 
+    R = np.random.uniform(0,1, size = N)
+    np.random.seed(int(1000*R[0]))
+    g_rate = len(np.where(R <= 0.03)[0])
+    pl_rate = len(np.where(R > 0.03)[0])
+    
+    t_pl = rn.random(pl_rate)
+    t_gauss = rn.random(g_rate)
+    samples_pl = np.interp(t_pl,cdf_pl,mvec)
+    samples_gauss = np.interp(t_gauss,cdf_gauss,mvec)
+    samples = np.array(list(samples_pl) + list(samples_gauss))
+
+
+    m2_samples = sample_m2(samples)
+#     with multiprocessing.Pool(10) as p:
+#         m2_samples = list(p.imap(sample_m2,samples))
+
+    m1_samples = samples
+    m2_samples = np.array(m2_samples)
+    return m1_samples, m2_samples
 
 
 
@@ -88,6 +152,9 @@ def draw_prior(N, distributions):
     
     if distributions['mass'] == 'Power-law':
         m1, m2 = sample_PL_m1m2(Nsamples = N, alpha = 2.3, Mmax = 50, Mmin = 5)
+        
+    if distributions['mass'] == 'PowerLaw+Peak':
+        m1, m2 = sample_m1m2_POWERLAW_PEAK(N)
         
     elif distributions['mass'] == 'Uniform':
         if N == 1: 
