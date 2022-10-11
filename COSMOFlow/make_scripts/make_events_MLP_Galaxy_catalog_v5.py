@@ -54,10 +54,10 @@ zmax = 1.5
 zmin = 0.0001
 NSIDE = 32
 type_of_data = 'training'
-SNRth = 10
+SNRth = 11
 NSIDE = 32
-Nselect = 1*10**(1) 
-N = 100_000
+Nselect = 5*10**(1) 
+N = 500_000
 distributions = {'mass':'PowerLaw+Peak'}
 threads = 10
 np.random.seed(4)
@@ -102,10 +102,10 @@ def draw_RA_Dec(N):
     return ra_obs, dec
 
 
-def evolution(z):
-    lam = -1
-    return (1+z)**(lam)
-
+def Madau_factor(z, gamma = 4.59, k = 2.86, zp = 2.47):
+    num = (1+z)**(gamma - 1)
+    den = 1 + ((1+z)/(1+zp))**(gamma+k)
+    return num/den
 
 def draw_cumulative_M(N,H0, distribution):
     #grid = np.linspace(-23,-5,100)
@@ -118,7 +118,7 @@ def draw_cumulative_M(N,H0, distribution):
     return samples
 
 #spline p(z)
-pz = evolution(z_grid)  * priors.p_z(z_grid, 0.3)
+pz = Madau_factor(z_grid)  * priors.p_z(z_grid, omega_m = 0.3)
 #pz = priors.p_z(z_grid, 0.3)
 
 
@@ -144,8 +144,8 @@ def cdf_M(H0):
     para_dict ={'phi': 1.6*(10**-2)*(H0/100)**(3), 'alpha': -1.07, 'Mc': -20.47 + 5*np.log10(H0/100)}
     cdf = np.zeros(len(M_grid))
     for i in range(len(M_grid)):
-        #cdf[i] = quad(lambda M: priors.p_M_weight_L(M, H0, para_dict),  M_grid [0], M_grid [i])[0] ## Luminosity weighting 
-        cdf[i] = quad(lambda M: priors.p_M(M, H0, para_dict),  M_grid [0], M_grid [i])[0] ## No Luminosity weighting 
+        cdf[i] = quad(lambda M: priors.p_M_weight_L(M, H0, para_dict),  M_grid [0], M_grid [i])[0] ## Luminosity weighting 
+        #cdf[i] = quad(lambda M: priors.p_M(M, H0, para_dict),  M_grid [0], M_grid [i])[0] ## No Luminosity weighting 
     return cdf/np.max(cdf)    
 
 def sample_M_from_cdf(cdf, N):
@@ -435,7 +435,7 @@ GW_data = pd.concat(list_data)
 output_df = GW_data[['snr', 'H0', 'dl', 'm1', 'm2', 'RA', 'dec',
                      'a1', 'a2', 'tilt1', 'tilt2', 'theta_jn',
                      'phi_jl', 'phi_12', 'polarization','geo_time', 'app_mag', 'inx']]
-output_df.to_csv(path_data+'no_lum_{}_N_SNR_{}_Nelect_{}__Full_para_v2.csv'.format(int(N), int(SNRth), int(Nselect)))
+output_df.to_csv(path_data+'NEW_MADAU_batch_2_{}_N_SNR_{}_Nelect_{}__Full_para_v2.csv'.format(int(N), int(SNRth), int(Nselect)))
     
   
     

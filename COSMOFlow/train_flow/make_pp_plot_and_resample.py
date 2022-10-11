@@ -33,7 +33,7 @@ import argparse
 os.chdir('..')
 
 
-flow_name = 'test_1_big_batch'
+flow_name = 'test_3_big_batch_log_spline'
 #Open hyperparameter dictionary
 path = "train_flow/trained_flows_and_curves/"+flow_name+"/"
 hyper = open(path+'hyperparameters.txt', 'r').read()
@@ -69,6 +69,11 @@ def spherical_to_cart(dl, ra, dec):
     
     x,y,z = spherical_to_cartesian(dl, dec, ra)
     return x,y,z
+
+def cartesian_to_spher(x,y,z):
+    
+    dl, dec, ra= cartesian_to_spherical(x,y,z)
+    return dl, dec, ra
 
 coordinates= data[['dl', 'RA', 'dec']]
 dl = np.array(coordinates.dl)
@@ -116,7 +121,10 @@ def sigmoid_data(data_to_sigmoid):
 
 
 
-data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
+# data = data[['xcoord', 'ycoord', 'zcoord', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
+#                                                                              'phi_12', 'polarization', 'geo_time', 'H0']]
+
+data = data[['dl', 'RA', 'dec', 'm1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 'theta_jn', 'phi_jl', 
                                                                              'phi_12', 'polarization', 'geo_time', 'H0']]
 
 print(data.head(10))
@@ -229,91 +237,117 @@ def Flow_samples(conditional, n):
     
 
     with torch.no_grad():
-        samples = flow.sample(n, conditional=data_scaled.to('cpu'))
-        samples= scaler_x.inverse_transform(samples.to('cpu'))
+        samples = (flow.sample(N, conditional=data_scaled.to('cpu'))).detach().numpy()
+        
+        dict_rand = {'x':list(samples[:,0]), 'y':list(samples[:,1]), 'z':list(samples[:,2]), 
+                          'm1':list(samples[:,3]), 'm2':list(samples[:,4]),'a1':list(samples[:,5]),
+                           'a2':list(samples[:,6]), 'tilt1':list(samples[:,7]), 'tilt2':list(samples[:,8]),
+                          'theta_jn':list(samples[:,9]), 'phi_jl':list(samples[:,10]), 'phi_12':list(samples[:,11]),
+                          'polarization':list(samples[:,12]), 'geo_time':list(samples[:,13])}
+
+        samples = pd.DataFrame(dict_rand)
+        
+        if log_it == 1:
+            samples = sigmoid_data(samples)
+        
+        
+        samples= scaler_x.inverse_transform(np.array(samples))
     return samples 
 
 
 
-# np.random.seed(1234)
-# Nresults =200
-# Nruns = 1
-# labels = ['x','y', 'z','m1', 'm2','a1', 'a2', 'tilt1','tilt2', 'theta_jn', 'phi_jl', 
-#                                                                              'phi_12', 'psi', 'time']
-# priors = {}
-# for jj in range(14):
-#     priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
+np.random.seed(1234)
+Nresults =200
+Nruns = 1
+labels = ['x','y', 'z','m1', 'm2','a1', 'a2', 'tilt1','tilt2', 'theta_jn', 'phi_jl', 
+                                                                             'phi_12', 'psi', 'time']
+priors = {}
+for jj in range(14):
+    priors.update({f"{labels[jj]}": Uniform(0, 1, f"{labels[jj]}")})
 
 
 
 
-# for x in range(Nruns):
-#     results = []
-#     for ii in tqdm(range(Nresults)):
-#         posterior = dict()
-#         injections = dict()
-#         inx = np.random.randint(len(Y_scale_val)) 
-#         i = 0 
-#         for key, prior in priors.items():
+for x in range(Nruns):
+    results = []
+    for ii in tqdm(range(Nresults)):
+        posterior = dict()
+        injections = dict()
+        inx = np.random.randint(len(Y_scale_val)) 
+        i = 0 
+        for key, prior in priors.items():
 
              
-#             truths=  scaler_x.inverse_transform(X_scale_val[inx,:].reshape(1,-1))[0]
-#             conditional_sample = scaler_y.inverse_transform(Y_scale_val[inx].reshape(1,-1))[0]
-#             conditional_sample = conditional_sample *np.ones(10000)
-#             samples = Flow_samples(conditional_sample, 10000)
-#             posterior[key] = samples[:,i] 
-#             injections[key] = truths[i].astype('float32').item()
-#             i += 1
+            truths=  scaler_x.inverse_transform(X_scale_val[inx,:].reshape(1,-1))[0]
+            conditional_sample = scaler_y.inverse_transform(Y_scale_val[inx].reshape(1,-1))[0]
+            conditional_sample = conditional_sample *np.ones(10000)
+            samples = Flow_samples(conditional_sample, 10000)
+            posterior[key] = samples[:,i] 
+            injections[key] = truths[i].astype('float32').item()
+            i += 1
 
-#         posterior = pd.DataFrame(dict(posterior))
-#         result = bilby.result.Result(
-#             label="test",
-#             injection_parameters=injections,
-#             posterior=posterior,
-#             search_parameter_keys=injections.keys(),
-#         priors = priors )
-#         results.append(result)
+        posterior = pd.DataFrame(dict(posterior))
+        result = bilby.result.Result(
+            label="test",
+            injection_parameters=injections,
+            posterior=posterior,
+            search_parameter_keys=injections.keys(),
+        priors = priors )
+        results.append(result)
 
-#     fig = bilby.result.make_pp_plot(results, filename='train_flow/trained_flows_and_curves/'+flow_name+'/PP',
-#                               confidence_interval=(0.68, 0.90, 0.99, 0.9999))
+    fig = bilby.result.make_pp_plot(results, filename='train_flow/trained_flows_and_curves/'+flow_name+'/PP',
+                              confidence_interval=(0.68, 0.90, 0.99, 0.9999))
     
-    
-    
-N = 150000
-
-# combined_samples = []
-# total_H0_samples = []
-
-    
+N = 1000000
 H0_samples = np.random.uniform(20,120,N)
-
+    
 samples = Flow_samples(H0_samples, N)
+print(samples)
+x = np.array(samples[:,0])
+y = np.array(samples[:,1])
+z = np.array(samples[:,2])
 
-if log_it is True:
-    samples = sigmoid_data(samples)
-#combined_samples = np.array(combined_samples) 
+dl, dec, RA = cartesian_to_spher(x, y, z)
+
+
+samples[:,0] = dl
+samples[:,1] = RA
+samples[:,2] = dec
+
+dict_rand = {'dl':list(samples[:,0]), 'RA':list(samples[:,1]), 'dec':list(samples[:,2]), 
+                          'm1':list(samples[:,3]), 'm2':list(samples[:,4]),'a1':list(samples[:,5]),
+                           'a2':list(samples[:,6]), 'tilt1':list(samples[:,7]), 'tilt2':list(samples[:,8]),
+                          'theta_jn':list(samples[:,9]), 'phi_jl':list(samples[:,10]), 'phi_12':list(samples[:,11]),
+                          'polarization':list(samples[:,12]), 'geo_time':list(samples[:,13])}
+
+samples = pd.DataFrame(dict_rand)
+
+
+
         
 
 
 
 
-c1 = corner.corner(samples, plot_datapoints=False, smooth = True, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1}, hist_bin_factor=5, range = [(-3000, 3000), (-3000, 3000), (-3000, 3000),(5,80), (5,80), (0,0.99), (0,0.99),(0,np.pi), (0,np.pi), (0,np.pi), (0,2*np.pi),(0,2*np.pi), (0,np.pi), (0,86400)])
-fig = corner.corner(data[['xcoord', 'ycoord', 'zcoord', 
+c1 = corner.corner(samples, bins = 50, plot_datapoints=False, smooth = False, levels = (0.5, 0.9), color = 'red', hist_kwargs = {'density' : 1}, hist_bin_factor=5,
+                   range = [(0, 6000), (0, 2*np.pi), (-np.pi/2, np.pi/2), (5,80), (5,80), (0,0.99), (0,0.99),(0,np.pi), (0,np.pi), (0,np.pi), (0,2*np.pi),(0,2*np.pi), (0,np.pi), (0,86400)])
+#data = logit_data(data)
+fig = corner.corner(data[['dl', 'RA', 'dec', 
                           'm1', 'm2','a1',
                           'a2', 'tilt1', 'tilt2',
                           'theta_jn', 'phi_jl', 'phi_12',
-                          'polarization', 'geo_time']] , 
+                          'polarization', 'geo_time']] , bins = 50,
                     plot_datapoints=False, 
-                    smooth = True, 
+                    smooth = False, 
                     fig = c1, 
                     hist_bin_factor=5,
                     levels = (0.5, 0.9), 
                     plot_density=True,
-                    range = [(-3000, 3000), (-3000, 3000), (-3000, 3000),
+                    range = [(0, 6000),  (0, 2*np.pi), (-np.pi/2, np.pi/2),
                           (5,80), (5,80), (0,0.99), (0,0.99),
                           (0,np.pi), (0,np.pi), (0,np.pi), (0,2*np.pi),
                           (0,2*np.pi), (0,np.pi), (0,86400)],
-                    labels = [r'$x[Mpc]$',r'$y[Mpc]$',r'$z[Mpc]$', 
+                    labels = [r'$dl[Mpc]$',r'$RA$',r'$dec$', 
                             r'$m_{1,z}$', r'$m_{2,z}$',r'$a_{1}$', 
                             r'$a_{2}$', r'$tilt_{1}$', r'$tilt_{2}$', 
                             r'$\theta_{JN}$', r'$\phi_{JL}$',  

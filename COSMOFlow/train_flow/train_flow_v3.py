@@ -217,11 +217,11 @@ def scale_data(data_to_scale):
     
 scaler_x, scaler_y, scaled_data = scale_data(data)
 
-if log_it is True:
+if log_it == 1:
     logit_data(scaled_data)
     scaled_data = scaled_data[np.isfinite(scaled_data).all(1)]
 
-
+print(scaled_data)
 x_train, x_val = train_test_split(scaled_data, test_size=0.25)
 
 batch_size=batch
@@ -427,7 +427,7 @@ for j in range(n_epochs):
     loss_dict['val'].append(val_loss)
     
     #Save flow model at epoch
-    if (j+1)%10 == 0:
+    if (j+1)%100 == 0:
         torch.save(flow.state_dict(), path+folder_name+'/flows_epochs'+'/flow_epoch_{}.pt'.format(int(j+1)))
     
     if val_loss < best_val_loss:
@@ -482,12 +482,12 @@ for j in range(n_epochs):
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(25,15))
 
     #ax1.set_title('lr = ' + str(lr1))
-    ax1.plot(np.linspace(1,j+1, len(loss_dict['train'])), loss_dict['train'],'k', label='Train')
-    ax1.plot(np.linspace(1,j+1, len(loss_dict['train'])), loss_dict['val'],'r', label='Validation', alpha=0.5)
+    ax1.plot(np.linspace(1,j+1, len(loss_dict['train'])), loss_dict['train'],'k', label='Train', linewidth = 3)
+    ax1.plot(np.linspace(1,j+1, len(loss_dict['train'])), loss_dict['val'],'r', label='Validation', alpha=0.4, linewidth = 3)
     ax1.set_ylabel('loss', fontsize = 20)
     ax1.set_xlabel('Epochs', fontsize = 20)
     ax1.set_xscale('log')
-    ax1.set_ylim([-12.5,-5.5])
+    ax1.set_ylim([np.min(loss_dict['train'])-0.5,np.max(loss_dict['train'])])
     ax1.set_xlim([1,n_epochs])
     ax1.xaxis.set_tick_params(labelsize=20)
     ax1.yaxis.set_tick_params(labelsize=20)

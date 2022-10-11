@@ -220,14 +220,24 @@ flow, hyper_dict, scaler_x, scaler_y = load_hyperparameters_scalers_flow(Flow)
 def p_theta_H0(theta, conditional):
     dCon = np.diff(conditional)[0]
     Y_H0_conditional = scaler_y.transform(conditional.reshape(-1,1))
-    scaled_theta = scaler_x.transform(np.array(theta).reshape(1,-1))
-    if hyper_dict['log_it'] is True:
-        logit_data(scaled_data)
-        scaled_data = scaled_data[np.isfinite(scaled_data).all(1)]
+    samples = scaler_x.transform(np.array(theta).reshape(1,-1))
 
-        
-    
+    dict_rand = {'x':list(samples[:,0]), 'y':list(samples[:,1]), 'z':list(samples[:,2]), 
+                  'm1':list(samples[:,3]), 'm2':list(samples[:,4]),'a1':list(samples[:,5]),
+                   'a2':list(samples[:,6]), 'tilt1':list(samples[:,7]), 'tilt2':list(samples[:,8]),
+                  'theta_jn':list(samples[:,9]), 'phi_jl':list(samples[:,10]), 'phi_12':list(samples[:,11]),
+                  'polarization':list(samples[:,12]), 'geo_time':list(samples[:,13])}
+
+    samples = pd.DataFrame(dict_rand)
+    scaled_theta = samples 
+    if hyper_dict['log_it'] == 1:
+        logit_data(scaled_theta)
+        scaled_theta = scaled_theta[np.isfinite(scaled_theta).all(1)]
+
+    scaled_theta = np.array(scaled_theta)
+
     scaled_theta = scaled_theta.T*np.ones((1,len(Y_H0_conditional)))
+
     
     
     conditional = np.array(Y_H0_conditional)

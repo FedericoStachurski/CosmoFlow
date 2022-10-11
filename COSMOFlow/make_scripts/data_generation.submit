@@ -1,0 +1,10 @@
+universe = vanilla 
+executable = /home/federico/.conda/envs/gwcosmoFlow_env/bin/python3
+arguments = /data/wiay/federico/PhD/cosmoflow/COSMOFlow/make_scripts/make_events_MLP_Galaxy_catalog_v5.py
+output = data_generation.out
+error = data_generation.err
+log = data_generation.log
+request_cpus = 10
+request_memory = 4 GB
+request_disk = 5 GB
+queue 1 

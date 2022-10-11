@@ -160,7 +160,7 @@ def KL_evaluate(samples):
 
 #Decay LR
 decayRate = 0.999
-
+my_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser_adam, n_epochs, eta_min=0, last_epoch=- 1, verbose=False)   
 
 # Loss
 loss_dict = dict(train=[], val=[])
@@ -235,7 +235,7 @@ with wandb.init(config = config):
         train_loss /= len(train_loader)
         loss_dict['train'].append(train_loss)
         lr_upd = optimiser.param_groups[0]["lr"]
-        #my_lr_scheduler.step()
+        my_lr_scheduler.step()
 
         #Validate
         flow.eval()
@@ -245,7 +245,8 @@ with wandb.init(config = config):
                 target_val, condtionals_val = batch 
 
 
-                loss = - flow.log_prob(target_val.to(device)[:,:n_inputs],conditional=condtionals_val.reshape(-1,1).to(device)).cpu().mean()
+                loss = - flow.log_prob(target_val.to(device[:,:n_inputs],
+                                                     conditional=condtionals_val.reshape(-1,1).to(device)).cpu().mean()
                 val_loss += loss.item()       
         val_loss /= len(val_loader)
         loss_dict['val'].append(val_loss)

@@ -1,0 +1,1789 @@
+/data/wiay/federico/PhD/cosmoflow/COSMOFlow
+Dl, Ra, dec  sampled, took = 3.418 s
+Loading 3538 pixels
+GLADE+ catalog selected, took = 8.92 s
+GW para sampled, took = 861.73 s
+Nselect = 50
+Time: 903.040980980004
+49          11.556719
+3431        11.401589
+3951        54.334118
+10720       12.013018
+12464       11.147282
+              ...    
+24994340    11.996625
+24995172    13.035517
+24997911    13.411911
+24998951    11.422865
+24999273    11.286495
+Name: snr, Length: 3941, dtype: float64
+H0 that we missed: 496059
+Dl, Ra, dec  sampled, took = 3.323 s
+Loading 946 pixels
+GLADE+ catalog selected, took = 2.783 s
+GW para sampled, took = 858.745 s
+Nselect = 50
+Time: 892.5253023979894
+1524211     16.527029
+1779321     12.466648
+1880225     11.161546
+1880251     18.435162
+1891704     11.402557
+              ...    
+24801709    11.185062
+24802060    14.341730
+24802551    12.329466
+24802602    13.477933
+24802942    11.525781
+Name: snr, Length: 3840, dtype: float64
+H0 that we missed: 492219
+Dl, Ra, dec  sampled, took = 3.407 s
+Loading 874 pixels
+GLADE+ catalog selected, took = 2.716 s
+GW para sampled, took = 878.092 s
+Nselect = 50
+Time: 912.3660984689777
+117654      12.778078
+164156      12.926123
+222056      12.010802
+628663      16.353483
+763807      11.273292
+              ...    
+24609408    13.858375
+24609519    14.191970
+24609735    11.849484
+24609873    11.183850
+24610437    13.070666
+Name: snr, Length: 3640, dtype: float64
+H0 that we missed: 488579
+Dl, Ra, dec  sampled, took = 3.462 s
+Loading 868 pixels
+GLADE+ catalog selected, took = 2.93 s
+GW para sampled, took = 874.138 s
+Nselect = 50
+Time: 908.252059728984
+199851      14.558445
+737359      13.801801
+760629      17.140403
+979786      11.377396
+1489905     14.524846
+              ...    
+24427369    13.038745
+24427481    13.236979
+24427919    11.423879
+24428836    11.211719
+24428860    13.341725
+Name: snr, Length: 3750, dtype: float64
+H0 that we missed: 484829
+Dl, Ra, dec  sampled, took = 3.51 s
+Loading 853 pixels
+GLADE+ catalog selected, took = 2.52 s
+GW para sampled, took = 961.899 s
+Nselect = 50
+Time: 996.9641196560115
+331399      13.813350
+1704270     13.450416
+1819851     12.905106
+1825306     16.727634
+2149558     18.059925
+              ...    
+24240202    14.555627
+24240354    16.788315
+24240445    14.025307
+24240615    13.085803
+24240920    13.507281
+Name: snr, Length: 3600, dtype: float64
+H0 that we missed: 481229
+Dl, Ra, dec  sampled, took = 3.505 s
+Loading 878 pixels
+GLADE+ catalog selected, took = 2.989 s
+GW para sampled, took = 1044.075 s
+Nselect = 50
+Time: 1077.7866932819888
+182851      19.581361
+1011404     11.162835
+1202790     11.903439
+1290981     11.272067
+1414252     11.026876
+              ...    
+24059656    11.187824
+24059940    11.245212
+24060506    12.061761
+24061251    12.404813
+24061407    16.305738
+Name: snr, Length: 3592, dtype: float64
+H0 that we missed: 477637
+Dl, Ra, dec  sampled, took = 4.563 s
+Loading 791 pixels
+GLADE+ catalog selected, took = 2.446 s
+GW para sampled, took = 894.515 s
+Nselect = 50
+Time: 928.0166493249999
+48475       11.442850
+1390969     18.780421
+1875007     12.242615
+2027299     26.807391
+2050835     11.658724
+              ...    
+23880018    11.107674
+23880824    13.696978
+23880870    12.055012
+23881162    11.976673
+23881367    12.427925
+Name: snr, Length: 3325, dtype: float64
+H0 that we missed: 474312
+Dl, Ra, dec  sampled, took = 3.168 s
+Loading 877 pixels
+GLADE+ catalog selected, took = 2.767 s
+GW para sampled, took = 922.311 s
+Nselect = 50
+Time: 955.2190134989796
+1773127     11.375166
+1809858     14.152382
+1877703     11.105242
+2462615     13.805876
+2575058     13.086646
+              ...    
+23715141    12.429356
+23715165    12.044322
+23715272    11.403391
+23715486    11.603405
+23715555    12.796579
+Name: snr, Length: 3451, dtype: float64
+H0 that we missed: 470861
+Dl, Ra, dec  sampled, took = 3.166 s
+Loading 851 pixels
+GLADE+ catalog selected, took = 2.698 s
+GW para sampled, took = 869.675 s
+Nselect = 50
+Time: 901.0746282780019
+1226904     11.461681
+2226708     14.785146
+2581011     11.606789
+2714155     16.628809
+2799923     15.533485
+              ...    
+23542216    12.454406
+23542301    15.511700
+23542465    11.738290
+23542505    13.165530
+23542910    11.866386
+Name: snr, Length: 3227, dtype: float64
+H0 that we missed: 467634
+Dl, Ra, dec  sampled, took = 3.113 s
+Loading 838 pixels
+GLADE+ catalog selected, took = 2.647 s
+GW para sampled, took = 891.843 s
+Nselect = 50
+Time: 927.1998016110156
+1202055     14.972032
+1251066     13.874489
+1337595     11.325416
+2154294     15.606821
+2568751     13.445442
+              ...    
+23380575    11.527602
+23380656    12.195009
+23380782    11.133042
+23381258    12.045406
+23381409    14.639412
+Name: snr, Length: 3265, dtype: float64
+H0 that we missed: 464369
+Dl, Ra, dec  sampled, took = 3.282 s
+Loading 785 pixels
+GLADE+ catalog selected, took = 2.396 s
+GW para sampled, took = 870.746 s
+Nselect = 50
+Time: 903.6427550409862
+671363      13.205480
+674459      11.185401
+1479675     13.421794
+1941201     46.455749
+2203347     14.532110
+              ...    
+23216986    13.675472
+23217254    12.325068
+23217408    13.536570
+23217737    11.695778
+23217905    12.347675
+Name: snr, Length: 3136, dtype: float64
+H0 that we missed: 461233
+Dl, Ra, dec  sampled, took = 3.319 s
+Loading 842 pixels
+GLADE+ catalog selected, took = 2.489 s
+GW para sampled, took = 826.016 s
+Nselect = 50
+Time: 858.7590535169875
+482453      11.425441
+530460      12.437878
+951451      17.883457
+1350510     13.447538
+1506665     13.027427
+              ...    
+23060205    16.068326
+23060276    12.276702
+23060795    13.327612
+23061173    11.174104
+23061510    15.651805
+Name: snr, Length: 3115, dtype: float64
+H0 that we missed: 458118
+Dl, Ra, dec  sampled, took = 3.058 s
+Loading 839 pixels
+GLADE+ catalog selected, took = 2.764 s
+GW para sampled, took = 874.574 s
+Nselect = 50
+Time: 905.4043651079992
+356587      13.157767
+461012      11.322975
+579407      12.967467
+674457      12.830303
+1316027     11.812288
+              ...    
+22903802    12.256047
+22904053    13.634995
+22904659    13.497492
+22904902    11.587058
+22905801    22.754814
+Name: snr, Length: 3036, dtype: float64
+H0 that we missed: 455082
+Dl, Ra, dec  sampled, took = 3.022 s
+Loading 811 pixels
+GLADE+ catalog selected, took = 2.574 s
+GW para sampled, took = 805.606 s
+Nselect = 50
+Time: 835.7528401219752
+72301       11.443358
+158261      11.151891
+960509      13.461126
+1013124     11.443143
+1251769     12.668118
+              ...    
+22752174    12.269713
+22752812    15.550116
+22752960    11.073732
+22753259    12.981484
+22753883    12.937344
+Name: snr, Length: 3052, dtype: float64
+H0 that we missed: 452030
+Dl, Ra, dec  sampled, took = 4.249 s
+Loading 817 pixels
+GLADE+ catalog selected, took = 2.416 s
+GW para sampled, took = 938.053 s
+Nselect = 60
+Time: 974.5861698899826
+664821      16.100447
+1709589     14.763199
+1835371     11.856899
+2402402     12.165257
+2793688     12.374699
+              ...    
+27120275    14.662987
+27120313    11.694480
+27120386    11.230416
+27120915    11.092817
+27121431    11.010213
+Name: snr, Length: 3272, dtype: float64
+H0 that we missed: 448758
+Dl, Ra, dec  sampled, took = 3.064 s
+Loading 889 pixels
+GLADE+ catalog selected, took = 2.597 s
+GW para sampled, took = 1067.614 s
+Nselect = 60
+Time: 1104.2306762469816
+141552      11.586664
+1174192     14.387597
+1673162     18.082934
+2041088     11.455662
+2117999     11.460923
+              ...    
+26923592    11.666117
+26924360    11.898335
+26924768    11.863646
+26925079    11.965395
+26925381    11.272609
+Name: snr, Length: 3139, dtype: float64
+H0 that we missed: 445619
+Dl, Ra, dec  sampled, took = 4.295 s
+Loading 890 pixels
+GLADE+ catalog selected, took = 2.753 s
+GW para sampled, took = 1054.754 s
+Nselect = 60
+Time: 1101.508004636009
+781741      14.678694
+1021807     11.507021
+1893376     11.374079
+2072522     13.362272
+2483369     19.905464
+              ...    
+26733763    11.797851
+26734576    12.008665
+26736199    11.148404
+26736307    11.508126
+26736625    12.701460
+Name: snr, Length: 3132, dtype: float64
+H0 that we missed: 442487
+Dl, Ra, dec  sampled, took = 3.463 s
+Loading 811 pixels
+GLADE+ catalog selected, took = 2.876 s
+GW para sampled, took = 1007.704 s
+Nselect = 60
+Time: 1052.6473775710037
+751991      14.571703
+1786871     11.327403
+1985349     13.620414
+2721738     11.325081
+2806518     14.512421
+              ...    
+26547212    13.236421
+26547370    13.399075
+26547482    14.730110
+26548776    11.047440
+26548805    14.580131
+Name: snr, Length: 3010, dtype: float64
+H0 that we missed: 439477
+Dl, Ra, dec  sampled, took = 3.041 s
+Loading 853 pixels
+GLADE+ catalog selected, took = 2.633 s
+GW para sampled, took = 948.305 s
+Nselect = 60
+Time: 985.1879129430163
+1071901     39.158654
+1166573     13.402078
+1263815     12.216475
+1484423     16.394455
+1549801     13.539359
+              ...    
+26366668    12.366193
+26367132    13.262173
+26367228    12.656454
+26367599    11.555732
+26368081    11.286920
+Name: snr, Length: 2974, dtype: float64
+H0 that we missed: 436503
+Dl, Ra, dec  sampled, took = 2.911 s
+Loading 835 pixels
+GLADE+ catalog selected, took = 2.576 s
+GW para sampled, took = 1029.948 s
+Nselect = 60
+Time: 1063.9070535360079
+791761      20.037570
+1570185     21.285519
+1736402     11.500336
+2341548     14.202553
+2919073     15.739320
+              ...    
+26188141    11.210248
+26188776    13.430515
+26189188    13.204784
+26189562    11.260506
+26190158    11.081104
+Name: snr, Length: 2866, dtype: float64
+H0 that we missed: 433637
+Dl, Ra, dec  sampled, took = 2.945 s
+Loading 808 pixels
+GLADE+ catalog selected, took = 2.409 s
+GW para sampled, took = 933.225 s
+Nselect = 60
+Time: 967.41178699999
+693494      11.154403
+763216      11.729324
+873843      12.955600
+895991      12.420402
+938122      11.075117
+              ...    
+26017328    14.843333
+26017452    11.545107
+26017682    12.311445
+26017988    11.461148
+26018049    16.536561
+Name: snr, Length: 2869, dtype: float64
+H0 that we missed: 430768
+Dl, Ra, dec  sampled, took = 2.844 s
+Loading 825 pixels
+GLADE+ catalog selected, took = 2.449 s
+GW para sampled, took = 890.76 s
+Nselect = 60
+Time: 925.3968823160103
+591645      13.106781
+730924      13.364756
+1093742     13.864485
+1457713     17.905440
+1510271     18.245706
+              ...    
+25844427    13.190608
+25844522    16.861381
+25844751    11.667578
+25845009    12.103139
+25845064    11.090667
+Name: snr, Length: 2941, dtype: float64
+H0 that we missed: 427827
+Dl, Ra, dec  sampled, took = 2.877 s
+Loading 840 pixels
+GLADE+ catalog selected, took = 2.785 s
+GW para sampled, took = 978.462 s
+Nselect = 60
+Time: 1011.7863503900007
+241901      14.280450
+1443490     11.002557
+1689734     12.838431
+2186923     18.781038
+2821551     12.347535
+              ...    
+25668605    12.320557
+25668831    13.035218
+25669145    11.176197
+25669496    12.167007
+25669600    12.507760
+Name: snr, Length: 2780, dtype: float64
+H0 that we missed: 425047
+Dl, Ra, dec  sampled, took = 3.938 s
+Loading 822 pixels
+GLADE+ catalog selected, took = 2.394 s
+GW para sampled, took = 999.487 s
+Nselect = 60
+Time: 1033.442075146013
+26965       14.147922
+1991886     11.584680
+2123225     14.170247
+2633500     12.095614
+2786933     11.388602
+              ...    
+25501384    11.587885
+25501648    12.548697
+25501777    12.574883
+25501889    12.483634
+25502174    11.884449
+Name: snr, Length: 2694, dtype: float64
+H0 that we missed: 422353
+Dl, Ra, dec  sampled, took = 3.951 s
+Loading 809 pixels
+GLADE+ catalog selected, took = 2.385 s
+GW para sampled, took = 859.272 s
+Nselect = 60
+Time: 892.7354574509955
+304262      12.253183
+1460210     11.451226
+2178303     15.937047
+2293658     11.294345
+2375589     13.811294
+              ...    
+25339508    11.188277
+25339572    15.712690
+25340048    14.901777
+25340269    11.173593
+25340797    11.264942
+Name: snr, Length: 2686, dtype: float64
+H0 that we missed: 419667
+Dl, Ra, dec  sampled, took = 2.778 s
+Loading 840 pixels
+GLADE+ catalog selected, took = 2.484 s
+GW para sampled, took = 867.241 s
+Nselect = 60
+Time: 899.8456298240053
+1278904     18.231343
+2309402     13.947357
+2668232     12.618909
+2776933     11.004131
+2919622     11.948460
+              ...    
+25178945    11.947104
+25179125    11.141515
+25179215    12.446491
+25179541    16.550499
+25179963    11.020408
+Name: snr, Length: 2633, dtype: float64
+H0 that we missed: 417034
+Dl, Ra, dec  sampled, took = 3.87 s
+Loading 818 pixels
+GLADE+ catalog selected, took = 2.606 s
+GW para sampled, took = 933.033 s
+Nselect = 60
+Time: 966.53635016302
+470761      18.255182
+504880      16.049687
+718441      13.754847
+1275294     13.228178
+1696785     11.291617
+              ...    
+25019761    11.474735
+25020312    11.014938
+25020530    13.280281
+25021867    11.145967
+25021954    11.294245
+Name: snr, Length: 2656, dtype: float64
+H0 that we missed: 414378
+Dl, Ra, dec  sampled, took = 2.726 s
+Loading 832 pixels
+GLADE+ catalog selected, took = 2.53 s
+GW para sampled, took = 967.382 s
+Nselect = 60
+Time: 999.5338659099943
+872946      19.776912
+975398      14.201236
+1225261     25.505870
+2272633     13.120258
+2520907     12.819238
+              ...    
+24861801    11.232696
+24861953    13.050679
+24862225    11.185627
+24862267    11.786201
+24862465    11.789706
+Name: snr, Length: 2515, dtype: float64
+H0 that we missed: 411863
+Dl, Ra, dec  sampled, took = 4.253 s
+Loading 791 pixels
+GLADE+ catalog selected, took = 2.432 s
+GW para sampled, took = 864.791 s
+Nselect = 60
+Time: 899.1728107529925
+430063      12.276850
+588117      15.814956
+608494      13.306145
+845172      22.262495
+1086166     11.203461
+              ...    
+24710522    14.872995
+24710722    11.071360
+24711038    12.495753
+24711444    11.116673
+24711587    13.201746
+Name: snr, Length: 2408, dtype: float64
+H0 that we missed: 409455
+Dl, Ra, dec  sampled, took = 2.959 s
+Loading 819 pixels
+GLADE+ catalog selected, took = 2.668 s
+GW para sampled, took = 855.952 s
+Nselect = 60
+Time: 887.9623842159926
+30217       11.978364
+36810       18.425070
+73677       11.078066
+868089      12.557144
+886819      11.143087
+              ...    
+24565462    12.052988
+24565905    11.050194
+24565981    16.033307
+24566359    12.210369
+24566614    11.495361
+Name: snr, Length: 2440, dtype: float64
+H0 that we missed: 407015
+Dl, Ra, dec  sampled, took = 2.774 s
+Loading 771 pixels
+GLADE+ catalog selected, took = 2.335 s
+GW para sampled, took = 839.997 s
+Nselect = 60
+Time: 871.3639449829934
+962862      11.950403
+1191258     11.469089
+1680601     30.108702
+2662810     14.194015
+2812211     19.394261
+              ...    
+24419496    11.066800
+24420270    11.543045
+24420409    12.090804
+24420499    13.377258
+24420693    11.983262
+Name: snr, Length: 2311, dtype: float64
+H0 that we missed: 404704
+Dl, Ra, dec  sampled, took = 2.724 s
+Loading 775 pixels
+GLADE+ catalog selected, took = 2.673 s
+GW para sampled, took = 921.888 s
+Nselect = 60
+Time: 954.149143224
+1071251     12.339555
+3746500     12.637658
+3913962     15.291880
+3940826     11.117051
+3949269     11.978672
+              ...    
+24280884    11.901703
+24281115    14.420845
+24281217    12.701937
+24281627    12.091887
+24282071    14.727883
+Name: snr, Length: 2374, dtype: float64
+H0 that we missed: 402330
+Dl, Ra, dec  sampled, took = 3.733 s
+Loading 813 pixels
+GLADE+ catalog selected, took = 2.483 s
+GW para sampled, took = 815.231 s
+Nselect = 60
+Time: 847.3062117079971
+77162       20.286268
+499829      11.428652
+813016      11.885332
+856408      12.782583
+1097819     12.894990
+              ...    
+24137283    12.111110
+24138488    12.404238
+24138903    11.909360
+24139180    11.087337
+24139524    12.063355
+Name: snr, Length: 2229, dtype: float64
+H0 that we missed: 400101
+Dl, Ra, dec  sampled, took = 2.701 s
+Loading 803 pixels
+GLADE+ catalog selected, took = 2.471 s
+GW para sampled, took = 825.855 s
+Nselect = 60
+Time: 858.917849135003
+380113      11.660171
+385358      12.585776
+462187      11.120780
+1108381     48.727669
+2693229     12.044978
+              ...    
+24004025    12.690757
+24004148    15.013225
+24004682    20.307210
+24004852    13.143133
+24005252    11.126275
+Name: snr, Length: 2256, dtype: float64
+H0 that we missed: 397845
+Dl, Ra, dec  sampled, took = 2.808 s
+Loading 801 pixels
+GLADE+ catalog selected, took = 2.439 s
+GW para sampled, took = 826.101 s
+Nselect = 60
+Time: 857.2032599439844
+1148029     11.642715
+1842181     16.400486
+2033346     12.113117
+2302408     11.565731
+2329612     22.755319
+              ...    
+23870140    11.462418
+23870162    15.163908
+23870231    11.268406
+23870300    12.690214
+23870514    11.792307
+Name: snr, Length: 2235, dtype: float64
+H0 that we missed: 395610
+Dl, Ra, dec  sampled, took = 2.672 s
+Loading 811 pixels
+GLADE+ catalog selected, took = 2.393 s
+GW para sampled, took = 825.75 s
+Nselect = 60
+Time: 856.8463968019933
+775158      12.693784
+805504      12.677130
+1179902     11.446854
+2138926     11.917425
+2263473     26.155262
+              ...    
+23735538    12.943991
+23735641    13.725841
+23735888    12.864196
+23736190    11.622943
+23736570    11.151981
+Name: snr, Length: 2228, dtype: float64
+H0 that we missed: 393382
+Dl, Ra, dec  sampled, took = 2.676 s
+Loading 785 pixels
+GLADE+ catalog selected, took = 2.703 s
+GW para sampled, took = 923.322 s
+Nselect = 60
+Time: 954.3076157570176
+794748      12.973750
+2111628     24.060183
+2175242     13.160512
+2325484     11.883448
+2656195     11.344684
+              ...    
+23602182    14.958972
+23602456    12.754757
+23602685    11.202139
+23602763    12.129283
+23602885    20.276687
+Name: snr, Length: 2142, dtype: float64
+H0 that we missed: 391240
+Dl, Ra, dec  sampled, took = 2.616 s
+Loading 782 pixels
+GLADE+ catalog selected, took = 2.492 s
+GW para sampled, took = 803.172 s
+Nselect = 60
+Time: 834.1432331060059
+276962      11.501076
+295340      11.603945
+612191      11.356884
+1040664     15.468152
+1501763     11.256119
+              ...    
+23473476    11.479036
+23473586    11.695690
+23473825    12.151450
+23473998    11.093166
+23474043    12.286511
+Name: snr, Length: 2009, dtype: float64
+H0 that we missed: 389231
+Dl, Ra, dec  sampled, took = 2.611 s
+Loading 822 pixels
+GLADE+ catalog selected, took = 2.588 s
+GW para sampled, took = 896.07 s
+Nselect = 60
+Time: 926.4292885190225
+981774      15.702687
+2804627     12.616101
+2896510     11.578293
+3134763     13.052017
+3513367     11.777272
+              ...    
+23351711    13.461786
+23352351    15.693927
+23352625    12.151226
+23353547    11.129248
+23353622    12.463385
+Name: snr, Length: 2045, dtype: float64
+H0 that we missed: 387186
+Dl, Ra, dec  sampled, took = 2.641 s
+Loading 752 pixels
+GLADE+ catalog selected, took = 2.304 s
+GW para sampled, took = 788.277 s
+Nselect = 60
+Time: 818.2495739780134
+30687       15.402959
+971158      15.089979
+1010782     17.632958
+1017528     13.580232
+1795923     12.860848
+              ...    
+23228225    12.188402
+23228693    11.080961
+23229008    14.554825
+23229314    11.136188
+23230436    14.744933
+Name: snr, Length: 1992, dtype: float64
+H0 that we missed: 385194
+Dl, Ra, dec  sampled, took = 2.594 s
+Loading 821 pixels
+GLADE+ catalog selected, took = 2.469 s
+GW para sampled, took = 811.005 s
+Nselect = 60
+Time: 840.9340864649857
+1176245     12.395567
+1309138     18.354651
+1483501     13.885688
+1536844     12.124814
+1538941     13.418696
+              ...    
+23109777    14.692737
+23109803    12.786231
+23110929    11.541351
+23111295    13.509921
+23111405    17.097338
+Name: snr, Length: 1977, dtype: float64
+H0 that we missed: 383217
+Dl, Ra, dec  sampled, took = 3.581 s
+Loading 834 pixels
+GLADE+ catalog selected, took = 2.708 s
+GW para sampled, took = 1389.477 s
+Nselect = 70
+Time: 1452.0912244289939
+43339       12.937642
+714852      19.054653
+1310429     15.281357
+2203964     12.651973
+2224551     11.982056
+              ...    
+26821711    14.192339
+26821989    14.095144
+26822483    11.183894
+26823960    12.342485
+26824528    11.364279
+Name: snr, Length: 2148, dtype: float64
+H0 that we missed: 381069
+Dl, Ra, dec  sampled, took = 4.213 s
+Loading 762 pixels
+GLADE+ catalog selected, took = 3.534 s
+GW para sampled, took = 1490.9 s
+Nselect = 70
+Time: 1568.8380917280156
+509537      13.331606
+626573      12.675316
+771682      34.012063
+816481      15.654094
+2564560     11.474389
+              ...    
+26673645    12.754759
+26673938    12.064552
+26674214    12.708689
+26674573    13.784597
+26674762    21.459169
+Name: snr, Length: 2015, dtype: float64
+H0 that we missed: 379054
+Dl, Ra, dec  sampled, took = 4.127 s
+Loading 754 pixels
+GLADE+ catalog selected, took = 3.146 s
+GW para sampled, took = 1490.609 s
+Nselect = 70
+Time: 1545.1248205029988
+30938       18.815421
+465190      12.411404
+603551      13.274994
+735435      13.888139
+1100354     15.253178
+              ...    
+26532662    12.249342
+26533160    12.352583
+26533252    11.072899
+26533368    11.160739
+26533431    14.315038
+Name: snr, Length: 2025, dtype: float64
+H0 that we missed: 377029
+Dl, Ra, dec  sampled, took = 3.962 s
+Loading 746 pixels
+GLADE+ catalog selected, took = 3.664 s
+GW para sampled, took = 1458.213 s
+Nselect = 70
+Time: 1512.510001129005
+864921      40.136058
+1147704     15.929664
+2098747     18.973640
+2267231     11.429686
+2549953     11.479284
+              ...    
+26390189    12.752725
+26390493    14.038961
+26391291    12.952266
+26391403    12.064589
+26391929    14.229444
+Name: snr, Length: 2134, dtype: float64
+H0 that we missed: 374895
+Dl, Ra, dec  sampled, took = 3.915 s
+Loading 763 pixels
+GLADE+ catalog selected, took = 3.163 s
+GW para sampled, took = 1490.469 s
+Nselect = 70
+Time: 1551.8865126270102
+1376155     11.663933
+1787382     12.032758
+1823711     15.180662
+1995123     11.131695
+2465936     18.614544
+              ...    
+26240864    15.585921
+26241061    11.731938
+26241113    13.072218
+26241954    11.091281
+26242174    11.013184
+Name: snr, Length: 2013, dtype: float64
+H0 that we missed: 372882
+Dl, Ra, dec  sampled, took = 3.997 s
+Loading 752 pixels
+GLADE+ catalog selected, took = 3.186 s
+GW para sampled, took = 1486.719 s
+Nselect = 70
+Time: 1555.9410640970164
+664025      22.640734
+874397      21.327378
+1052020     12.344180
+1222564     12.545700
+1858020     15.272872
+              ...    
+26099646    11.438069
+26100799    14.704532
+26101482    11.009559
+26101536    14.342919
+26101705    11.947737
+Name: snr, Length: 2017, dtype: float64
+H0 that we missed: 370865
+Dl, Ra, dec  sampled, took = 4.136 s
+Loading 774 pixels
+GLADE+ catalog selected, took = 3.82 s
+GW para sampled, took = 1442.543 s
+Nselect = 70
+Time: 1506.556947456993
+9169        13.278815
+1045033     13.203899
+2014646     13.551172
+2128566     12.754111
+2628501     13.632521
+              ...    
+25959131    14.853291
+25959582    12.630056
+25959712    11.426324
+25960366    15.025501
+25960431    11.146518
+Name: snr, Length: 1857, dtype: float64
+H0 that we missed: 369008
+Dl, Ra, dec  sampled, took = 3.774 s
+Loading 767 pixels
+GLADE+ catalog selected, took = 3.138 s
+GW para sampled, took = 1374.294 s
+Nselect = 70
+Time: 1432.2356201549992
+71230       14.467281
+206584      12.622917
+289192      14.496404
+314171      11.004059
+1115322     11.313759
+              ...    
+25829049    11.783599
+25829359    11.594687
+25829967    11.853377
+25830131    11.723201
+25830358    12.201630
+Name: snr, Length: 1898, dtype: float64
+H0 that we missed: 367110
+Dl, Ra, dec  sampled, took = 4.075 s
+Loading 773 pixels
+GLADE+ catalog selected, took = 3.305 s
+GW para sampled, took = 1459.957 s
+Nselect = 70
+Time: 1523.0438692130265
+32343       11.515202
+1872518     12.587320
+2000249     11.731730
+2184259     11.267262
+3336071     12.226063
+              ...    
+25695046    11.656235
+25695111    19.645554
+25695908    11.028237
+25696445    11.943932
+25696792    14.270683
+Name: snr, Length: 1832, dtype: float64
+H0 that we missed: 365278
+Dl, Ra, dec  sampled, took = 3.986 s
+Loading 743 pixels
+GLADE+ catalog selected, took = 3.079 s
+GW para sampled, took = 1487.802 s
+Nselect = 70
+Time: 1546.4426200189919
+499451      15.721616
+772731      34.731403
+1098983     16.376934
+2198788     11.845879
+2281651     28.684756
+              ...    
+25564979    13.244527
+25565123    17.030610
+25566332    11.354436
+25568274    14.015867
+25569194    12.811392
+Name: snr, Length: 1956, dtype: float64
+H0 that we missed: 363322
+Dl, Ra, dec  sampled, took = 4.019 s
+Loading 770 pixels
+GLADE+ catalog selected, took = 3.331 s
+GW para sampled, took = 1471.066 s
+Nselect = 70
+Time: 1529.5216170350031
+94578       11.459629
+399905      23.047299
+782259      28.295642
+1213255     11.023682
+2150471     14.816175
+              ...    
+25431321    11.750864
+25431433    12.092770
+25431792    11.241251
+25432126    11.096936
+25432215    11.399190
+Name: snr, Length: 1784, dtype: float64
+H0 that we missed: 361538
+Dl, Ra, dec  sampled, took = 4.054 s
+Loading 775 pixels
+GLADE+ catalog selected, took = 3.761 s
+GW para sampled, took = 1465.43 s
+Nselect = 70
+Time: 1535.1382269489986
+545861      14.603210
+710658      12.219593
+1399501     13.042688
+1454631     11.074735
+1513506     13.433213
+              ...    
+25305379    11.908374
+25305497    15.556075
+25305932    11.098148
+25306014    11.137957
+25306955    12.446935
+Name: snr, Length: 1735, dtype: float64
+H0 that we missed: 359803
+Dl, Ra, dec  sampled, took = 3.979 s
+Loading 772 pixels
+GLADE+ catalog selected, took = 3.151 s
+GW para sampled, took = 1385.765 s
+Nselect = 70
+Time: 1443.1184531759936
+624997      20.636686
+1666733     13.352179
+2058263     11.168689
+2121775     11.588337
+2349577     12.301065
+              ...    
+25184187    12.346610
+25185165    12.385973
+25185314    14.008523
+25185779    12.123387
+25185858    12.580778
+Name: snr, Length: 1761, dtype: float64
+H0 that we missed: 358042
+Dl, Ra, dec  sampled, took = 3.424 s
+Loading 779 pixels
+GLADE+ catalog selected, took = 3.319 s
+GW para sampled, took = 1361.755 s
+Nselect = 70
+Time: 1414.0023986940214
+822668      12.032331
+1076149     20.300629
+1287933     14.302979
+2054956     11.372165
+2535776     12.935496
+              ...    
+25061161    11.588359
+25061760    12.417853
+25061833    11.232650
+25062446    11.640872
+25062733    14.387638
+Name: snr, Length: 1747, dtype: float64
+H0 that we missed: 356295
+Dl, Ra, dec  sampled, took = 3.763 s
+Loading 764 pixels
+GLADE+ catalog selected, took = 3.271 s
+GW para sampled, took = 1350.195 s
+Nselect = 70
+Time: 1402.2705789839965
+169415      51.740049
+326126      12.265044
+760208      13.425657
+1373738     15.459399
+2103046     29.529393
+              ...    
+24939374    11.487217
+24939406    13.233644
+24939754    11.874421
+24939895    14.191608
+24940597    13.032985
+Name: snr, Length: 1738, dtype: float64
+H0 that we missed: 354557
+Dl, Ra, dec  sampled, took = 3.686 s
+Loading 753 pixels
+GLADE+ catalog selected, took = 3.208 s
+GW para sampled, took = 1091.684 s
+Nselect = 70
+Time: 1125.7393445179914
+513110      28.734559
+589142      12.172934
+739302      11.542841
+1168932     19.617884
+1303348     14.659749
+              ...    
+24817845    11.354460
+24818098    14.773873
+24818407    15.628976
+24818511    11.182511
+24818975    12.188567
+Name: snr, Length: 1681, dtype: float64
+H0 that we missed: 352876
+Dl, Ra, dec  sampled, took = 2.359 s
+Loading 784 pixels
+GLADE+ catalog selected, took = 2.715 s
+GW para sampled, took = 835.986 s
+Nselect = 70
+Time: 867.7747927590099
+569593      11.384065
+576672      11.454587
+711002      15.756695
+872482      11.418365
+894751      14.742628
+              ...    
+24698150    12.139094
+24698677    14.016764
+24699155    14.229884
+24700195    12.700577
+24700632    11.237823
+Name: snr, Length: 1704, dtype: float64
+H0 that we missed: 351172
+Dl, Ra, dec  sampled, took = 2.341 s
+Loading 717 pixels
+GLADE+ catalog selected, took = 2.216 s
+GW para sampled, took = 836.225 s
+Nselect = 70
+Time: 867.3693945220148
+1740980     11.868740
+1874918     15.630216
+2887890     12.954889
+2923906     11.726195
+3043355     11.502502
+              ...    
+24579239    14.828278
+24580552    13.474296
+24581409    11.256909
+24581776    12.240586
+24581853    11.604752
+Name: snr, Length: 1587, dtype: float64
+H0 that we missed: 349585
+Dl, Ra, dec  sampled, took = 2.299 s
+Loading 711 pixels
+GLADE+ catalog selected, took = 2.164 s
+GW para sampled, took = 962.759 s
+Nselect = 70
+Time: 993.5270537220058
+1313972     12.117977
+1585832     11.817642
+1686401     12.644368
+1949559     14.183272
+2109879     13.798030
+              ...    
+24468284    12.667085
+24469716    15.361249
+24470265    12.006591
+24470328    12.236362
+24470475    12.285174
+Name: snr, Length: 1625, dtype: float64
+H0 that we missed: 347960
+Dl, Ra, dec  sampled, took = 3.225 s
+Loading 747 pixels
+GLADE+ catalog selected, took = 2.296 s
+GW para sampled, took = 833.976 s
+Nselect = 70
+Time: 866.4199970629998
+598836      12.279274
+1798660     19.909592
+2005113     19.432036
+2913086     14.607180
+3726657     14.810041
+              ...    
+24353470    11.358930
+24355074    14.416832
+24355208    14.681050
+24356291    16.374597
+24356699    11.160641
+Name: snr, Length: 1538, dtype: float64
+H0 that we missed: 346422
+Dl, Ra, dec  sampled, took = 2.283 s
+Loading 739 pixels
+GLADE+ catalog selected, took = 2.335 s
+GW para sampled, took = 821.31 s
+Nselect = 70
+Time: 851.9207955320016
+289016      29.077145
+2164017     14.076466
+2262558     12.448156
+2754092     12.462241
+2762901     19.822067
+              ...    
+24247533    11.146331
+24248124    12.044693
+24248407    11.344409
+24249008    11.997607
+24249337    11.476745
+Name: snr, Length: 1611, dtype: float64
+H0 that we missed: 344811
+Dl, Ra, dec  sampled, took = 2.281 s
+Loading 748 pixels
+GLADE+ catalog selected, took = 2.219 s
+GW para sampled, took = 819.438 s
+Nselect = 70
+Time: 849.6950913369947
+165245      13.800156
+217004      14.416706
+1198359     14.721477
+1361732     11.104628
+1726420     11.814856
+              ...    
+24135155    11.301128
+24135597    13.747426
+24135775    11.961566
+24136423    13.304150
+24136504    11.664342
+Name: snr, Length: 1563, dtype: float64
+H0 that we missed: 343248
+Dl, Ra, dec  sampled, took = 2.271 s
+Loading 730 pixels
+GLADE+ catalog selected, took = 2.459 s
+GW para sampled, took = 806.577 s
+Nselect = 70
+Time: 836.960637288983
+708894      13.742185
+1594349     12.293248
+2026948     13.739338
+2091805     12.982423
+2947772     11.593777
+              ...    
+24024919    12.184572
+24025675    11.126524
+24025762    11.594657
+24027124    13.360470
+24027318    11.363441
+Name: snr, Length: 1511, dtype: float64
+H0 that we missed: 341737
+Dl, Ra, dec  sampled, took = 2.242 s
+Loading 764 pixels
+GLADE+ catalog selected, took = 2.354 s
+GW para sampled, took = 820.552 s
+Nselect = 70
+Time: 851.8670205579838
+120295      12.974459
+390047      19.304297
+1552893     11.021257
+2501557     12.777995
+2732900     12.664969
+              ...    
+23918612    13.020581
+23918680    11.063525
+23918868    16.245281
+23919912    23.172814
+23920059    11.333703
+Name: snr, Length: 1480, dtype: float64
+H0 that we missed: 340257
+Dl, Ra, dec  sampled, took = 2.256 s
+Loading 728 pixels
+GLADE+ catalog selected, took = 2.188 s
+GW para sampled, took = 869.474 s
+Nselect = 70
+Time: 899.4351011079852
+224864      12.220893
+270691      12.412257
+365405      16.686249
+766648      13.713313
+785271      13.517313
+              ...    
+23816398    14.098116
+23816662    11.321973
+23816748    12.586444
+23817651    11.515918
+23817743    13.404983
+Name: snr, Length: 1482, dtype: float64
+H0 that we missed: 338775
+Dl, Ra, dec  sampled, took = 3.183 s
+Loading 689 pixels
+GLADE+ catalog selected, took = 2.185 s
+GW para sampled, took = 811.861 s
+Nselect = 70
+Time: 843.8519193599932
+133705      21.106503
+455983      16.648309
+1098877     17.585929
+1480330     12.758262
+2260060     11.442667
+              ...    
+23713594    12.584587
+23713695    11.094296
+23714066    11.181568
+23714146    11.419218
+23714200    11.375921
+Name: snr, Length: 1435, dtype: float64
+H0 that we missed: 337340
+Dl, Ra, dec  sampled, took = 3.183 s
+Loading 756 pixels
+GLADE+ catalog selected, took = 2.342 s
+GW para sampled, took = 840.927 s
+Nselect = 70
+Time: 872.7705077909923
+1787737     11.109821
+1882069     11.414564
+2275843     12.915155
+2830306     11.612036
+3792611     11.142270
+              ...    
+23611924    13.589309
+23612428    11.245440
+23612581    12.060743
+23613260    11.253046
+23613317    12.727320
+Name: snr, Length: 1462, dtype: float64
+H0 that we missed: 335878
+Dl, Ra, dec  sampled, took = 3.197 s
+Loading 689 pixels
+GLADE+ catalog selected, took = 2.485 s
+GW para sampled, took = 875.927 s
+Nselect = 70
+Time: 909.2036650619993
+702390      11.108481
+818913      18.341855
+2281802     11.854941
+2686640     11.449827
+2753452     12.266280
+              ...    
+23507978    11.563710
+23508707    12.542918
+23509131    15.049294
+23509179    11.923668
+23509507    11.251024
+Name: snr, Length: 1352, dtype: float64
+H0 that we missed: 334526
+Dl, Ra, dec  sampled, took = 3.323 s
+Loading 731 pixels
+GLADE+ catalog selected, took = 2.318 s
+GW para sampled, took = 867.379 s
+Nselect = 70
+Time: 900.5371015589917
+250933      11.263475
+883207      14.090937
+1028655     22.857019
+1239193     12.008436
+3050280     12.450946
+              ...    
+23413759    13.523334
+23414069    19.663944
+23415144    11.699638
+23415232    11.896938
+23416179    11.808994
+Name: snr, Length: 1406, dtype: float64
+H0 that we missed: 333120
+Dl, Ra, dec  sampled, took = 2.227 s
+Loading 679 pixels
+GLADE+ catalog selected, took = 2.09 s
+GW para sampled, took = 951.98 s
+Nselect = 80
+Time: 986.9963618640031
+1606585     11.748701
+1807180     12.275681
+2207042     12.755984
+2318997     11.640307
+4268552     11.644056
+              ...    
+26646324    15.143672
+26647450    11.835495
+26648418    11.295194
+26648662    14.153759
+26649414    16.546522
+Name: snr, Length: 1506, dtype: float64
+H0 that we missed: 331614
+Dl, Ra, dec  sampled, took = 2.254 s
+Loading 733 pixels
+GLADE+ catalog selected, took = 2.339 s
+GW para sampled, took = 931.841 s
+Nselect = 80
+Time: 965.8839967040112
+840853      16.032509
+1856802     27.538995
+2395890     11.061422
+2798502     12.913959
+3157459     12.663500
+              ...    
+26526433    12.022051
+26527604    15.470440
+26527850    11.529653
+26527922    12.136126
+26528815    14.555474
+Name: snr, Length: 1474, dtype: float64
+H0 that we missed: 330140
+Dl, Ra, dec  sampled, took = 2.513 s
+Loading 704 pixels
+GLADE+ catalog selected, took = 2.275 s
+GW para sampled, took = 939.767 s
+Nselect = 80
+Time: 979.2176971250155
+1717906     12.148788
+2280242     15.924285
+2628342     14.646454
+2831201     16.979680
+3115507     11.234382
+              ...    
+26408751    11.184146
+26409085    11.107431
+26410548    11.296279
+26410826    11.890679
+26411170    12.999244
+Name: snr, Length: 1407, dtype: float64
+H0 that we missed: 328733
+Dl, Ra, dec  sampled, took = 2.512 s
+Loading 756 pixels
+GLADE+ catalog selected, took = 2.428 s
+GW para sampled, took = 1074.809 s
+Nselect = 80
+Time: 1109.4716609400057
+42321       50.638044
+46354       12.731008
+164882      11.052059
+211284      16.271585
+346084      15.699355
+              ...    
+26295938    11.591153
+26296091    14.748500
+26296301    11.456524
+26297686    13.776282
+26297972    13.348605
+Name: snr, Length: 1476, dtype: float64
+H0 that we missed: 327257
+Dl, Ra, dec  sampled, took = 2.285 s
+Loading 691 pixels
+GLADE+ catalog selected, took = 2.347 s
+GW para sampled, took = 1050.979 s
+Nselect = 80
+Time: 1084.3291830729868
+463041      30.972297
+726511      14.744543
+2030870     12.135356
+2240597     12.248555
+2318890     11.371532
+              ...    
+26176057    13.851940
+26176567    11.119518
+26180176    16.129254
+26180260    11.314745
+26180537    11.254606
+Name: snr, Length: 1446, dtype: float64
+H0 that we missed: 325811
+Dl, Ra, dec  sampled, took = 3.101 s
+Loading 713 pixels
+GLADE+ catalog selected, took = 2.21 s
+GW para sampled, took = 1039.451 s
+Nselect = 80
+Time: 1072.851348636992
+694340      15.542557
+723615      11.305788
+741285      22.022644
+1097521     14.862223
+1235837     15.319103
+              ...    
+26060661    12.805284
+26060782    11.269972
+26062985    11.382160
+26064437    11.018249
+26064820    11.973419
+Name: snr, Length: 1436, dtype: float64
+H0 that we missed: 324375
+Dl, Ra, dec  sampled, took = 3.064 s
+Loading 737 pixels
+GLADE+ catalog selected, took = 2.375 s
+GW para sampled, took = 1004.037 s
+Nselect = 80
+Time: 1038.1041309620196
+601268      12.249989
+1236881     17.427340
+1733184     12.424181
+2135602     15.220297
+2395700     14.909631
+              ...    
+25945875    12.273244
+25946202    11.591940
+25946536    12.975933
+25949523    12.943124
+25949965    13.286295
+Name: snr, Length: 1435, dtype: float64
+H0 that we missed: 322940
+Dl, Ra, dec  sampled, took = 3.073 s
+Loading 732 pixels
+GLADE+ catalog selected, took = 2.421 s
+GW para sampled, took = 1002.114 s
+Nselect = 80
+Time: 1040.91914497799
+295041      56.955471
+787601      34.738601
+1707273     15.417444
+1912485     15.041528
+1994565     12.311798
+              ...    
+25832267    11.425788
+25832982    11.854926
+25833044    13.811455
+25833927    12.276893
+25834140    11.767215
+Name: snr, Length: 1346, dtype: float64
+H0 that we missed: 321594
+Dl, Ra, dec  sampled, took = 2.299 s
+Loading 696 pixels
+GLADE+ catalog selected, took = 2.299 s
+GW para sampled, took = 947.071 s
+Nselect = 80
+Time: 985.8720828199876
+402725      11.458919
+445375      12.090513
+635070      12.188982
+1406939     16.893671
+1578174     15.908236
+              ...    
+25725313    12.707042
+25725523    11.005170
+25726072    11.915147
+25726104    11.590426
+25726171    13.919054
+Name: snr, Length: 1322, dtype: float64
+H0 that we missed: 320272
+Dl, Ra, dec  sampled, took = 2.263 s
+Loading 693 pixels
+GLADE+ catalog selected, took = 2.321 s
+GW para sampled, took = 940.917 s
+Nselect = 80
+Time: 974.855033291009
+203510      11.563187
+378407      11.299437
+848178      11.011852
+1079864     11.766530
+1283201     23.702780
+              ...    
+25617859    14.114620
+25620133    12.103050
+25620407    14.123615
+25620573    11.032188
+25621482    12.354129
+Name: snr, Length: 1364, dtype: float64
+H0 that we missed: 318908
+Dl, Ra, dec  sampled, took = 2.219 s
+Loading 699 pixels
+GLADE+ catalog selected, took = 2.509 s
+GW para sampled, took = 972.838 s
+Nselect = 80
+Time: 1005.3167758290074
+1289128     12.727648
+1569361     32.359942
+2120437     11.116903
+2368704     11.903237
+2786096     12.011515
+              ...    
+25508449    14.211219
+25509072    11.240034
+25511303    11.317773
+25511529    14.849040
+25511631    12.999092
+Name: snr, Length: 1341, dtype: float64
+H0 that we missed: 317567
+Dl, Ra, dec  sampled, took = 2.967 s
+Loading 654 pixels
+GLADE+ catalog selected, took = 2.026 s
+GW para sampled, took = 870.965 s
+Nselect = 80
+Time: 904.4417679489998
+739147      13.140195
+818074      11.372387
+1189842     13.531990
+2901049     14.348056
+3334232     13.823007
+              ...    
+25401592    11.554062
+25402840    12.289901
+25403769    11.448751
+25404508    11.562857
+25404672    11.438408
+Name: snr, Length: 1335, dtype: float64
+H0 that we missed: 316232
+Dl, Ra, dec  sampled, took = 2.141 s
+Loading 731 pixels
+GLADE+ catalog selected, took = 2.334 s
+GW para sampled, took = 967.241 s
+Nselect = 80
+Time: 1002.444080627989
+1926        14.280454
+1869392     16.709069
+2074641     13.304755
+2311921     13.319254
+2384709     12.716971
+              ...    
+25295701    13.814358
+25296526    11.088095
+25296562    11.494466
+25297393    12.116042
+25297888    11.965896
+Name: snr, Length: 1283, dtype: float64
+H0 that we missed: 314949
+Dl, Ra, dec  sampled, took = 2.236 s
+Loading 711 pixels
+GLADE+ catalog selected, took = 2.202 s
+GW para sampled, took = 914.585 s
+Nselect = 80
+Time: 947.1970362860011
+1100082     18.063747
+1662905     11.024495
+2384251     14.044985
+2416573     11.153283
+2694483     16.940574
+              ...    
+25192839    12.406226
+25193526    12.051027
+25194022    11.765824
+25194788    12.168983
+25194995    11.740101
+Name: snr, Length: 1278, dtype: float64
+H0 that we missed: 313671
+Dl, Ra, dec  sampled, took = 2.974 s
+Loading 716 pixels
+GLADE+ catalog selected, took = 2.197 s
+GW para sampled, took = 942.38 s
+Nselect = 80
+Time: 976.5244575190009
+1107776     11.308749
+1482531     16.829981
+2424554     12.020261
+2699601     13.697746
+2784918     15.081410
+              ...    
+25092641    13.546562
+25092871    11.558641
+25093201    11.427958
+25093351    11.372338
+25093428    11.427696
+Name: snr, Length: 1258, dtype: float64
+H0 that we missed: 312413
+Dl, Ra, dec  sampled, took = 2.987 s
+Loading 710 pixels
+GLADE+ catalog selected, took = 2.23 s
+GW para sampled, took = 993.58 s
+Nselect = 80
+Time: 1025.8329226179922
+1796769     14.756620
+2365363     12.800564
+2376951     11.151252
+2411521     12.020336
+2583841     11.684712
+              ...    
+24991209    11.532075
+24991970    11.950160
+24992235    11.068401
+24992253    12.490994
+24992616    12.223447
+Name: snr, Length: 1253, dtype: float64
+H0 that we missed: 311160
+Dl, Ra, dec  sampled, took = 2.192 s
+Loading 685 pixels
+GLADE+ catalog selected, took = 2.946 s
+GW para sampled, took = 865.19 s
+Nselect = 80
+Time: 902.4552559849981
+1311522     14.743946
+2629604     13.413429
+2791367     11.192685
+2911293     13.468121
+3148831     14.515957
+              ...    
+24889068    12.209498
+24890778    12.860191
+24890887    13.515108
+24892009    19.167068
+24892653    12.283893
+Name: snr, Length: 1202, dtype: float64
+H0 that we missed: 309958
+Dl, Ra, dec  sampled, took = 2.091 s
+Loading 738 pixels
+GLADE+ catalog selected, took = 2.287 s
+GW para sampled, took = 1381.825 s
+Nselect = 80
+Time: 1446.1569820010045
+343761      15.410184
+718162      20.191006
+1883201     11.443425
+2093699     13.312879
+2216642     12.742119
+              ...    
+24793475    11.870556
+24794349    11.442822
+24795071    11.347210
+24795247    12.632691
+24795698    12.607811
+Name: snr, Length: 1237, dtype: float64
+H0 that we missed: 308721
+Dl, Ra, dec  sampled, took = 3.46 s
+Loading 663 pixels
+GLADE+ catalog selected, took = 2.958 s
+GW para sampled, took = 1427.868 s
+Nselect = 80
+Time: 1480.9626753480115
+935132      13.074704
+2096658     20.091443
+2261927     14.164868
+2358081     12.188934
+2366013     15.008545
+              ...    
+24694483    13.486933
+24694756    12.227275
+24695088    12.017005
+24695371    12.690545
+24697523    15.443142
+Name: snr, Length: 1169, dtype: float64
+H0 that we missed: 307552
+Dl, Ra, dec  sampled, took = 3.305 s
+Loading 660 pixels
+GLADE+ catalog selected, took = 2.951 s
+GW para sampled, took = 1369.02 s
+Nselect = 80
+Time: 1422.6853981539898
+353684      24.407360
+493960      12.768714
+1008881     11.418890
+2512161     37.412105
+2687711     13.005144
+              ...    
+24600035    13.831391
+24602188    14.595596
+24602724    11.112321
+24602927    11.143645
+24603843    13.327074
+Name: snr, Length: 1217, dtype: float64
+H0 that we missed: 306335
+Dl, Ra, dec  sampled, took = 3.435 s
+Loading 683 pixels
+GLADE+ catalog selected, took = 3.178 s
+GW para sampled, took = 1426.5 s
+Nselect = 80
+Time: 1482.959640925983
+619133      15.229877
+1225844     15.838627
+1822513     12.116005
+2247867     13.133672
+2794327     14.666793
+              ...    
+24505190    13.119111
+24505855    11.302569
+24506011    11.464161
+24506643    15.416847
+24506776    11.579096
+Name: snr, Length: 1207, dtype: float64
+H0 that we missed: 305128
+Dl, Ra, dec  sampled, took = 3.412 s
+Loading 667 pixels
+GLADE+ catalog selected, took = 3.421 s
+GW para sampled, took = 1402.49 s
+Nselect = 80
+Time: 1470.1489475239941
+560586      14.583860
+889041      17.091737
+1296591     12.540981
+1415843     11.162350
+2276832     12.272432
+              ...    
+24406730    16.233217
+24407529    16.912933
+24407652    13.488529
+24408596    12.957925
+24408883    12.408880
+Name: snr, Length: 1174, dtype: float64
+H0 that we missed: 303954
+Dl, Ra, dec  sampled, took = 3.332 s
+Loading 684 pixels
+GLADE+ catalog selected, took = 3.126 s
+GW para sampled, took = 1349.358 s
+Nselect = 80
+Time: 1412.453263146017
+1093625     11.711067
+1910265     11.150177
+1922807     11.794000
+2338937     11.506573
+2648036     15.574485
+              ...    
+24312104    13.344801
+24312435    12.065662
+24312721    12.446083
+24313616    11.218084
+24314266    12.533005
+Name: snr, Length: 1180, dtype: float64
+H0 that we missed: 302774
+Dl, Ra, dec  sampled, took = 3.197 s
+Loading 700 pixels
+GLADE+ catalog selected, took = 3.169 s
+GW para sampled, took = 1376.674 s
+Nselect = 80
+Time: 1433.9404873620078
+307833      12.356549
+1688596     11.352721
+2252909     11.846513
+3034157     11.415845
+3188963     13.350941
+              ...    
+24219450    11.585458
+24219625    13.199133
+24220184    12.851149
+24220377    16.969176
+24220641    12.784654
+Name: snr, Length: 1122, dtype: float64
+H0 that we missed: 301652
+Dl, Ra, dec  sampled, took = 3.389 s
+Loading 647 pixels
