@@ -58,6 +58,43 @@ def p_M_weight_L(M, H, para_dict = None ):
     return (2/5)*phi*(np.log(10))*((10**((2/5)*(Mc-M)))**(alpha+2))*(np.exp(-10**((2/5)*(Mc-M)))) 
 
 
+def LF_weight_L_Kband(M,H0, para_dict = None):
+    "Schecter Function (K-band values) (normalized), luminosity weighted"
+    M = M - 5*np.log10(H0/100)
+    h3 = (H0/100)**(3)
+    
+    if para_dict is None:
+        phi_star =1.16*10**(-2)
+        alpha = -1.09 + 1
+        Mstar = -23.39
+    else: 
+        phi_star = para_dict['phi']
+        alpha = para_dict['alpha']
+        Mstar = para_dict['Mc']
+    
+    
+    return phi_star*h3 * 0.4*np.log(10)*10**(-0.4*(M - Mstar)*(alpha + 1))*np.exp(-10**(-0.4*(M - Mstar)))
+
+
+def LF_weight_L_Bband(M,H0, para_dict = None):
+    "Schecter Function (Bj-band values) (normalized), luminosity weighted"
+    M = M - 5*np.log10(H0/100)
+    h3 = (H0/100)**(3)
+    
+    if para_dict is None:
+        phi_star =1.16*10**(-2)
+        alpha = -1.09 + 1
+        Mstar = -23.39
+    else: 
+        phi_star = para_dict['phi']
+        alpha = para_dict['alpha']
+        Mstar = para_dict['Mc']
+    
+    
+    return phi_star*h3 * 0.4*np.log(10)*10**(-0.4*(M - Mstar)*(alpha + 1))*np.exp(-10**(-0.4*(M - Mstar)))
+
+
+
 def ker_p_M(M, H): 
     "Schecter Function (B-band values) (not normalized)"
     phi = (0.002)*(H/50)**(3)

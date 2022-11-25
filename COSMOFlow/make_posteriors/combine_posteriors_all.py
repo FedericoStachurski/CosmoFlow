@@ -12,15 +12,23 @@ args = vars(ap.parse_args())
 Folder = str(args['Name_folder'])
 
 folder = Folder
-data = os.listdir(folder)
+data = os.listdir(folder+'/posteriors/')
+O3_H0_posteriors = os.listdir(folder+'/O3_H0_post/')
 files = []
 
 event_data_saved = [] 
+O3_post = []
+print('There are {} events in the folder'.format(len(data)))
 for file in data:
     if file.endswith('.txt'):
-#         if not file.endswith('629.txt'):
+
         files.append(file)
-        event_data_saved.append(np.loadtxt(folder+'/'+file))
+        event_data_saved.append(np.loadtxt(folder+'/posteriors/'+file))
+for file in O3_H0_posteriors:
+    if file.endswith('.txt'):
+
+        files.append(file)
+        O3_post.append(np.loadtxt(folder+'/O3_H0_post/'+file))        
 print(files)    
     
 Npoints = len(event_data_saved[0])
@@ -28,6 +36,7 @@ Npoints = len(event_data_saved[0])
 H0vec = np.linspace(20,140,Npoints)
 labelsfig = plt.figure(figsize=(15,10))
 values= np.ones(Npoints)
+valuesO3= np.ones(Npoints)
 dH = np.diff(H0vec)[0]
 r = len(event_data_saved)
 for i in range(r):
@@ -35,30 +44,16 @@ for i in range(r):
     like = event_data_saved[i]
     plt.plot(H0vec,like/np.sum(like*dH), alpha=0.4,linewidth = 3,  label = files[i][:13])
     values *= like
+    
+for i in range(r):
+    
+    like = O3_post[i]
+    #plt.plot(H0vec,like/np.sum(like*dH), alpha=0.4,linewidth = 3,  label = files[i][:13])
+    valuesO3 *= like    
     #post = values / np.sum( values*dH)
 
     
-    
-path_O3 = '/data/wiay/federico/PhD/O3_posteriors/'
- 
 
-import os
-from scipy import interpolate
-
-posterior_O3 = np.ones(len(H0vec))
-for name in files:
-    event_O3 = path_O3 +'GW'+name[0:6]
-    if os.path.isdir(event_O3):
-
-        with np.load(event_O3+'/'+'GW'+name[0:6]+'.npz', allow_pickle=True) as data:
-            data = data['arr_0']
-
-        #Interpolate to normalize between 30-110 H0
-        f = interpolate.interp1d(data[0], data[2])
-        ynew = f(H0vec) 
-        post_O3 = ynew/np.sum(ynew*dH)
-        posterior_O3 *= post_O3
-        posterior_O3 /= np.sum(posterior_O3*dH)
 
         
 
@@ -71,9 +66,14 @@ sigma_riess_h = 0.0174*100
 
 
 post = values / np.sum( values*dH)
+postO3 = valuesO3 / np.sum( values*dH)
 
 ymin = 0.0005
 ymax = 1.5*max(post)
+ymaxO3 = 1.5*max(postO3)
+
+if ymaxO3 > ymax:
+    ymax = ymaxO3
 
 
 c=sns.color_palette('colorblind')
@@ -86,7 +86,7 @@ plt.fill_betweenx([ymin,ymax],riess_h-2*sigma_riess_h,riess_h+2*sigma_riess_h,co
 plt.axvline(70,ls='--', color='k',alpha=0.8, label = r'$H_0 = 70$ (km s$^{-1}$ Mpc$^{-1}$)')
 
 plt.plot(H0vec,post, '--k', alpha=1, linewidth=6, label = '$p(H_{0} | \mathbf{h})$, posterior')
-
+plt.plot(H0vec,postO3, '--b', alpha=1, linewidth=6, label = '$p(H_{0} | \mathbf{h})$, O3 gwcosmo')
 plt.xlim([20,140])
 plt.ylim([ymin,ymax])
 plt.legend(loc = 'best', fontsize = 8, ncol = 5)

@@ -37,7 +37,7 @@ wandb.init(project="CosmoFlow", entity="federico_s")
 
 def read_data(batch):
     path_name ="/data/wiay/federico/PhD/cosmoflow/COSMOFlow/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
-    data_name = "batch_{}_250000_N_SNR_10_Nelect_10__Full_para_v2.csv".format(batch)
+    data_name = "NEW_MADAU_batch_{}_500000_N_SNR_11_Nelect_5__Full_para_v2.csv".format(batch)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2','a1', 'a2', 'tilt1', 'tilt2', 
                                                                               'RA', 'dec','theta_jn', 'snr',
                                                                               'phi_12','polarization','geo_time',
@@ -45,7 +45,7 @@ def read_data(batch):
     return GW_data
 
 list_data = [] 
-for i in range(4):
+for i in range(2):
     list_data.append(read_data(i+1))
 
 
@@ -160,7 +160,7 @@ def KL_evaluate(samples):
 
 #Decay LR
 decayRate = 0.999
-my_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser_adam, n_epochs, eta_min=0, last_epoch=- 1, verbose=False)   
+  
 
 # Loss
 loss_dict = dict(train=[], val=[])
@@ -185,7 +185,7 @@ KL_vals14 = []
 
 #W&B
 
-hyp_dict = {'n_neurons': 128, 'n_transforms':4, 'n_blocks_per_transform':3, 'batch_size':batch_size, 'learning_rate': 0.0003, 'epochs': 1000}
+hyp_dict = {'n_neurons': 128, 'n_transforms':4, 'n_blocks':3, 'batch_size':batch_size, 'learning_rate': 0.0003, 'epochs': 1000}
 
 
 
@@ -200,15 +200,15 @@ with wandb.init(config = config):
             n_transforms= config.n_transforms,
             n_neurons= config.n_neurons,
             n_conditional_inputs = n_conditional_inputs,
-            n_blocks_per_transform = config.n_blocks_per_transform,
+            n_blocks_per_transform = config.n_blocks,
             batch_norm_between_transforms=True,
             dropout_probability=0.05,
             linear_transform=None)    
     device = 'cuda:2'
     flow.to(device)
     optimiser_adam = torch.optim.Adam(flow.parameters(), lr=config.learning_rate, weight_decay=0)
-
-    for j in range(n_epochs):
+    my_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser_adam, config.epochs, eta_min=0, last_epoch=- 1, verbose=False) 
+    for j in range(config.epochs):
 
         optimiser = optimiser_adam
 
@@ -245,8 +245,7 @@ with wandb.init(config = config):
                 target_val, condtionals_val = batch 
 
 
-                loss = - flow.log_prob(target_val.to(device[:,:n_inputs],
-                                                     conditional=condtionals_val.reshape(-1,1).to(device)).cpu().mean()
+                loss = - flow.log_prob(target_val.to(device)[:,:n_inputs],conditional=condtionals_val.reshape(-1,1).to(device)).cpu().mean()
                 val_loss += loss.item()       
         val_loss /= len(val_loader)
         loss_dict['val'].append(val_loss)
@@ -280,7 +279,7 @@ with wandb.init(config = config):
 #         kde_points14, kl_val_14 = KL_evaluate(z_[:,13])
         
         
-        wand.log({'train_loss':train_loss, 'validation_loss':val_loss, 'kl_divergence':kl_val_1})
+        wandb.log({'train_loss':train_loss, 'validation_loss':val_loss, 'kl_divergence':kl_val_1})
         torch.save(flow.state_dict(), os.path.join(wandb.run.dir,'Test_WandB'))
     
     

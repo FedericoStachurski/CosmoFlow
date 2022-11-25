@@ -11,7 +11,7 @@ import os, sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
-print(parentdir)
+#print(parentdir)
 import numpy as np 
 import pandas as pd
 import pickle
@@ -41,32 +41,136 @@ import random
 import h5py 
 import healpy as hp
 import multiprocessing
-
-
 from MultiLayerPerceptron.validate import run_on_dataset
 from MultiLayerPerceptron.nn.model_creation import load_mlp
-device = 'cpu'
+import argparse
+
+
+
+#pass arguments 
+#Construct the argument parser
+ap = argparse.ArgumentParser()
+
+# Add the arguments to the parser
+ap.add_argument("-Name", "--Name_file", required=True,
+   help="Name of data")
+ap.add_argument("-in_out", "--in_out", required=True,
+   help="Make data with catalog or without (1 is in_out 0 is empty)", default = 1)
+ap.add_argument("-batch", "--batch_number", required=True,
+   help="batch number of the data", default = 1)
+ap.add_argument("-type", "--type_data", required=True,
+   help="Type of data? options [training, testing] ", default = 1)
+
+
+
+ap.add_argument("-mass_distribution", "--mass_distribution", required=False,
+   help="Mass distribution options [uniform, PowerLaw+Peak, PowerLaw]", default = 'PowerLaw+Peak')
+ap.add_argument("-zmax", "--zmax", required=False,
+   help="zmax", default = 1.5)
+ap.add_argument("-zmin", "--zmin", required=False,
+   help="zmin", default = 0.0001)
+ap.add_argument("-SNRth", "--SNRth", required=False,
+   help="SNR threshold", default = 11)
+ap.add_argument("-band", "--magnitude_band", required=False,
+   help="Magnitude band", default = 'Bj')
+
+
+
+
+ap.add_argument("-N", "--N", required=True,
+   help="How many samples per batch", default = 100_000)
+ap.add_argument("-Nselect", "--Nselect", required=False,
+   help="Nselect per iteration", default = 5)
+ap.add_argument("-threads", "--threads", required=False,
+   help="threads", default = 10)
+ap.add_argument("-device", "--device", required=False,
+   help="device? [cpu, cuda]", default = 'cpu')
+ap.add_argument("-seed", "--seed", required=False,
+   help="Random seed", default = 1234)
+
+
+ap.add_argument("-H0", "--H0", required=False,
+   help="Hubble constant value for testing", default = 70)
+
+
+args = vars(ap.parse_args())
+
+Name = str(args['Name_file'])
+in_out = str(args['in_out'])
+batch = int(args['batch_number'])
+type_of_data = str(args['type_data'])
+
+
+mass_distribution = str(args['mass_distribution'])
+zmax = float(args['zmax'])
+zmin = float(args['zmin'])
+SNRth = float(args['SNRth'])
+mag_band = str(args['magnitude_band'])
+
+N = int(args['N'])
+Nselect = int(args['Nselect'])
+threads = int(args['threads'])
+device = str(args['device'])
+seed = int(args['seed'])
+
+H0_testing = float(args['H0'])
+
+
+
+print()
+print('Name model = {}'.format(Name))
+print('in_out = {}'.format(in_out))
+print('batch = {}'.format(batch))
+print('type_of_data = {}'.format(type_of_data))
+print('mass_distribution = {}'.format(mass_distribution))
+print('zmax = {}'.format(zmax))
+print('zmin = {}'.format(zmin))
+print('SNRth = {}'.format(SNRth))
+print('mag_band = {}'.format(mag_band))
+print('H0 = {}'.format(H0_testing))
+
+
+print('N = {}'.format(N))
+print('Nselect = {}'.format(Nselect))
+print('threads= {}'.format(threads))
+print('device= {}'.format(device))
+print()
+
+
+
+device = device
 model_name = 'SNR_approxiamator_full_para_HA_v5'
 mlp = load_mlp(model_name, device, get_state_dict=True).to(device)
 mlp.eval()
 
-zmax = 1.2
-zmin = 0.0001
+
+zmax = zmax
+zmin = zmin
 NSIDE = 32
-type_of_data = 'training'
-in_out = True
-SNRth = 11
-NSIDE = 32
-Nselect = 5
-N = 250_000
-distributions = {'mass':'PowerLaw+Peak'}
-threads = 10
-band = 'Bj'
-# Mabs_min = -27.00
-# Mabs_max = -19.00
+type_of_data = type_of_data
 
 
-np.random.seed(101022)
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+in_out = str2bool(in_out)
+SNRth = SNRth
+Nselect = Nselect
+N = N
+distributions = {'mass':mass_distribution}
+threads = threads
+band = mag_band
+
+
+
+np.random.seed(seed)
 
 #Load  pixelated galaxy catalog
 Npix = hp.nside2npix(NSIDE)
@@ -113,15 +217,19 @@ def Madau_factor(z, gamma = 4.59, k = 2.86, zp = 2.47):
     return num/den
 
 
-Mabs_min = -22.00
-Mabs_max = -16.50
+if band == 'Bj': 
+    LF_para = {'Mabs_min': -22.00 , 'Mabs_max': -16.50, 'alpha': -1.21, 'Mstar': -19.66}
+elif band == 'K':
+    LF_para = {'Mabs_min': -27.00 , 'Mabs_max': -19, 'alpha': -1.09, 'Mstar': -23.39}
+else: 
+    raise ValueError(band + 'band is not implemented')
 
 
 def M_grid_H0(low,high, H0):
     return np.linspace(high  + 5*np.log10(H0/100),low  + 5*np.log10(H0/100), 100)
 
 
-def LF_weight_L(M,H0, phi_star =1.16*10**(-2), alpha = -1.21 + 1, Mstar = -19.66):
+def LF_weight_L(M,H0, phi_star =1.16*10**(-2), alpha = LF_para['alpha']+ 1, Mstar =LF_para['Mstar']):
     Mstar = Mstar + 5*np.log10(H0/100)
     phi_star = phi_star * (H0/100)**(3)
     return phi_star * 0.4*np.log(10)*10**(-0.4*(M - Mstar)*(alpha + 1))*np.exp(-10**(-0.4*(M - Mstar)))
@@ -152,8 +260,8 @@ def draw_cumulative_z(N):
 
 
 
-def sample_M_H0(H0):
-    M_grid = M_grid_H0(-22, -16.5, H0)
+def sample_M_H0(H0, N = 1):
+    M_grid = M_grid_H0(LF_para['Mabs_min'], LF_para['Mabs_max'], H0)
     def cdf_M(H0):
         cdf = np.zeros(len(M_grid))
         for i in range(len(M_grid)):
@@ -165,7 +273,7 @@ def sample_M_H0(H0):
         samples = np.interp(t,cdf,M_grid)
         return samples
     cdf = cdf_M(H0)
-    return sample_M_from_cdf(cdf)
+    return sample_M_from_cdf(cdf, N = N)
 
 
 
@@ -225,6 +333,7 @@ def select_gal_from_pix(pixels_H0s):
 
 
 
+
 if type_of_data == 'training':
     if in_out is True: 
         path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
@@ -241,17 +350,15 @@ if type_of_data == 'training':
 
 if type_of_data == 'testing': 
     if in_out is True: 
-        path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
+        path_data = parentdir + r"/data_gwcosmo/galaxy_catalog/testing_data_from_MLP/"
     else:
-        path_data = parentdir + r"/data_gwcosmo/empty_catalog/training_data_from_MLP/"
-    N = 250
-    H0_samples = 70*np.ones(N)
+        path_data = parentdir + r"/data_gwcosmo/empty_catalog/testing_data_from_MLP/"
+    H0_samples = H0_testing*np.ones(N)
     R_nums = np.random.uniform(0,1, size = N)
-    M = [] 
+
     if in_out is True:
-        for i in tqdm(range(N), desc='Computing CDFs for Schechter Function'):
-            M.append(sample_M_H0(H0_samples[i]))
-        M = np.array(M)
+        M = np.array(sample_M_H0(H0_testing, N = N))
+
     else: 
         M = np.random.uniform(0,1,N)
     
@@ -309,6 +416,7 @@ while True:
         pix_list = np.array([pix_from_RAdec(NSIDE, RA, dec)]).flatten()
         inx_in_gal = np.where((app_samples < mth_list) == True)[0] 
         print('Loading {} pixels'.format(len(inx_in_gal)))
+        print('Pixels = {}'.format(inx_in_gal))
     else:   
         inx_in_gal = np.where((app_samples < 0) == True)[0] #{NxNselect}
 
@@ -324,28 +432,28 @@ while True:
         start = time.time()
         with multiprocessing.Pool(threads) as p:
             selected_cat_pixels = list(p.imap(select_gal_from_pix,pixel_H0))   
-    
-        gal_selected = pd.concat(selected_cat_pixels)
-        RA_gal = np.array(gal_selected.RA)
-        dec_gal = np.array(gal_selected.dec)
-        z_true_gal = np.array(gal_selected.z)
-        sigmaz_gal = np.array(gal_selected.sigmaz)
-        #z_obs_gal = np.random.normal(z_true_gal, sigmaz_gal)
-        a, b = (zmin - z_true_gal) / sigmaz_gal, (zmax - z_true_gal) / sigmaz_gal
-        z_obs_gal = truncnorm.rvs(a, b, loc=z_true_gal, scale=abs(sigmaz_gal), size=len(z_true_gal))
-        m_obs_gal = np.array(gal_selected['m'+band])
+        if any(x is None for x in selected_cat_pixels) is False: 
+            gal_selected = pd.concat(selected_cat_pixels)
+            RA_gal = np.array(gal_selected.RA)
+            dec_gal = np.array(gal_selected.dec)
+            z_true_gal = np.array(gal_selected.z)
+            sigmaz_gal = np.array(gal_selected.sigmaz)
+            #z_obs_gal = np.random.normal(z_true_gal, sigmaz_gal)
+            a, b = (zmin - z_true_gal) / sigmaz_gal, (zmax - z_true_gal) / sigmaz_gal
+            z_obs_gal = truncnorm.rvs(a, b, loc=z_true_gal, scale=abs(sigmaz_gal), size=len(z_true_gal))
+            m_obs_gal = np.array(gal_selected['m'+band])
 
-        dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(H0_in_list))
+            dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(H0_in_list))
 
-        #Switch z values in z array with zgal and dgal
-        z[inx_in_gal] = z_obs_gal
-        dl[inx_in_gal] = dl_gal 
-        RA[inx_in_gal] = RA_gal
-        dec[inx_in_gal] = dec_gal
-        app_samples[inx_in_gal] = m_obs_gal
-        inx_gal[inx_in_gal] = 1
-    
-        end = time.time()
+            #Switch z values in z array with zgal and dgal
+            z[inx_in_gal] = z_obs_gal
+            dl[inx_in_gal] = dl_gal 
+            RA[inx_in_gal] = RA_gal
+            dec[inx_in_gal] = dec_gal
+            app_samples[inx_in_gal] = m_obs_gal
+            inx_gal[inx_in_gal] = 1
+
+            end = time.time()
     print('GLADE+ catalog selected, took = {} s'.format(round(end - start, 3)))
     
     
@@ -456,7 +564,7 @@ GW_data = pd.concat(list_data)
 output_df = GW_data[['snr', 'H0', 'dl', 'm1', 'm2', 'RA', 'dec',
                      'a1', 'a2', 'tilt1', 'tilt2', 'theta_jn',
                      'phi_jl', 'phi_12', 'polarization','geo_time', 'app_mag', 'inx']]
-output_df.to_csv(path_data+'Bjband_batch_4_{}_N_SNR_{}_Nelect_{}__Full_para_v2.csv'.format(int(N), int(SNRth), int(Nselect)))
+output_df.to_csv(path_data+'name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}__Full_para_v1.csv'.format(Name, in_out,band, int(batch), int(N), int(SNRth), int(Nselect)))
     
   
     

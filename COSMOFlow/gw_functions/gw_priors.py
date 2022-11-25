@@ -15,6 +15,7 @@ from scipy.integrate import  quad
 import numpy.random as rn
 import sys
 import multiprocessing
+from scipy.stats import binom, norm
 np.random.seed(10)
 
 
@@ -23,8 +24,8 @@ bilby.core.utils.log.setup_logger(log_level=0)
 
 #GW prior para
 dl_dist = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance',minimum=5, maximum=20_000)
-m1_dist = bilby.core.prior.Uniform(name='mass_1',minimum=1, maximum=100)
-m2_dist = bilby.core.prior.Uniform(name='mass_2', minimum=1, maximum=100)
+m1_dist = bilby.core.prior.Uniform(name='mass_1',minimum=1, maximum=150)
+m2_dist = bilby.core.prior.Uniform(name='mass_2', minimum=1, maximum=150)
 RA_dist = bilby.core.prior.Uniform(name='ra', minimum=0, maximum=2 * np.pi, boundary='periodic')
 dec_dist = bilby.core.prior.Cosine(name='dec', boundary = 'periodic')
 
@@ -87,63 +88,30 @@ beta = 0.81
 parameters = {'alpha' : alpha,
               'mu' : mu,
               'std' : std,
-              'lamb' : lamb,
+              'lambda' : lamb,
               'beta' : beta,
               'Mmin' : Mmin,
               'Mmax' : Mmax}
-mvec = np.linspace(parameters['Mmin'],parameters['Mmax'], 2000)
-dm = np.diff(mvec)[0]
 
-def pl_m1(m1, alpha):
-    return m1**(-alpha)
-
-def pl_m2(m2, beta):
-    return m2**(-beta)
-
-def gauss(m1, mu, std):
-    return norm.pdf(m1, mu, std)
-
-cdf_pl = np.zeros(len(mvec))
-cdf_gauss = np.zeros(len(mvec))
-cdf_pl_m2 = np.zeros(len(mvec))
-for i in tqdm(range(len(mvec)), desc= 'Computing CDFS for PowerLaw+Peak distributions'):
-    cdf_pl[i] = quad(lambda m: pl_m1(m, 3.78), mvec[0], mvec[i])[0]
-    cdf_pl_m2[i] = quad(lambda m: pl_m2(m, 0.81), mvec[0], mvec[i])[0]
-    cdf_gauss[i] = quad(lambda m: gauss(m,  32.27, 3.88), mvec[0], mvec[i])[0]
-cdf_pl /= np.max(cdf_pl)
-cdf_pl_m2 /= np.max(cdf_pl_m2)
-cdf_gauss /= np.max(cdf_gauss)
-
-@np.vectorize
-def sample_m2(m1):
-    m2 = np.interp(rn.random(100),cdf_pl_m2,np.linspace(mvec[0], m1, 2000))
-    return m2[0]
 
 def sample_m1m2_POWERLAW_PEAK(N):
-    
-    
-    #random number 
-    R = np.random.uniform(0,1, size = N)
-    np.random.seed(int(1000*R[0]))
-    g_rate = len(np.where(R <= 0.03)[0])
-    pl_rate = len(np.where(R > 0.03)[0])
-    
-    t_pl = rn.random(pl_rate)
-    t_gauss = rn.random(g_rate)
-    samples_pl = np.interp(t_pl,cdf_pl,mvec)
-    samples_gauss = np.interp(t_gauss,cdf_gauss,mvec)
-    samples = np.array(list(samples_pl) + list(samples_gauss))
+
+    def m_PL_sample(CDF,alpha = parameters['alpha'], Mmax = parameters['Mmax'], Mmin =  parameters['Mmin']):
+        return (((Mmax)**(-alpha+1))*CDF + (1-CDF)*((Mmin)**(-alpha + 1 )))**(1/(-alpha + 1))
+
+    def m_GAUSS_sample(n, mu = parameters['mu'], std = parameters['std']):
+        return norm.rvs(size=n , loc = mu, scale = std)
 
 
-    m2_samples = sample_m2(samples)
-#     with multiprocessing.Pool(10) as p:
-#         m2_samples = list(p.imap(sample_m2,samples))
 
-    m1_samples = samples
-    m2_samples = np.array(m2_samples)
-    return m1_samples, m2_samples
+    r = binom.rvs(N, parameters['lambda'], size=1)
+    CDF_PL_m1 = np.random.uniform(0, 1, size = N - r)
+    CDF_PL_m2 = np.random.uniform(0, 1, size = N)
 
-
+    m1_pl = m_PL_sample(CDF_PL_m1) ; m1_gauss = m_GAUSS_sample(r)
+    m1 = np.array(list(m1_pl) + list(m1_gauss))
+    m2 = m_PL_sample(CDF_PL_m2, alpha = -parameters['beta'], Mmax = m1)
+    return m1, m2
 
 def draw_prior(N, distributions):
     "Draw from defined priors in gw_priors.py, does not have distance"

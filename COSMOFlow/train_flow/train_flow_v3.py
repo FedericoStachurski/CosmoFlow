@@ -127,14 +127,14 @@ os.chdir('..')
 
 def read_data(batch):
     path_name ="data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
-    data_name = "batch_{}_250000_N_SNR_10_Nelect_10__Full_para_v2.csv".format(batch)
+    data_name = "name_training_data_catalog_True_band_K_batch_{}_N_250000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2','a1', 'a2', 'tilt1', 
                                                                               'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 
                                                                              'phi_12', 'polarization', 'geo_time'])
     return GW_data
 
 list_data = [] 
-for i in range(4):
+for i in range(3):
     list_data.append(read_data(i+1))
 
 
@@ -326,7 +326,7 @@ def KL_evaluate(samples):
 
 ##################################### TRAINING #####################################
 #Define device GPU or CPU
-device = 'cuda:2'
+device = 'cuda:1'
 flow.to(device)
 
 #learning rate

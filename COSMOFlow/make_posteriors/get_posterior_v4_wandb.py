@@ -34,6 +34,8 @@ ap.add_argument("-SNRth", "--SNRth", required=True,
    help="SNR threshold")
 ap.add_argument("-Flow", "--Flow", required=True,
    help="Trained flow to use")
+ap.add_argument("-Sweep", "--Sweep", required=True,
+   help="Sweep name to use")
 
 args = vars(ap.parse_args())
 Folder = str(args['Name_folder'])
@@ -41,6 +43,7 @@ GW_event = str(args['GW_event'])
 Nsamples= int(args['samples'])
 rth= int(args['SNRth'])
 Flow= str(args['Flow'])
+Sweep= str(args['Sweep'])
 
 
 #check if directory exists
@@ -51,7 +54,7 @@ if os.path.exists(Folder) is False:
 
 
 path_gw21 = '/data/wiay/federico/PhD/GWTC_2.1/'
-# event = ['150914_095045','151012_095443','151226_033853','170104_101158','170608_020116',
+# event = ['150914_095045','151226_033853','170104_101158','170608_020116',
 #          '170729_185629', '170809_082821', '170814_103043','170818_022509','170823_131358']
 
 
@@ -67,7 +70,7 @@ df = pd.DataFrame(samples)
 df = df[[ 'luminosity_distance', 'mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2', 'ra', 'dec', 'theta_jn','phi_jl', 
                                                                              'phi_12', 'psi', 'geocent_time']]
 
-df = df[(df['mass_1'] > 4.98) & (df['mass_2'] > 4.98)]
+
 #transform Polar into cartesian and spins to sigmoids
 def convert_data(df):
     data = df
@@ -130,7 +133,10 @@ def sigmoid_data(data_to_sigmoid):
 conv_df = convert_data(df)
 df = pd.DataFrame(samples)
 df = df[[ 'luminosity_distance', 'mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2', 'ra', 'dec', 'theta_jn','phi_jl','phi_12', 'psi', 'geocent_time']]
-
+#df = df[(df['mass_1'] > 4.98) & (df['mass_2'] > 4.98)]
+df['geocent_time'] = df['geocent_time'] %86400
+df = df.sample(frac=1)
+#print(df)
 
 threads = 10
 
@@ -142,7 +148,7 @@ def compute_pDet_PTheta(N):
 
     theta = [df.luminosity_distance[i], df.mass_1[i]
              , df.mass_2[i], df.a_1[i], df.a_2[i], df.tilt_1[i], df.tilt_2[i], df.ra[i], df.dec[i], df.theta_jn[i],
-             df.phi_jl[i], df.phi_12[i],df.psi[i], df.geocent_time[i]%86400]
+             df.phi_jl[i], df.phi_12[i],df.psi[i], df.geocent_time[i]]
 
     pdet.append(pdet_theta.p_D_theta(theta, r_th))
     ptheta.append(pdet_theta.p_theta_omega(theta))
@@ -156,34 +162,45 @@ pdet_ptheta = np.array(pdet_ptheta)
 
 pdet = pdet_ptheta[:, 0] ; ptheta = pdet_ptheta[:, 1] 
     
-    
-def load_hyperparameters_scalers_flow(flow_name):
+
+import yaml 
+flow_name = Flow
+sweep_name = Sweep
+run_name = flow_name[-8:]
+source_path = '../train_flow/'
+path = source_path+'wandb/sweep-{}/'.format(sweep_name)
+#open scaler_x and scaler_y
+scalerfile_x = path+'scaler_x.sav'
+scalerfile_y = path+'scaler_y.sav'
+scaler_x = pickle.load(open(scalerfile_x, 'rb'))
+scaler_y = pickle.load(open(scalerfile_y, 'rb'))  
+
+
+def load_hyperparameters_scalers_flow(sweep_name, run_name, flow_name):
     torch.set_num_threads(1)
     
     #Open hyperparameter dictionary
-    path = "/data/wiay/federico/PhD/cosmoflow/COSMOFlow/train_flow/trained_flows_and_curves/"+flow_name+"/"
-    hyper = open(path+'hyperparameters.txt', 'r').read()
-    hyperparameters = eval(hyper)
-    
+    def read_config_file(sweep_name, run_name):
+        with open(source_path+"wandb/sweep-"+sweep_name+"/config-"+run_name+".yaml", 'r') as stream:
+            data_loaded = yaml.safe_load(stream)
+            return data_loaded
+    hyperparameters = read_config_file(sweep_name, run_name)
     device = 'cpu'
-    n_inputs = hyperparameters['n_inputs']
-    n_conditional_inputs = hyperparameters['n_conditional_inputs'] 
-    n_neurons = hyperparameters['n_neurons']
-    n_transforms = hyperparameters['n_transforms']
-    n_blocks_per_transform = hyperparameters['n_blocks_per_transform']
-    dropout = hyperparameters['dropout']
-    flow_type = hyperparameters['flow_type']
+    n_inputs = 14
+    n_conditional_inputs = 1
+    n_neurons = hyperparameters['n_neurons']['value']
+    n_transforms = hyperparameters['n_transforms']['value']
+    n_blocks_per_transform = hyperparameters['n_blocks']['value']
+    linear_transform = hyperparameters['linear_transform']['value']
+    if linear_transform == 0: 
+        linear_transform = None 
     
-    #open scaler_x and scaler_y
-    scalerfile_x = path+'scaler_x.sav'
-    scalerfile_y = path+'scaler_y.sav'
-    scaler_x = pickle.load(open(scalerfile_x, 'rb'))
-    scaler_y = pickle.load(open(scalerfile_y, 'rb'))
-  
-
+    drop_out = hyperparameters['drop_out']['value']
+    flow_type = hyperparameters['flow_type']['value']
+    flow_path = source_path+"wandb/run-"+flow_name+"/files/flow_v1_sweep.pt"
+    
     #Open flow model file flow.pt
-    flow_load = torch.load( path+'flow.pt', map_location=device)
-
+    flow_load = torch.load(flow_path , map_location=device)
     if flow_type == 'RealNVP':
         flow_empty = RealNVP(n_inputs= n_inputs,
             n_transforms= n_transforms,
@@ -191,29 +208,29 @@ def load_hyperparameters_scalers_flow(flow_name):
             n_conditional_inputs = n_conditional_inputs,
             n_blocks_per_transform = n_blocks_per_transform,
             batch_norm_between_transforms=True,
-            dropout_probability=dropout,
-            linear_transform='lu')
-    elif flow_type == 'CouplingNSF':   
-            flow_empty = CouplingNSF(n_inputs= n_inputs,
-            n_transforms= n_transforms,
-            n_neurons= n_neurons,
-            n_conditional_inputs = n_conditional_inputs,
-            n_blocks_per_transform = n_blocks_per_transform,
-            batch_norm_between_transforms=True,
-            dropout_probability=dropout,
-            linear_transform='lu')
+            dropout_probability=drop_out,
+            linear_transform=linear_transform)
+    if flow_type == 'CouplingNSF':
+        flow_empty = CouplingNSF(n_inputs= n_inputs,
+        n_transforms= n_transforms,
+        n_neurons= n_neurons,
+        n_conditional_inputs = n_conditional_inputs,
+        n_blocks_per_transform = n_blocks_per_transform,
+        batch_norm_between_transforms=True,
+        dropout_probability=drop_out,
+        linear_transform=linear_transform)    
+
     
     flow_empty.load_state_dict(flow_load)
     flow = flow_empty
     flow.eval()
     
-    return flow, hyperparameters, scaler_x, scaler_y
+    return flow, hyperparameters
 
 
 
 
-flow, hyper_dict, scaler_x, scaler_y = load_hyperparameters_scalers_flow(Flow)   
-
+flow, hyper_dict = load_hyperparameters_scalers_flow(sweep_name, run_name,flow_name)
 
 
 
@@ -335,7 +352,7 @@ if os.path.isdir(event_O3):
 
 
 plt.title('GW'+GW_event, fontsize = 20)
-plt.plot(H0vec,post, '--k', alpha=1, linewidth=5, label = '$p(H_{0} | \mathbf{h}, D)$, posterior')
+plt.plot(H0vec,post, '--r', alpha=1, linewidth=5, label = '$p(H_{0} | \mathbf{h}, D)$, posterior')
 # plt.fill_between(H0vec,y_up, y_down, color = 'red', alpha = 0.5, label = '$1\sigma$')
 #plt.plot([], [],'k', alpha=0.1, label = '$p(\Theta | H_{0})$, likelihoods')
 

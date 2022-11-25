@@ -54,7 +54,7 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
     
     #  Define time and frequency parameters
     minimum_frequency=20
-    duration=np.round(ut.calculate_time_to_merger(minimum_frequency,m1_det,m2_det,0))
+    duration=np.ceil(ut.calculate_time_to_merger(minimum_frequency,m1_det,m2_det))
     if duration < 1: duration = 1 
     sampling_frequency=4096
     trigger_time=injection_dict['geocent_time']
@@ -91,9 +91,9 @@ def SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, p
     injected_signal = ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_dict);
 
 
-    SNR_H1 = ifos.meta_data['H1']['optimal_SNR']
-    SNR_L1 = ifos.meta_data['L1']['optimal_SNR']
-    SNR_V1 = ifos.meta_data['V1']['optimal_SNR']
+    SNR_H1 = np.real(ifos.meta_data['H1']['matched_filter_SNR'])
+    SNR_L1 = np.real(ifos.meta_data['L1']['matched_filter_SNR'])
+    SNR_V1 = np.real(ifos.meta_data['V1']['matched_filter_SNR'])
     
     obs_SNR_H1 = SNR_H1#np.sqrt((ncx2.rvs(4, SNR_H1**2, size=1, loc = 0, scale = 1)))
     obs_SNR_L1 = SNR_L1#np.sqrt((ncx2.rvs(4, SNR_L1**2, size=1, loc = 0, scale = 1)))
