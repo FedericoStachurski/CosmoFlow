@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
-band = 'Bj'
+band = 'K'
 
 NSIDE = 32
 Npix = hp.nside2npix(NSIDE)

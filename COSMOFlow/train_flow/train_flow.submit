@@ -1,0 +1,11 @@
+universe = vanilla 
+executable = /home/federico/.conda/envs/gwcosmoFlow_env/bin/python3
+arguments = /data/wiay/federico/PhD/cosmoflow/COSMOFlow/train_flow/train_flow_v3.py -Name GLADE+K_Flow_v2 -batch 50000 -train_size 0.8 -flow_type CouplingNSF -epochs 2000 -neurons 150 -layers 6 -nblock 3 -lr 0.0001 -lr_scheduler CosineAnnealingLR -linear_transform lu -log_it 1
+error = train_flow.err
+log = train_flow.log
+request_cpus = 10
+request_gpus = 1
+requirements = (CUDACapability >= 11.2) && $(requirements:True)
+request_memory = 1 GB
+request_disk = 1 GB
+queue 1 

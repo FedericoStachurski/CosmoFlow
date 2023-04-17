@@ -74,7 +74,7 @@ wandb.init(project="CosmoFlow", entity="federico_s")
 
 flow_type = 'RealNVP'
 batch = int(25_000)
-train_size = float(0.8)
+train_size = float(0.75)
 neurons = int(128)
 layers = int(6)
 nblock = int(3)
@@ -108,14 +108,14 @@ with wandb.init(config = config):
 
     def read_data(batch):
         path_name ="/data/wiay/federico/PhD/cosmoflow/COSMOFlow/data_gwcosmo/galaxy_catalog/training_data_from_MLP/"
-        data_name = "name_training_data_catalog_True_band_Bj_batch_{}_N_250000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch)
+        data_name = "name_training_data_catalog_True_band_K_batch_{}_N_250000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch)
         GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['H0', 'dl','m1', 'm2','a1', 'a2', 'tilt1', 
                                                                                   'tilt2', 'RA', 'dec', 'theta_jn', 'phi_jl', 
                                                                                  'phi_12', 'polarization', 'geo_time'])
         return GW_data
 
     list_data = [] 
-    for i in range(2):
+    for i in range(5):
         list_data.append(read_data(i+1))
 
 

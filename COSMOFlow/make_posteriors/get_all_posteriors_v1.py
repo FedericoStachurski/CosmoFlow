@@ -53,17 +53,18 @@ if os.path.exists(Folder) is False:
 
 #'GW190425', 'GW190814','GW200115_042309','GW200105_162426' ??????
 # 
-events = [ 'GW150914_095045','GW151226_033853', 'GW170104_101158', 'GW170608_020116', 
-         'GW170809_082821', 'GW170809_082821','GW170814_103043',  'GW170818_022509',    
-          'GW170823_131358',  'GW190408_181802', 'GW190412_053044', 'GW190503_185404', 
-         'GW190512_180714', 'GW190513_205428', 'GW190517_055101', 'GW190519_153544', 
-         'GW190521_030229', 'GW190521_074359', 'GW190602_175927', 'GW190630_185205', 
+# events = [ 'GW150914_095045','GW151226_033853', 'GW170104_101158', 'GW170608_020116', 
+#          'GW170809_082821', 'GW170809_082821','GW170814_103043',  'GW170818_022509',    
+#           'GW170823_131358',  'GW190408_181802', 'GW190412_053044', 'GW190503_185404', 
+#          'GW190512_180714', 'GW190513_205428', 'GW190517_055101', 'GW190519_153544', 
+#          'GW190521_030229', 'GW190521_074359', 'GW190602_175927', 'GW190630_185205', 
+events = [
          'GW190701_203306', 'GW190706_222641', 'GW190707_093326', 'GW190708_232457', 
          'GW190720_000836', 'GW190727_060333', 'GW190728_064510', 
-         'GW190828_063405', 'GW190828_065509', 'GW190910_112807', 'GW190915_235702', 
-         'GW190924_021846', 'GW191109_010717', 'GW191129_134029', 'GW191204_171526', 
-         'GW191216_213338', 'GW191222_033537', 'GW200112_155838', 'GW200129_065458', 
-         'GW200202_154313', 'GW200224_222234', 'GW200225_060421', 'GW200311_115853']
+         'GW190828_063405', 'GW190828_065509', 'GW190910_112807', 'GW190915_235702'] 
+#          'GW190924_021846', 'GW191109_010717', 'GW191129_134029', 'GW191204_171526', 
+#          'GW191216_213338', 'GW191222_033537', 'GW200112_155838', 'GW200129_065458', 
+#          'GW200202_154313', 'GW200224_222234', 'GW200225_060421', 'GW200311_115853']
 
 
 
@@ -110,7 +111,7 @@ def convert_data(df):
     
     df[ 'geocent_time'] = abs(df.geocent_time % 86400)
 
-    return data[['xcoord', 'ycoord', 'zcoord','mass_1', 'mass_2','a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn','phi_jl','phi_12', 'psi', 'geocent_time']]
+    return data[['xcoord', 'ycoord', 'zcoord','mass_1', 'mass_2', 'theta_jn', 'psi', 'geocent_time']]
 
 
 def logit_data(data_to_logit):
@@ -299,16 +300,16 @@ for GW_event in events:
         like = p_theta_H0(conv_df.iloc[i,:],H0vec)
         if np.isnan(like)[0] == 0:
             like_no_w = like
-            like /= (ptheta[i]*pdet[i])
+            like_with_w = like/(ptheta[i]*pdet[i])
 
-            likelihoods.append(like/np.sum(like*dH))
+            likelihoods.append(like_with_w/np.sum(like_with_w*dH))
 
-            plt.plot(H0vec,like/np.sum(like*dH), 'k', alpha=0.05, linewidth = 1)
-            values += like/np.sum(like*dH)
-            values_no_w += like_no_w/np.sum(like_no_w*dH)
+            plt.plot(H0vec,like_with_w/np.sum(like_with_w*dH), 'k', alpha=0.05, linewidth = 1)
+            values += like_with_w
+            values_no_w += like_no_w
 
-            post = values / np.sum( values*dH)
-            post_no_w = values_no_w / np.sum( values_no_w*dH)
+    post = values / np.sum( values*dH)
+    post_no_w = values_no_w / np.sum( values_no_w*dH)
 
     short_names = ['GW150914', 'GW151226', 'GW170104', 'GW170608', 'GW170809', 'GW170814', 'GW170818', 'GW170823', 'GW190412', 'GW190425', 'GW190521','GW190814' ]
     

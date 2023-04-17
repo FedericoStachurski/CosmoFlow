@@ -1,0 +1,37 @@
+/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/pandas/core/indexing.py:1597: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  self.obj[key] = value
+/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/pandas/core/indexing.py:1676: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  self._setitem_single_column(ilocs[0], value, pi)
+/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/cuda/__init__.py:146: UserWarning: 
+GeForce RTX 3090 with CUDA capability sm_86 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_37 sm_50 sm_60 sm_70.
+If you want to use the GeForce RTX 3090 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(incompatible_device_warn.format(device_name, capability, " ".join(arch_list), device_name))
+Traceback (most recent call last):
+  File "/data/wiay/federico/PhD/cosmoflow/COSMOFlow/train_flow/train_flow_v3.py", line 330, in <module>
+    flow.to(device)
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 927, in to
+    return self._apply(convert)
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 579, in _apply
+    module._apply(fn)
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 579, in _apply
+    module._apply(fn)
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 579, in _apply
+    module._apply(fn)
+  [Previous line repeated 2 more times]
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 625, in _apply
+    self._buffers[key] = fn(buf)
+  File "/home/federico/.conda/envs/gwcosmoFlow_env/lib/python3.9/site-packages/torch/nn/modules/module.py", line 925, in convert
+    return t.to(device, dtype if t.is_floating_point() or t.is_complex() else None, non_blocking)
+RuntimeError: CUDA error: invalid device ordinal
+CUDA kernel errors might be asynchronously reported at some other API call,so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.

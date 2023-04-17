@@ -24,8 +24,8 @@ bilby.core.utils.log.setup_logger(log_level=0)
 
 #GW prior para
 dl_dist = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance',minimum=5, maximum=20_000)
-m1_dist = bilby.core.prior.Uniform(name='mass_1',minimum=1, maximum=150)
-m2_dist = bilby.core.prior.Uniform(name='mass_2', minimum=1, maximum=150)
+m1_dist = bilby.core.prior.Uniform(name='mass_1',minimum=2, maximum=150)
+m2_dist = bilby.core.prior.Uniform(name='mass_2', minimum=2, maximum=150)
 RA_dist = bilby.core.prior.Uniform(name='ra', minimum=0, maximum=2 * np.pi, boundary='periodic')
 dec_dist = bilby.core.prior.Cosine(name='dec', boundary = 'periodic')
 
@@ -44,7 +44,7 @@ phi_jl_dist = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='per
 theta_jn_dist = Sine(name='theta_jn')
 psi_dist = Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic')
 phase_dist = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic')
-geotime_dist = bilby.core.prior.Uniform(name='geo_time', minimum=0, maximum=86400)
+geotime_dist = bilby.core.prior.Uniform(name='geo_time', minimum= 1104105616, maximum=1135641616)
                                         
                                         
 def sample_PL_m1m2(Nsamples, alpha, Mmax = 100, Mmin = 5):

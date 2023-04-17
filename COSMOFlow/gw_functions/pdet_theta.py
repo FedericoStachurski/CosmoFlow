@@ -1,4 +1,4 @@
-from gw_functions.gw_SNR import SNR_from_inj
+from gw_functions.gw_SNR_v2 import run_bilby_sim
 from scipy.stats import ncx2
 import bilby
 import numpy as np
@@ -20,7 +20,7 @@ def p_D_theta(theta, rth):
 
     dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, geo_time = theta
     #Compute SNR from given parameters
-    SNR = SNR_from_inj( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, 0, geo_time)
+    SNR = run_bilby_sim( dl, m1_det, m2_det, a1, a2, tilt1, tilt2, RA, dec, theta_jn, phi_jl, phi_12, psi, 0, geo_time)
     
     
     #Define pdet by calling the sf of chi2
@@ -44,7 +44,7 @@ def p_theta_omega(theta, omega_0 = [0.3065, 0, 67.9]):
     #Following the GWTC-2.1 GW transient catalog, the parameters are all uniforms except for dl.
     #the prior on dl is uniform in comoving volume,with flat Lambda-CDM Hubble = 67.90 and Omega_m = 0.3065
 
-    prior_dl = bilby.gw.prior.UniformComovingVolume( minimum=50, maximum=20000, name = 'luminosity_distance',cosmology=cosmology)
+    prior_dl = bilby.gw.prior.UniformComovingVolume( minimum=10, maximum=20000, name = 'luminosity_distance',cosmology=cosmology)
 
     return prior_dl.prob(dl)
 
