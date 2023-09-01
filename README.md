@@ -1,7 +1,7 @@
 # COSMOFlow
 
 Cosmological parameter inference using Gravitational waves and machine learning. 
-![alt text]()
+![Screenshot](COSMOFlow/Flow_layout.png)
 
 
 ## Getting started
