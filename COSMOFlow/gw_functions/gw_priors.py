@@ -44,7 +44,7 @@ phi_jl_dist = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='per
 theta_jn_dist = Sine(name='theta_jn')
 psi_dist = Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic')
 phase_dist = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic')
-geotime_dist = bilby.core.prior.Uniform(name='geo_time', minimum= 1104105616, maximum=1135641616)
+geotime_dist = bilby.core.prior.Uniform(name='geo_time', minimum= 1104105616, maximum=1293494418)
                                         
                                         
 def sample_PL_m1m2(Nsamples, alpha, Mmax = 100, Mmin = 5):

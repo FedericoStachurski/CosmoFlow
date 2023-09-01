@@ -1,17 +1,10 @@
 from functools import partial
 import numpy as np
-from scipy.integrate import quad
-from scipy.constants import c
-try:
-    import cupy as cp
-    xp = cp
-    from cupyx.scipy.ndimage import map_coordinates
-    from cupyx.scipy.special import erf
-except ImportError:
-    xp = np
-    from scipy.ndimage import map_coordinates
-    from scipy.special import erf
-
+import matplotlib.pyplot as plt
+import cupy as cp
+xp = cp
+from cupyx.scipy.special import erf
+from cupyx.profiler import benchmark
 def trapz(y, x=None, dx=1.0, axis=-1):
     y = xp.asanyarray(y)
     if x is None:
@@ -64,32 +57,6 @@ def trapz_cumsum(y, x=None, dx=1.0, axis=-1, flipped=False):
         ret = xp.cumsum(xp.flip(product, axis=axis), axis=axis)
     return ret
 
-def interp2d(x, xbounds, xsize, grid):
-    xin = xp.tile((x - xbounds[0]) / (xbounds[1] - xbounds[0]) * (xsize-1), grid.shape[0])
-    yin = xp.arange(grid.shape[0]).repeat(x.size)  # (0,0,...,1,1,...,nhypers-1,nhypers-1,....) 
-    coords_in = xp.vstack((yin, xin))
-    return map_coordinates(grid, coords_in, order=1).reshape(grid.shape[0],x.size)
-
-def dL(z):
-    '''
-    Luminosity distance from redshift assuming default cosmology.
-    :param z: Redshift
-    :return: dL, in Gpc.
-    '''
-    h = 0.6774
-    omega_m = 0.3089
-    omega_lambda = 1 - omega_m
-    dH = 1e-5 * c / h
-
-    def E(z):
-        return np.sqrt((omega_m * (1 + z) ** (3) + omega_lambda))
-    def I(z):
-        fact = lambda x: 1 / E(x)
-        integral = quad(fact, 0, z)
-        return integral[0]
-
-    return (1+z) * dH * I(z) * 1e-3
-
 def truncnorm(xx, mu, sigma, high, low):
     # breakpoint()
     x_op = xp.repeat(xx, mu.size).reshape((xx.size,mu.size)).T
@@ -124,6 +91,7 @@ def powerlaw(xx, lam, xmin, xmax):
         out *= (xx <= xmax) & (xx >= xmin)
     return out
 
+
 def smooth_exp(m, smooth_scale):
     return xp.exp((smooth_scale/m)+(smooth_scale/(m-smooth_scale)))
 
@@ -140,6 +108,7 @@ def smoothing(masses, mmin, delta_m):
         ans[masses < mmin] = 0
         ans[masses > mmin + delta_m] = 1
     return ans
+
 
 def ligo_ppop(m, parameters):
     tcs = two_component_single(m, parameters['alpha'],parameters['mmin'],parameters['mmax'],parameters['lam'],parameters['mpp'],parameters['sigpp'])
@@ -158,66 +127,65 @@ def two_component_single(
         prob = (1 - lam) * p_pow + lam * p_norm
     return prob
 
-def p1(m, p1norm, truths):
+def p1(m, mgrid, truths):
     p = ligo_ppop(m, truths)
+    p1norm = trapz(ligo_ppop(mgrid, parameters=truths), dx=mgrid[1]-mgrid[0])
     return p/p1norm
-    
-def p2_no_m1(m, beta, mmin, delta_m):
-    return m**beta * smoothing(m, mmin, delta_m)
 
-def p2_total(m, Kfunc, p1norm, beta, mmin, delta_m):
-    return p2_no_m1(m, beta, mmin, delta_m)/p1norm * Kfunc(m) # integral is a function of m
+def p1_grid(mgrid, truths):
+    p = ligo_ppop(mgrid, truths)
+    p1norm = trapz(p, x=mgrid)
+    return p/p1norm
 
-def construct_I(mvec, dm, beta, mmin, delta_m):
-    prob = p2_no_m1(mvec, beta, mmin, delta_m)
-    cumulative_integral = xp.append(0,trapz_cumsum(prob, dx=dm, axis=-1))
-    return lambda m: xp.interp(m, mvec, cumulative_integral)
+def qfunc(q, m1, beta, mmin, delta_m):
+    return q**-beta * smoothing(q*m1, mmin, delta_m) # not normalised
 
-def construct_K(mvec, dm, p1probs, beta, mmin, delta_m):
-    Ifunc = construct_I(mvec, dm, beta, mmin, delta_m)
-    prob = xp.nan_to_num(p1probs / Ifunc(mvec))
-    cumulative_integral = xp.flip(xp.append(0,trapz_cumsum(prob, dx=dm, axis=-1, flipped=True)),axis=-1) # flip back
-    return lambda m: xp.interp(m, mvec, cumulative_integral)
+def pq(q, m1, truths):
+    norm_interp = construct_qnorm_interpolator(truths)
+    probs = qfunc(q[:,None], m1[None,:], truths["beta"], truths["mmin"],truths["delta_m"])
+    norm = norm_interp(m1)
+    return xp.nan_to_num(xp.squeeze(probs/norm[None,:]))
 
-def ligo_combined_pm(m, mvec,dm, truths, return_pone_ptwo=False):
-    pm1 =ligo_ppop(mvec, parameters=truths)  # cache + get p1 normalisation
-    pm1_norm = trapz(pm1, dx=dm)
-    pone = p1(m, pm1_norm, truths)
+def construct_qnorm_interpolator(truths):
+    qvec = xp.linspace(truths["mmin"]/100, 1, 1000)
+    mvec = xp.linspace(truths["mmin"],100,1000)
+    probs = qfunc(qvec[:,None], mvec[None,:], truths["beta"], truths["mmin"],truths["delta_m"])
+    integrated = trapz(probs, dx=qvec[1]-qvec[0], axis=0)
+    return lambda x: xp.interp(x, mvec, integrated)
 
-    Kfunc = construct_K(mvec, dm, pm1, truths["beta"], truths["mmin"], truths["delta_m"])
-    ptwo = p2_total(m, Kfunc, pm1_norm, truths["beta"], truths["mmin"], truths["delta_m"])
+def sample_m1_q_fast(truths, size, mmax=200, m1_grid_size=1000, q_grid_size = 250):
+    mvec = xp.linspace(truths['mmin'],mmax, m1_grid_size)# (m1_grid_size,)
+    probs = p1_grid(mvec, truths)
+    cdf = xp.cumsum(probs)# (m1_grid_size, )
+    cdf /= cdf.max()
+    m1samples = xp.interp(xp.random.random(size), cdf, mvec)# (size, )
 
-    if return_pone_ptwo:
-        return 0.5*(pone + ptwo), pone, ptwo
-    else:
-        return 0.5*(pone + ptwo)
+    qvec = xp.linspace(truths['mmin']/mmax, 1, q_grid_size)# (q_grid_size, )
+    q_curves = pq(qvec, m1samples, truths) # (q_grid_size, size)
+    cdfs = xp.nan_to_num(xp.cumsum(q_curves, axis=0) / xp.sum(q_curves,axis=0))# (q_grid_size, size)
+    arange = xp.arange(size)
+    cdf_snake = (cdfs + arange[None,:]).T.flatten()# (q_grid_size * size)
+    sample_snake = xp.random.random(size) + arange
+    q_all = (qvec[:,None] + arange[None,:]).T.flatten()# (q_grid_size * size)
+    qsamples = xp.interp(sample_snake, cdf_snake, q_all) - arange# (size)
 
-def p2_no_m1_vectorized(m, beta, mmin, delta_m):
-    return m**beta[:,None] * smoothing(m, mmin, delta_m)
+    return m1samples, qsamples*m1samples
 
-def p2_total_vectorized(m, Kfunc, p1norm, beta, mmin, delta_m):
-    return p2_no_m1_vectorized(m, beta, mmin, delta_m)/p1norm * Kfunc(m) # integral is a function of m
+def sample_m1_q(truths, size, mmax=200, grid_size=1000):
+    qsamples = xp.zeros(size)
+    mvec = xp.linspace(truths['mmin'],mmax, grid_size)
+    probs = p1_grid(mvec, truths)
+    cdf = xp.cumsum(probs)
+    cdf /= cdf.max()
+    m1samples = xp.interp(xp.random.random(size), cdf, mvec)
+    qvec = xp.linspace(truths['mmin']/mmax, 1, grid_size)
+    for i in range(int(size / 1e5)):
+        q_curves = pq(qvec, m1samples[int(i*1e5):int((i+1)*1e5)], truths)
+        cdfs = xp.nan_to_num(xp.cumsum(q_curves, axis=0) / xp.sum(q_curves,axis=0))
+        arange = xp.arange(int(1e5))
+        cdf_snake = (cdfs + arange[None,:]).T.flatten()
+        sample_snake = xp.random.random(int(1e5)) + arange
+        q_all = (qvec[:,None] + arange[None,:]).T.flatten()
+        qsamples[int(i*1e5):int((i+1)*1e5)] = xp.interp(sample_snake, cdf_snake, q_all) - arange
 
-def construct_I_vectorized(mvec, dm, beta, mmin, delta_m):
-    prob = p2_no_m1_vectorized(mvec, beta, mmin, delta_m)
-    cumulative_integral = xp.concatenate((xp.zeros(prob.shape[0])[:,None],trapz_cumsum(prob, dx=dm, axis=-1)),axis=1)
-    return lambda m: interp2d(m, [mvec.min(), mvec.max()], mvec.size, cumulative_integral)
-
-def construct_K_vectorized(mvec, dm, p1probs, beta, mmin, delta_m):
-    Ifunc = construct_I_vectorized(mvec, dm, beta, mmin, delta_m)
-    prob = xp.nan_to_num(p1probs / Ifunc(mvec))
-    cumulative_integral = xp.flip(xp.concatenate((xp.zeros(prob.shape[0])[:,None],trapz_cumsum(prob, dx=dm, axis=-1, flipped=True)), axis=1), axis=-1) # flip back
-    return lambda m: interp2d(m, [mvec.min(), mvec.max()], mvec.size, cumulative_integral)
-
-def ligo_combined_pm_vectorized(m, mvec,dm, truths, return_pone_ptwo=False):
-    pm1 =ligo_ppop(mvec, parameters=truths)  # cache + get p1 normalisation
-    pm1_norm = trapz(pm1, dx=dm, axis=-1)
-    pone = p1(m, pm1_norm[:,None], truths)
-
-    Kfunc = construct_K_vectorized(mvec, dm, pm1, truths["beta"], truths["mmin"], truths["delta_m"])
-    ptwo = p2_total_vectorized(m, Kfunc, pm1_norm[:,None], truths["beta"], truths["mmin"], truths["delta_m"])
-
-    if return_pone_ptwo:
-        return 0.5*(pone + ptwo), pone, ptwo
-    else:
-        return 0.5*(pone + ptwo)
+    return m1samples, qsamples

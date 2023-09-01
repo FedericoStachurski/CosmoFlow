@@ -20,7 +20,7 @@ ap.add_argument("-Name", "--Name_model", required=True,
 ap.add_argument("-device", "--device", required=True,
    help="device", default = 'cpu')
 ap.add_argument("-detector", "--detector", required=True,
-   help="make data from detector: OPTIONS [H1, L1, V1, combined]", default = 'H1')
+   help="make data from detector: OPTIONS [H1, L1, V1, combined]", nargs='+', default=[])
 ap.add_argument("-run", "--run", required=True,
    help="Observing run: OPTIONS [O1, O2, O3, O4] ", default = 'O3')
 ap.add_argument("-neurons", "--neurons", required=True,
@@ -45,7 +45,7 @@ ap.add_argument("-loss_function", "--loss_function", required=True,
 args = vars(ap.parse_args())
 name = str(args['Name_model'])
 device = str(args['device'])
-det = str(args['detector'])
+det = list(args['detector'])
 run = str(args['run'])
 neurons = int(args['neurons'])
 layers = int(args['layers'])
@@ -78,7 +78,11 @@ else:
 
 neurons_per_layer = neurons
 layers = layers
-name = name + '_'+ det + '_' + run
+name = name + '_' + run 
+for detectors in det:
+    temp = '_' + detectors
+    name += temp
+
 tot_neurons = [neurons_per_layer]*layers
 
 
@@ -89,9 +93,10 @@ def ha_from_ra_gps(ra, gps):
 
 def read_data(batch):
     path_name =r"data_for_MLP/data_sky_theta/training/"
-    data_name = "_O2_MLP_1000000_det_H1_L1_V1_run_O2_approx_IMRPhenomPv2_batch_1.csv".format(batch)
-    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['luminosity_distance', 'mass_1','mass_2','theta_jn',
-                                                                              'ra', 'dec','psi', 'geocent_time', 'snr_H1', 'snr_L1', 'snr_V1', 'snr_network'])
+    data_name = "_{}_MLP_500000_det_H1_L1_V1_run_{}_approx_IMRPhenomXPHM_batch_1.csv".format(run, run, batch)
+
+    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
+
                           
 #                           usecols=['luminosity_distance', 'mass_1','mass_2',
 #                   'a_1','a_2','tilt_1',
@@ -106,7 +111,11 @@ for i in range(1):
     list_data.append(read_data(i+1))
 
 GW_data = pd.concat(list_data, ignore_index=True)
-GW_data = GW_data[['luminosity_distance', 'mass_1','mass_2','theta_jn', 'ra', 'dec','psi', 'geocent_time',  'snr_H1', 'snr_L1','snr_V1', 'snr_network']]
+if det == ['H1', 'L1']:
+    GW_data = GW_data[['luminosity_distance', 'mass_1','mass_2','theta_jn', 'ra', 'dec','psi', 'geocent_time',  'snr_H1', 'snr_L1', 'snr_network']]
+else: 
+    GW_data = GW_data[['luminosity_distance', 'mass_1','mass_2','theta_jn', 'ra', 'dec','psi', 'geocent_time',  'snr_H1', 'snr_L1','snr_V1', 'snr_network']]
+    
 ha = ha_from_ra_gps(np.array(GW_data.ra), np.array(GW_data.geocent_time))
 GW_data['ha'] = ha
 
@@ -114,15 +123,33 @@ GW_data['ha'] = ha
 if det == 'H1':
     snrs = GW_data['snr_H1']
     print('detector = {}'.format(det))
+    
+
+    
 elif det =='L1':
     snrs = GW_data['snr_L1']
     print('detector = {}'.format(det))
+    
 elif det =='V1': 
     snrs = GW_data['snr_V1']
     print('detector = {}'.format(det))
+    
 elif det =='combined':
     snrs =GW_data['snr_network']
     print('detector = {}'.format(det))
+    
+elif det =='all':
+    snrs =GW_data[['snr_H1', 'snr_L1', 'snr_V1']]
+    print('detector = {}'.format(det))
+    
+elif det ==['H1', 'L1']:
+    snrs = GW_data[['snr_H1', 'snr_L1']]
+    print('detector = {}'.format(det))    
+    
+elif det ==['H1', 'L1', 'V1']:
+    snrs = GW_data[['snr_H1', 'snr_L1', 'snr_V1']]
+    print('detector = {}'.format(det)) 
+    
 else: 
     raise ValueError("Detector {} does not exist".format(det))
     
@@ -130,9 +157,8 @@ else:
 dl = GW_data['luminosity_distance']
 data = GW_data[['mass_1','mass_2', 'theta_jn', 'ha', 'dec', 'psi' ]]
 
-
 xdata = torch.as_tensor(data.to_numpy(), device=device).float()
-ydata = torch.as_tensor((np.array(snrs) * np.array(dl)), device=device).float()
+ydata = torch.as_tensor((np.array(dl).reshape(-1,1) * np.array(snrs) ), device=device).float()
 
 rescaler = ZScoreRescaler(xdata, ydata)
 xtrain, xtest, ytrain, ytest = train_test_split([xdata, ydata], fraction)
@@ -143,7 +169,7 @@ dl_test = dl.loc[int(inds):]
 # define the neural network
 model = LinearModel(
     in_features=6,
-    out_features=1,
+    out_features=np.shape(snrs)[1],
     neurons=tot_neurons,
     activation=torch.nn.ReLU,
     rescaler=rescaler,
@@ -189,62 +215,68 @@ plt.close()
 
 
 ypred = model.run_on_dataset(xtest)
+snr_columns_pred = ypred.cpu().numpy() / np.array(dl_test)[:,None]
+snr_columns_true = ytest.cpu().numpy() / np.array(dl_test)[:,None]
 
 
-plt.hist(np.log10(abs((ypred/ytest).cpu().numpy())), bins='auto', density=True, histtype = 'step', linewidth =2)
-plt.xlabel(r'$\log_{10}(|y_{pred}/y_{test}|)$')
-plt.grid(True)
-plt.savefig('models/MLP_models/{}/ypred_vs_ytrue.png'.format(name))
-plt.close()
+detectors = ['H1', 'L1', 'V1']
 
-snr_pred = ypred.cpu().numpy()/dl_test
-snr_true = ytest.cpu().numpy()/dl_test
+for i,det in enumerate(detectors):
+# plt.hist(np.log10(abs((ypred/ytest).cpu().numpy())), bins='auto', density=True, histtype = 'step', linewidth =2)
+# plt.xlabel(r'$\log_{10}(|y_{pred}/y_{test}|)$')
+# plt.grid(True)
+# plt.savefig('models/MLP_models/{}/ypred_vs_ytrue.png'.format(name))
+# plt.close()
 
-
-plt.hist(abs(snr_pred-snr_true), bins=100, density=1, histtype = 'step', linewidth = 2)
-plt.xlabel(r'$|\rho_{pred}-\rho_{true}|$', fontsize = 15)
-plt.yscale('log')
-plt.grid(True)
-plt.savefig('models/MLP_models/{}/snrtrue_vs_snrpred.png'.format(name))
-plt.close()
+# snr_pred = ypred.cpu().numpy()/dl_test
+# snr_true = ytest.cpu().numpy()/dl_test
 
 
-plt.figure(figsize = (7,7))
-c = plt.scatter(x = snr_pred, y = snr_true, c = (abs(snr_pred - snr_true)), s= 10, cmap = 'jet')
-cbar = plt.colorbar(c)
-cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
-plt.clim(0,4)
-plt.xlim([0, 100])
-plt.ylim([0, 100])
-x = np.linspace(0,100_000)
-plt.plot(x,x, '--k', linewidth = 2)
-plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
-plt.ylabel(r'$\rho_{true}$', fontsize = 15)
-plt.grid(True)
-plt.savefig('models/MLP_models/{}/true_vs_spred_line.png'.format(name))
-plt.close()
+# plt.hist(abs(snr_pred-snr_true), bins=100, density=1, histtype = 'step', linewidth = 2)
+# plt.xlabel(r'$|\rho_{pred}-\rho_{true}|$', fontsize = 15)
+# plt.yscale('log')
+# plt.grid(True)
+# plt.savefig('models/MLP_models/{}/snrtrue_vs_snrpred.png'.format(name))
+# plt.close()
 
 
-plt.figure(figsize = (7,7))
-c = plt.scatter(x = snr_pred, y = snr_true, c = (abs(snr_pred - snr_true)), s= 10, cmap = 'jet')
-cbar = plt.colorbar(c)
-cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
-plt.clim(0,4)
-plt.xlim([8, 15])
-plt.ylim([8, 15])
-x = np.linspace(0,100_000)
-plt.plot(x,x, '--k', linewidth = 2)
-plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
-plt.ylabel(r'$\rho_{true}$', fontsize = 15)
-plt.grid(True)
-plt.savefig('models/MLP_models/{}/true_vs_spred_line_zoom.png'.format(name))
-plt.close()
+    plt.figure(figsize = (7,7))
+    c = plt.scatter(x = snr_columns_pred[:,i], y = snr_columns_true[:,i], c = (abs(snr_columns_pred[:,i] - snr_columns_true[:,i])), s= 10, cmap = 'jet')
+    cbar = plt.colorbar(c)
+    cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
+    plt.clim(0,4)
+    plt.xlim([0, 100])
+    plt.ylim([0, 100])
+    x = np.linspace(0,100_000)
+    plt.plot(x,x, '--k', linewidth = 2)
+    plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
+    plt.ylabel(r'$\rho_{true}$', fontsize = 15)
+    plt.grid(True)
+    plt.savefig('models/MLP_models/{}/true_vs_spred_line_{}.png'.format(name, det))
+    plt.close()
 
-point = 11
-lim_snr_inx = np.where((snr_true>point - 0.1) & (snr_true<point + 0.1))[0]
-plt.hist(np.array(snr_pred)[lim_snr_inx], bins = 'auto', histtype = 'step', linewidth = 3)
-plt.axvline(x = point, color = 'r')
-plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
-plt.grid(True)
-plt.savefig('models/MLP_models/{}/snrTH_distribution.png'.format(name))
-plt.close()
+
+# plt.figure(figsize = (7,7))
+# c = plt.scatter(x = snr_pred, y = snr_true, c = (abs(snr_pred - snr_true)), s= 10, cmap = 'jet')
+# cbar = plt.colorbar(c)
+# cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
+# plt.clim(0,4)
+# plt.xlim([8, 15])
+# plt.ylim([8, 15])
+# x = np.linspace(0,100_000)
+# plt.plot(x,x, '--k', linewidth = 2)
+# plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
+# plt.ylabel(r'$\rho_{true}$', fontsize = 15)
+# plt.grid(True)
+# plt.savefig('models/MLP_models/{}/true_vs_spred_line_zoom.png'.format(name))
+# plt.close()
+
+    point = 6
+    lim_snr_inx = np.where((snr_columns_true[:,i]>point - 0.1) & (snr_columns_true[:,i]<point + 0.1))[0]
+    plt.hist(np.array(snr_columns_pred[:,i])[lim_snr_inx], bins = 'auto', histtype = 'step', linewidth = 3, label = 'SNR_pred')
+    plt.axvline(x = point, color = 'r', label = 'SNRth = {} +/- 0.1'.format(point))
+    plt.xlabel(r'$\rho_{pred}$', fontsize = 15 )
+    plt.grid(True)
+    plt.legend(loc = 'upper right')
+    plt.savefig('models/MLP_models/{}/snrTH_distribution_{}.png'.format(name, det))
+    plt.close()

@@ -1,0 +1,1 @@
+{'batch_size': 100000, 'n_epochs': 1000, 'shuffle': True, 'activation': None, 'dropout': 0.0, 'learning_rate': 0.0003, 'optimizer': 'Adam', 'linear_transform': 'lu', 'n_neurons': 64, 'n_transforms': 5, 'n_blocks_per_transform': 3, 'n_inputs': 2, 'n_conditional_inputs': 0, 'flow_type': 'CouplingNSF', 'log_it': 0}

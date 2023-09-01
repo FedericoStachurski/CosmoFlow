@@ -15,7 +15,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 print(parentdir)
 
-from gw_functions import gw_priors
+from gw_functions import gw_priors_v2
 from gw_functions import gw_SNR_v2
 from tqdm import tqdm 
 import multiprocessing
@@ -51,7 +51,7 @@ ap.add_argument("-N", "--N", required=True,
 ap.add_argument("-threads", "--threads", required=False,
    help="threads", default = 10)
 ap.add_argument("-approximator", "--wave_approx", required=True,
-   help="wave approximator", default = 'IMRPhenomPv2')
+   help="wave approximator", default = 'IMRPhenomXPHM')
 ap.add_argument("-batch", "--batch", required=True,
    help="threads", default = 1)
 
@@ -82,13 +82,16 @@ N = N
 snr = []
 #sample GW priors
 
-distributions = {'mass': 'Uniform'}
-_, _, _, a1sample, a2sample, tilt1sample, tilt2sample,RAsample, decsample, theta_jnsample, phi_jlsample, phi_12sample, psisample, phasesample, geo_time = gw_priors.draw_prior(N,distributions)
+# distributions = {'mass': 'Uniform'}
+_, _, _, a1sample, a2sample, tilt1sample, tilt2sample,RAsample, decsample, theta_jnsample, phi_jlsample, phi_12sample, psisample, phasesample, geo_time = gw_priors_v2.draw_prior(N)
 
 
-dlsample = loguniform.rvs(100, 11_000, size=N) # np.random.uniform(10,11_000,N)
-m1zsample = loguniform.rvs(2, 350, size=N) # np.random.uniform(2,350,N)
-m2zsample = loguniform.rvs(2, 350, size=N) # np.random.uniform(2,350,N)
+dlsample = np.random.uniform(10,11_000,N) #loguniform.rvs(100, 11_000, size=N) # 
+m1zsample = np.random.uniform(4,350,N) #loguniform.rvs(4, 350, size=N) # 
+# m2zsample = np.random.uniform(4,350,N) #loguniform.rvs(4, 350, size=N) # BBH m2 
+m2zsample = np.random.uniform(0.5,15,N) #loguniform.rvs(4, 350, size=N) # NSBH m2 
+#COMMENT! 
+#Thin kabout maybe using p(m1,m2) from gwcosmo
 
 inx = np.where(m1zsample < m2zsample)[0]
 temp_m1 = m1zsample[inx]
@@ -96,16 +99,15 @@ temp_m2 = m2zsample[inx]
 m1zsample[inx] = temp_m2
 m2zsample[inx] = temp_m1
 
+data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample,'a_1': a1sample, 'a_2': a2sample, 'tilt_1': tilt1sample, 'tilt_2': tilt2sample,
+             'ra':RAsample, 'dec':decsample,'theta_jn':theta_jnsample, 'phi_jl': phi_jlsample, 'phi_12': phi_12sample, 'psi':psisample, 'phase': 0, 'geocent_time': geo_time} #COMMENT!
 
-
-data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample,'a_1': 0, 'a_2': 0, 'tilt_1': 0, 'tilt_2': 0,
-             'ra':RAsample, 'dec':decsample,'theta_jn':theta_jnsample, 'phi_jl': 0, 'phi_12': 0, 'psi':psisample, 'phase': 0, 'geocent_time': geo_time}
 
 df = pd.DataFrame(data)
 
-print(df.loc[500:520])
+# print(df.loc[500:520])
 def compute_SNR(inx):
-    return gw_SNR_v2.run_bilby_sim(df, inx, det, run, approximator)
+    return gw_SNR_v2.run_bilby_sim(df, inx, det, run, approximator, snr_type = 'optimal')
 
 
 threads = threads
@@ -113,56 +115,35 @@ indicies = np.arange(N)
 SNRs_list = []
 
 
-
 with multiprocessing.Pool(threads) as p:
     SNRs = list(tqdm(p.imap(compute_SNR,indicies), total = N))
 SNRs = np.array(SNRs).T
 
 
+    
+# data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample, 'ra':RAsample, 'dec':decsample, 'theta_jn':theta_jnsample,
+#         'psi':psisample,'geocent_time': geo_time}
+data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample,'a_1': a1sample, 'a_2': a2sample, 'tilt_1': tilt1sample, 'tilt_2': tilt2sample,
+             'ra':RAsample, 'dec':decsample,'theta_jn':theta_jnsample, 'phi_jl': phi_jlsample, 'phi_12': phi_12sample, 'psi':psisample, 'geocent_time': geo_time}
+
+data.update({'snr_H1':SNRs[0], 'snr_L1':SNRs[1], 'snr_V1':SNRs[2]}) 
+df = pd.DataFrame(data)
+
+
 if type_data == 'training':
-    
-    data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample, 'ra':RAsample, 'dec':decsample, 'theta_jn':theta_jnsample,
-            'psi':psisample,'geocent_time': geo_time}
-    
-    if det == ['H1', 'L1', 'V1']:
-        data.update({'snr_H1':SNRs[0], 'snr_L1':SNRs[1], 'snr_V1':SNRs[2], 'snr_network':SNRs[3]}) 
-        df = pd.DataFrame(data)
-        print(df)
-
-        path_data = r"data_for_MLP/data_sky_theta/training/"
+    path_data = r"data_for_MLP/training/"
+    if len(det) == 3:
         df.to_csv(path_data+'_{}_{}_det_{}_{}_{}_run_{}_approx_{}_batch_{}.csv'.format(Name, N, *det, run, approximator, batch))
-        
-    elif det == ['H1', 'L1']:
-        data.update({'snr_H1':SNRs[0], 'snr_L1':SNRs[1], 'snr_network':SNRs[2]}) 
-        df = pd.DataFrame(data)
-        print(df)
-
-        path_data = r"data_for_MLP/data_sky_theta/training/"
+    elif len(det) == 2:
         df.to_csv(path_data+'_{}_{}_det_{}_{}_run_{}_approx_{}_batch_{}.csv'.format(Name, N, *det, run, approximator, batch))
-
-
-
-    
-if type_data == 'testing':
-    data = { 'luminosity_distance':dlsample, 'mass_1':m1zsample, 'mass_2':m2zsample, 'ra':RAsample, 'dec':decsample, 'theta_jn':theta_jnsample,
-            'psi':psisample,'geocent_time': geo_time}
-    
-    if det == ['H1', 'L1', 'V1']:
-        data.update({'snr_H1':SNRs[0], 'snr_L1':SNRs[1], 'snr_V1':SNRs[2], 'snr_network':SNRs[3]}) 
-        df = pd.DataFrame(data)
-        print(df)
-        path_data = r"data_for_MLP/data_sky_theta/testing/"
+elif type_data == 'testing':
+    path_data = r"data_for_MLP/testing/"
+    if len(det) == 3:
         df.to_csv(path_data+'testing_data_{}_det_{}_{}_{}_run_{}_batch_{}.csv'.format(N, *det, run, batch))
-        
-    elif det == ['H1', 'L1']:
-        data.update({'snr_H1':SNRs[0], 'snr_L1':SNRs[1], 'snr_network':SNRs[2]}) 
-        df = pd.DataFrame(data)
-        print(df)
-        path_data = r"data_for_MLP/data_sky_theta/testing/"
+    elif len(det) == 2: 
         df.to_csv(path_data+'testing_data_{}_det_{}_{}_run_{}_batch_{}.csv'.format(N, *det, run, batch))
+        
 
 
-    
-    
 
     

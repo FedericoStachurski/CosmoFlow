@@ -6,12 +6,15 @@ from scipy.interpolate import interp2d
 import astropy.constants as const
 from scipy.stats import norm
 from scipy.special import erf
+from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
+import cupy as xp
 
 zmax = 10                             # max redshift
 H0 = 70                                #Hubble constant
 c = const.c.to('km/s').value         #speed of light in km/s
-omega_m = 0.3; omega_lambda = 0.7        #cosmological parameters
+omega_m = 0.305; omega_lambda = 1 - omega_m        #cosmological parameters
 omega_k = 1- omega_lambda - omega_m
+L0 = 3.0128e28 #Watts
 
 @np.vectorize
 def z_to_dl(z,H):
@@ -34,6 +37,24 @@ def z_to_dl_H_Omegas(z,H, omega_m, omega_lambda):
     def E(z):
         return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda))
     
+    def I(z):
+        fact = lambda x: 1/E(x)
+        integral = quad(fact, 0, z)
+        return integral[0]
+
+    dl  =  (c*(1+z) / H) * I(z)
+    return dl
+
+
+@np.vectorize
+def z_to_dl_H_Omegas_EoS(z,H, omega_m, w0):
+    "distance as a function of z and H0 and density parameters"
+    omega_k = 0 
+    omega_lambda = 1 - omega_m #Flat universe
+    def E(z):
+        return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda**(3*(1+w0))))
+    # def I(z):
+    #     return xp.trapz(E(z), x = z)
     def I(z):
         fact = lambda x: 1/E(x)
         integral = quad(fact, 0, z)
@@ -124,3 +145,25 @@ def Ngal(Vc, n):
     "Compute Ngal of the universe given Comoving volume "
     N = n*Vc
     return N
+
+def draw_RA_Dec(N):
+    #sample RA 
+    ra_obs = xp.random.uniform(0,360,N)
+    ra_obs = ra_obs* np.pi / 180
+    #sample declinations
+    P = xp.random.uniform(0,1,N)
+    dec = xp.arcsin(2*P-1) 
+    return ra_obs.get(), dec.get()
+
+
+def mag2lum(M):
+    return L0*10**(M/(-2.5))
+
+#transform Polar into cartesian and spins to sigmoids
+def spherical_to_cart(dl, ra, dec):
+    x,y,z = spherical_to_cartesian(dl, dec, ra)
+    return x,y,z
+
+def cart_to_spherical(x,y,z):
+    dl, dec, ra = cartesian_to_spherical(x,y,z)
+    return dl, ra, dec

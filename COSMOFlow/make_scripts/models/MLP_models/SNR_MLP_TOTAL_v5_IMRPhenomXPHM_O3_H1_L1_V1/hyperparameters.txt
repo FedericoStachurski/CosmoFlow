@@ -1,0 +1,1 @@
+{'Name': 'SNR_MLP_TOTAL_v5', 'device': 'cuda:0', 'det': ['H1', 'L1', 'V1'], 'run': 'O3', 'approximator': 'IMRPhenomXPHM', 'neurons': 256, 'layers': 9, 'epochs': 2000, 'batches': 1000, 'fraction': 0.75, 'learning_rate': 0.0001, 'loss_function': 'MSE'}

@@ -1,0 +1,1 @@
+{'Name': 'SNR_MLP_NSBH', 'device': 'cuda:0', 'det': ['H1', 'L1', 'V1'], 'run': 'O3', 'approximator': 'IMRPhenomNSBH', 'neurons': 64, 'layers': 5, 'epochs': 1000, 'batches': 1, 'fraction': 0.8, 'learning_rate': 0.001, 'loss_function': 'MSE'}

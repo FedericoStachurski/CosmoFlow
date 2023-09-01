@@ -4,7 +4,7 @@ from scipy.integrate import dblquad, quad, tplquad
 
 Mmin = 5 ; Mmax = 100 #chirp mass mass boundaries
 zmax = 10
-omega_m = 0.3; omega_lambda = 0.7    #cosmological parameters
+omega_m = 0.305; omega_lambda = 1 - omega_m   #cosmological parameters
 omega_k = 1- omega_lambda - omega_m
 
 @np.vectorize
@@ -21,6 +21,24 @@ def p_z(z, omega_m = 0.3):
         return integral[0]
     result =  (I(z))**(2) / E(z)
     return  result
+
+
+@np.vectorize
+def p_z_omega_EoS(z, omega_m, w0):
+    "redshift probability distribution function for Omega_M = 0.3 ad Omega_Lambda = 0.7 (not normalized)"
+    omega_lambda = 1 - omega_m
+    omega_k = 0 
+    def E(z):
+        return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda*(1+z)**(3*(1+w0))))
+    
+    def I(z):
+        fact = lambda x: 1/E(x)
+        integral = quad(fact, 0, z)
+        return integral[0]
+    result =  (I(z))**(2) / E(z)
+    return  result
+
+
 
 #Look up table grids using splrep and splev
 z_grid = np.linspace(0,zmax,1000)

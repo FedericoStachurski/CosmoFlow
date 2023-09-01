@@ -2,3 +2,9 @@ import gw_functions.gw_priors
 import gw_functions.gw_priors_v2
 import gw_functions.gw_SNR
 import gw_functions.gw_SNR_v2
+import gw_functions.mass_distribution_cupy
+import gw_functions.gwcosmo_costume_math
+import gw_functions.gwcosmo_priors
+import gw_functions.pdet_theta
+import gw_functions.handle_posterior_samples_GWTC
+import gw_functions.posterior_utilities 
