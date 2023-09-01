@@ -1,6 +1,6 @@
 # COSMOFlow
 
-Cosmological parameter inference using Gravitational waves and machine learning. 
+Cosmological parameter inference using Gravitational waves and machine learning. It harnesses the power of Normalising Flows to compute the complex probability distributions of cosmological and population paramters inferred using gravitational wave evetns from compact binary coalescences in the unvierse. The code right now allwos for the computation of posterior distribution of the rate of expansion of the unvierse (H0) using psoterior samples from gravitational wave events from binary black holes. 
 ![Screenshot](COSMOFlow/Flow_layout.png)
 
 
