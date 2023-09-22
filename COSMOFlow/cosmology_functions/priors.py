@@ -135,3 +135,5 @@ def p_Chirp(M):
             if M[i] <= 100 and M[i]>= 15:
                 mass[i] = ( 1 / (Mmax - Mmin) )
         return np.array(mass).flatten()
+
+
