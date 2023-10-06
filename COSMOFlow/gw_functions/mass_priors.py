@@ -28,16 +28,16 @@ class MassPrior_sample(object):
          # hyper_params_dict = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 100, 'mu_g': 32.27, 'sigma_g': 3.88, 
          #     'lambda_peak': 0.03,'delta_m': 4.8} 
         self.hyper_params_dict = parameters
-        self.name = name
+        self.name = self.hyper_params_dict['name']
 
 
     def POWERLAW_PEAK_SMOOTH_CUPY(self, N):
         truths = dict(mmin =self.hyper_params_dict['mmin'], mmax = self.hyper_params_dict['mmax'], 
-                      mpp=self.hyper_params_dict['mu_g'], 
-                      sigpp=self.hyper_params_dict['sigma_g'], 
-                      alpha= self.hyper_params_dict['alpha'], 
-                      beta = self.hyper_params_dict['beta'], 
-                      lam =self.hyper_params_dict['lambda_peak'], delta_m = self.hyper_params_dict['delta_m'])
+                  mpp=self.hyper_params_dict['mu_g'], 
+                  sigpp=self.hyper_params_dict['sigma_g'], 
+                  alpha= self.hyper_params_dict['alpha'], 
+                  beta = self.hyper_params_dict['beta'], 
+                  lam =self.hyper_params_dict['lambda_peak'], delta_m = self.hyper_params_dict['delta_m'])
         for pr in truths.keys():
             truths[pr] = xp.array(truths[pr],dtype=xp.float64)
         m1, m2 = [], []
@@ -60,7 +60,11 @@ class MassPrior_sample(object):
 
     def PL_PEAK_GWCOSMO(self, N):
         # name = 'BBH-powerlaw-gaussian'
-        mass_prior_class = gwcosmo_priors.mass_prior(self.name, self.hyper_params_dict)
+        hyper_params = {'beta': self.hyper_params_dict['beta'], 'alpha': self.hyper_params_dict['alpha'],
+                             'mmin': self.hyper_params_dict['mmin'] ,'mmax': self.hyper_params_dict['mmax'], 
+                             'mu_g': self.hyper_params_dict['mu_g'], 'sigma_g': self.hyper_params_dict['sigma_g'], 
+                             'lambda_peak': self.hyper_params_dict['lambda_peak'],'delta_m': self.hyper_params_dict['delta_m']} 
+        mass_prior_class = gwcosmo_priors.mass_prior(self.name, hyper_params)
         m1 , m2 = mass_prior_class.sample(N)
         return m1, m2 
 

@@ -38,21 +38,20 @@ class RedshiftGW_fast_z_para(object):
     def p_z_zmax(self,z,  zp, gamma, k, H0, Om0, w0, SNRth):
         zmax = self.zmax_H0(H0, SNRth)
         priorz = self.Madau_factor(z, zp, gamma, k)  * priors.p_z_omega_EoS(z, Om0, w0) * self.time_z(z) 
-
         if np.size(z) > 1: 
-            inx_0 = np.where(z > zmax)[0]
-            priorz[inx_0] = 0.00
-            return priorz
+            priorz[z > zmax] = 0.00
         else: 
             if z > zmax:
                 priorsz = 0
-                return priorz
-
-    def make_cdfs(self, parameters):   
-        zp, gamma, k, H0 = parameters  
-        pdf = self.p_z_zmax(self.z_grid, zp, gamma, k, H0, 0.3, 0.0, self.SNRth)
-        cdf = np.cumsum(pdf*self.dz)
-        cdf /= np.max(cdf)
+        return priorz
+            
+    
+    def make_cdfs(self):
+        zp = self.parameters['zp'] ; gamma = self.parameters['gamma'] ; k = self.parameters['k']; H0 = self.parameters['H0']
+        w0 = self.parameters['w0']; Om0 = self.parameters['Om0']
+        pdf = self.p_z_zmax(self.z_grid[:,None],  zp[None,:], gamma[None,:], k[None,:], H0[None,:], Om0, w0, self.SNRth)
+        cdf = np.cumsum(pdf*self.dz, axis = 0)
+        cdf /= np.amax(cdf, axis=0)
         return cdf
 
     def draw_z_zmax(self, Nsamples,cdfs):

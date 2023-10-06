@@ -24,7 +24,7 @@ import bilby
 import astropy.constants as const
 
 from cosmology_functions import priors, cosmology, utilities
-from cosmology_functions.zmax import RedshiftGW_fast_zmax
+from cosmology_functions.z_parameters_dist import RedshiftGW_fast_z_para
 from cosmology_functions.schechter_functions import Schechter_function
 
 from gw_functions import gw_priors_v2
@@ -78,10 +78,28 @@ ap.add_argument("-zmax", "--zmax", required=False,
    help="zmax", default = 1.5)
 ap.add_argument("-zmin", "--zmin", required=False,
    help="zmin", default = 0.0001)
+
 ap.add_argument("-H0max", "--H0max", required=False,
    help="H0 top boundary", default = 140)
 ap.add_argument("-H0min", "--H0min", required=False,
    help="H0 bottom boundary", default = 20)
+
+ap.add_argument("-gamma_min", "--gamma_min", required=False,
+   help="Gamma bottom boundary", default = 20)
+ap.add_argument("-gamma_max", "--gamma_max", required=False,
+   help="Gamma top boundary", default = 140)
+
+ap.add_argument("-kappa_max", "--kappa_max", required=False,
+   help="Kappa top boundary", default = 140)
+ap.add_argument("-kappa_min", "--kappa_min", required=False,
+   help="Kappa bottom boundary", default = 20)
+
+ap.add_argument("-zp_max", "--zp_max", required=False,
+   help="zp top boundary", default = 140)
+ap.add_argument("-zp_min", "--zp_min", required=False,
+   help="zp bottom boundary", default = 20)
+
+
 ap.add_argument("-SNRth", "--SNRth", required=False,
    help="SNR threshold", default = 11)
 ap.add_argument("-SNRth_single", "--SNRth_single", required=False,
@@ -89,7 +107,7 @@ ap.add_argument("-SNRth_single", "--SNRth_single", required=False,
 ap.add_argument("-band", "--magnitude_band", required=False,
    help="Magnitude band", default = 'K')
 ap.add_argument("-run", "--run", required=False,
-   help="Detector run [O1, O2]", default = 'O1')
+   help="Detector run [O1, O2, O3]", default = 'O1')
 ap.add_argument("-detectors", "--detectors", nargs='+', required=True,
    help="make data from detector: OPTIONS [H1, L1, V1]", default = 'H1')
 ap.add_argument("-N", "--N", required=True,
@@ -108,8 +126,10 @@ ap.add_argument("-fast_zmax", "--fast_zmax", required=False,
    help="Makes the code faster by reducing zmax for specific H0", default = 1)
 ap.add_argument("-save_timer", "--save_timer", required=False,
    help="If 1 save agnostic data of data generation, else not", default = 0)
-ap.add_argument("-approximator", "--approximator", required=True,
+ap.add_argument("-approximator", "--approximator", required=False,
    help="waveform approxiamtor ", default = 'IMRPhenomXPHM')
+ap.add_argument("-name_pop", "--name_pop", required=False,
+   help="type of population", default = 'BBH-powerlaw-gaussian')
 
 args = vars(ap.parse_args())
 Name = str(args['Name_file'])
@@ -117,10 +137,22 @@ in_out = str(args['in_out'])
 batch = int(args['batch_number'])
 type_of_data = str(args['type_data'])
 mass_distribution = str(args['mass_distribution'])
+name_pop = str(args['name_pop'])
 zmax = float(args['zmax'])
 zmin = float(args['zmin'])
+
 Hmax = float(args['H0max'])
 Hmin = float(args['H0min'])
+
+Gamma_max = float(args['gamma_max'])
+Gamma_min = float(args['gamma_min'])
+
+zp_max = float(args['zp_max'])
+zp_min = float(args['zp_min'])
+
+kappa_max = float(args['kappa_max'])
+kappa_min = float(args['kappa_min'])
+
 SNRth = float(args['SNRth'])
 SNRth_single = float(args['SNRth_single'])
 mag_band = str(args['magnitude_band'])
@@ -145,6 +177,7 @@ print('in_out = {}'.format(in_out))
 print('batch = {}'.format(batch))
 print('type_of_data = {}'.format(type_of_data))
 print('mass_distribution = {}'.format(mass_distribution))
+print('population type = {}'.format(name_pop))
 print('zmax = {}'.format(zmax))
 print('zmin = {}'.format(zmin))
 print('SNRth_combined_network = {}'.format(SNRth))
@@ -156,7 +189,10 @@ print('approximator = {}'.format(approximator))
 print('run = {}'.format(run))
 
 if type_of_data == 'training':
-    print('H0 = [{},{}]'.format(Hmin, Hmax))
+    print('H0 = [{},{}]'.format(Hmax, Hmin))
+    print('Gamma = [{},{}]'.format(Gamma_max, Gamma_min))
+    print('Kappa = [{},{}]'.format(kappa_max, kappa_min))
+    print('zp = [{},{}]'.format(zp_max, zp_min))
 else:    
     print('H0 = {}'.format(H0_testing))
 
@@ -171,7 +207,7 @@ print()
 
 
 
-model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1/model.pth'.format(approximator, run), device = device) #load MLP model 
+model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
 print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
 
 indicies_detectors = [] #Check which detectors to use
@@ -191,12 +227,16 @@ np.random.seed(seed) # set random seed
 NSIDE = 32  #Define NSIDE for healpix map
 Npix = hp.nside2npix(NSIDE)
 
+#Sample from falt pripors Cosmological and population parameters 
+H0 = np.random.uniform(Hmin,Hmax,N) ; Om0 = 0.3 ; w0 = -1.0
+gamma = np.random.uniform(Gamma_min,Gamma_max,N) ; k = np.random.uniform(kappa_min,kappa_max,N) ; zp = np.random.uniform(zp_min,zp_max,N)
 
 #define popualtion parameters of GWs
 population_parameters = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 100, 'mu_g': 32.27, 'sigma_g': 3.88, 'lambda_peak': 0.03,'delta_m': 4.8,
-                         'gamma': 4.59, 'k': 2.86, 'zp': 2.47, 'lam': 0, 'Om':0.305, 'zmax':zmax}#put this in sepearte file #Specify 
+                         'gamma': gamma, 'k': k, 'zp': zp, 'lam': 0, 'Om0':Om0, 'w0': w0, 'H0': H0, 'name': name_pop}
 
-zmax_class = RedshiftGW_fast_zmax(parameters=population_parameters, run = run,zmin = zmin, zmax = zmax) #initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
+### Initiate redshift and mass classes 
+z_class = RedshiftGW_fast_z_para(population_parameters, zmin = zmin , zmax = zmax, run = run, SNRth = SNRth)#initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
 mass_class = MassPrior_sample(population_parameters, mass_distribution) #initiate mass prior class, p(m1,m2)
 
 
@@ -220,17 +260,17 @@ if in_out is True: #check if using a catalog
     map_mth[inx_0] = -np.inf
         
 
-def select_gal_from_pix(pixels_H0s): 
+def select_gal_from_pix(pixels_H0_gamma_para): 
     # "Selects galaxies from pixel using pixel index and associated H0 to pixel"
     # "Input: tuple(pixel_inx,H0); 
     # "Returns: dataframe of pixel id (z, ra, dec...)" 
     
-    pixel, H0 = pixels_H0s
+    pixel, H0, gamma, k, zp = pixels_H0_gamma_para
     loaded_pixel, Ngalpix = load_pixel(int(pixel))
     loaded_pixel = loaded_pixel[['z','RA','dec', 'sigmaz', 'm'+band]] #load pixel 
     loaded_pixel = loaded_pixel.dropna() # drop any Nan values 
     
-    temporary_zmax = zmax_class.zmax_H0(H0, SNRth) #for compelteness use the zmax at the given H0 
+    temporary_zmax = z_class.zmax_H0(H0, SNRth) #for compelteness use the zmax at the given H0 
     
     loaded_pixel = loaded_pixel[loaded_pixel.z <= temporary_zmax] #check if redshift is less than zmax at H0 value
     loaded_pixel = loaded_pixel[loaded_pixel.z >= zmin] #check if z is greater than zmin 
@@ -249,7 +289,7 @@ def select_gal_from_pix(pixels_H0s):
         luminosities =  cosmology.mag2lum(absolute_mag)
         
         #weights = L * madau(z) * (1/(1+z))
-        weights_gal = luminosities * zmax_class.Madau_factor(z_gal_selected) * zmax_class.time_z(z_gal_selected)
+        weights_gal = luminosities * z_class.Madau_factor(z_gal_selected, zp, gamma, k) * z_class.time_z(z_gal_selected)
         weights_gal /= np.sum(weights_gal) # check weights sum to 1
         gal_id = np.random.choice(np.arange(Ngalpix), size = 1, p = weights_gal) #random choice of galaxy in the pixel 
         return loaded_pixel.iloc[gal_id,:]
@@ -266,16 +306,19 @@ if type_of_data == 'training':
     else:
         path_data = parentdir + r"/data_cosmoflow/empty_catalog/training_data_from_MLP/"
         
-    H0_samples = utilities.h_samples_alpha(N,1, hmin = Hmin, hmax = Hmax) #np.random.uniform(Hmin,Hmax,N)
-    H0_samples = np.sort(H0_samples)
+    # H0_samples = utilities.h_samples_alpha(N,1, hmin = Hmin, hmax = Hmax) #np.random.uniform(Hmin,Hmax,N)
+    # H0_samples = np.sort(H0)
+    
+    cdfs_zmax = z_class.make_cdfs()
+    
     
     #compute zmax from H0 
-    zmax_samples = zmax_class.zmax_H0(H0_samples, SNRth)
-    zmax_samples[zmax_samples > zmax] = zmax #if zmax sample is greater than zmax passed, set it equal
+    # zmax_samples = z_class.zmax_H0(H0_samples, SNRth)
+    # zmax_samples[zmax_samples > zmax] = zmax #if zmax sample is greater than zmax passed, set it equal
     #NO NEED FOR ZMAX INPUT!!!!
     
-    with multiprocessing.Pool(threads) as p: #make snakes of cdfs from zmaxs
-        cdfs_zmax = list(tqdm(p.imap(zmax_class.make_cdfs,zmax_samples), total = N, desc = 'Making cdfs from p(z)p(s|z)')) 
+    # with multiprocessing.Pool(threads) as p: #make snakes of cdfs from zmaxs
+    #     cdfs_zmax = list(tqdm(p.imap(zmax_class.make_cdfs,zmax_samples), total = N, desc = 'Making cdfs from p(z)p(s|z)')) 
 
     
 if type_of_data == 'testing': #NOT TESTED 
@@ -291,15 +334,15 @@ if type_of_data == 'testing': #NOT TESTED
 
     
 #rename variables (should change this) #Add more comments explainign everything 
-H0 = H0_samples 
+# H0 = H0_samples 
 N_missed = N
 list_data = []
-missed_H0 = H0 
+
+missed_H0 = H0 ; missed_gamma = gamma ; missed_kappa = k ; missed_zp = zp
 missed_cdfs_zmax = cdfs_zmax
 
 if type_of_data =='testing':
     missed_R = R_nums
-
 
 counter = 0 #variables to stare for save counter 
 counter_list = []
@@ -307,7 +350,7 @@ Nmissed_list = []
 timer_list = [] #
 
 #begin loop for generating data 
-while True:  
+while True: 
     if type_of_data == 'testing':
         repeated_Rnums = np.repeat(missed_R, select) 
         
@@ -315,12 +358,19 @@ while True:
     n = len(missed_H0) #check how many H0s are there to be detected
     select = int(Nselect*(N/N_missed)) #use this is the selct value, which increases the more H0s are detected
     nxN = int(n*select) #defin the number of samples we are going to sample nxN (n = H0s, N = sampels per H0s)
+    
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
+    repeated_gamma = np.repeat(missed_gamma, select) #repeat Gammas for Nselect samples 
+    repeated_kappa = np.repeat(missed_kappa, select) #repeat Kappas for Nselect samples 
+    repeated_zp = np.repeat(missed_zp, select) #repeat zps for Nselect samples 
+    
+    
+    
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
     
     RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
-    z = zmax_class.draw_z_zmax(select, missed_cdfs_zmax) #sampleredshift from zmax-H0 distributions 
+    z = z_class.draw_z_zmax(select, missed_cdfs_zmax.T) #sampleredshift from zmax-H0 distributions 
     dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
     #Make sure all are arrays
@@ -342,7 +392,11 @@ while True:
 
             pix_list = np.array(pix_list[inx_in_gal]) #get list of pixels from where to get the galaxies 
             H0_in_list = np.array(repeated_H0[inx_in_gal]) #get the associated H0s from each pixel
-            pixel_H0 = np.array([pix_list, H0_in_list]).T #make an array of lists with pixel index and H0 to be used in the select galaxy function
+            gamma_in_list = np.array(repeated_gamma[inx_in_gal]) #get the associated H0s from each pixel
+            kappa_in_list = np.array(repeated_kappa[inx_in_gal]) #get the associated H0s from each pixel
+            zp_in_list = np.array(repeated_zp[inx_in_gal]) #get the associated H0s from each pixel
+            
+            pixel_H0 = np.array([pix_list, H0_in_list, gamma_in_list, kappa_in_list, zp_in_list]).T #make an array of lists with pixel index and H0 to be used in the select galaxy function
 
             with multiprocessing.Pool(threads) as p: #multiprocess for galaxy pixel loading 
                 selected_cat_pixels = list(p.imap(select_gal_from_pix,pixel_H0))
@@ -372,11 +426,11 @@ while True:
     #_, _, _, _, _, _, _, _, _, theta_jn, _, _, psi, _ , geo_time = gw_priors_v2.draw_prior(int(nxN))
     _, _, _, a1, a2, tilt1, tilt2, _, _, theta_jn, phi_jl, phi_12, psi, _, geo_time = gw_priors_v2.draw_prior(int(nxN))
     
+    
     #Sample primary and secondary masses
     m1, m2 = mass_class.PL_PEAK_GWCOSMO(nxN) #use GWCOSMO mass prior distribution #NOTE: Deifne better 
     m1z = m1*(1+z) #turn source masses into detector frame masses 
     m2z = m2*(1+z)
-    
     #CHRIS REVIEW CONTINUE FROM HERE 
 
     # data_dict = {'luminosity_distance':dl, 'mass_1':m1z, 'mass_2':m2z,'a1': 0, 'a2': 0,
@@ -395,6 +449,7 @@ while True:
     snr_pred = ypred.cpu().numpy()/np.array(GW_data['luminosity_distance'])[:,None] #divide by distance to get SNR 
     # network_snr_sq = np.sum(snr_pred[:, indicies_detectors]**2, axis = 1) #get detector netwrok snr 
    
+    
     temp_dict = {} 
     temp_snrs = []
     if 'H1' in detectors: 
@@ -446,8 +501,12 @@ while True:
         GW_data['snr'] = snrs_obs
         
     #get indicies of detected events     
+    
     inx_out = np.where((GW_data.snr >= SNRth))[0]   
     GW_data['H0'] = repeated_H0 #add H0 to the GW_data 
+    GW_data['gamma'] = repeated_gamma #add gamma to the GW_data 
+    GW_data['kappa'] = repeated_kappa #add H0 to the GW_data 
+    GW_data['zp'] = repeated_zp #add H0 to the GW_data 
     
     if in_out is True:
         GW_data['app_mag'] = app_samples #if using galaxy catalog, get app_mag data 
@@ -482,11 +541,16 @@ while True:
         inx_new_missed = np.where(np.in1d(missed_H0,new_missed_H0) == True) #get the indicies of the missed H0s 
         
         new_missed_H0 = missed_H0[inx_new_missed] #new missed H0s
+        new_missed_gamma = missed_gamma[inx_new_missed] ; new_missed_kappa = missed_kappa[inx_new_missed]; new_missed_zp = missed_zp[inx_new_missed]
+        
         inx_missed_H0 = np.argsort(new_missed_H0) #sort the indicies of missed H0s 
+        
         missed_H0 = new_missed_H0[inx_missed_H0] #missed H0s sorted 
-        missed_cdfs_zmax = [missed_cdfs_zmax[index] for index in inx_missed_H0] #get cdfs from each H0s that has been missed to be used in next iteration
+        missed_gamma = new_missed_gamma[inx_missed_H0] ; missed_kappa = new_missed_kappa[inx_missed_H0]; missed_zp = new_missed_zp[inx_missed_H0]
+    
+        missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed to be used in next iteration
 
-        sys.stdout.write('\rH0 we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter-1)) #print status of data generation 
+        sys.stdout.write('\rSamples we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter-1)) #print status of data generation 
         N_missed = len(missed_H0) #append relevant information 
         counter_list.append(counter)
         Nmissed_list.append(N_missed)
@@ -495,6 +559,9 @@ while True:
         
         if len(missed_H0) == 0 : #double check why this is here 
             repeated_H0 = np.repeat(missed_H0, select)
+            repeated_gamma = np.repeat(missed_gamma, select) #repeat Gammas for Nselect samples 
+            repeated_kappa = np.repeat(missed_kappa, select) #repeat Kappas for Nselect samples 
+            repeated_zp = np.repeat(missed_zp, select) #repeat zps for Nselect samples 
             break
 
     elif type_of_data =='testing': #same but doen for random number being used 
@@ -519,7 +586,7 @@ print('\nFINISHED Sampling events')
 
 #save data 
 GW_data = pd.concat(list_data)
-output_df = GW_data[['snr', 'H0', 'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
+output_df = GW_data[['snr', 'H0','gamma','kappa','zp', 'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
                      'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn',
                      'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag', 'inx']]
 
