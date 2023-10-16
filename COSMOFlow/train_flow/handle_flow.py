@@ -178,8 +178,8 @@ class Handle_Flow(object):
         if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
             dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4]}
 
-        elif flow_class.hyperparameters['xyz'] == 1:
-            dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
+        # elif flow_class.hyperparameters['xyz'] == 1:
+        #     dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
 
         samples = pd.DataFrame(dict_rand) #make data frame to pass 
         scaled_theta = samples 
@@ -209,3 +209,148 @@ class Handle_Flow(object):
 
 
         return np.exp(Log_Prob)
+    
+    
+    
+    def p_theta_OMEGA(self, df, conditional):
+        "Functio for evaluating the numerator, takes in all the posterior samples for singular vlaue of the conditional statement"
+        "Input: df = Data frame of posterior samples (dl, ra, dec, m1, m2) or (x,y,z, m1, m2)"
+        "       conditional = singular value of the conditional statemnt (thsi case, H0 = 70 example ) "
+
+        "Output: p(theta|H0,D) numerator "
+        n_conditional = self.hyperparameters['n_conditional_inputs']
+        conv_df = self.convert_data(df) #convert data 
+        scaled_theta = self.scaler_x.transform(conv_df) #scale data 
+        conditional = np.repeat(conditional, len(conv_df))  #repeat condittional singualr value N times as many posterior sampels 
+        Y_conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) #scael conditional statemnt 
+        samples = scaled_theta 
+
+        if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
+            dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4]}
+
+        elif flow_class.hyperparameters['xyz'] == 1:
+            dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
+
+        samples = pd.DataFrame(dict_rand) #make data frame to pass
+        scaled_theta = samples 
+        # if self.hyperparameters['log_it'] == 1:
+        #     utilities.logit_data(scaled_theta)
+        #     scaled_theta = scaled_theta[np.isfinite(scaled_theta).all(1)]
+
+        scaled_theta = np.array(scaled_theta) 
+        scaled_theta = scaled_theta.T*np.ones((1,len(Y_conditional)))
+
+        conditional = np.array(Y_conditional)
+        data = np.array(conditional)
+        data_scaled = torch.from_numpy(data.astype('float32'))
+
+        def Flow_posterior(target, conditional): 
+            self.flow.eval()
+            self.flow.to(self.device)
+
+            with torch.no_grad():
+
+                logprobx = self.flow.log_prob(target.to(self.device), conditional=conditional.to(self.device))
+                logprobx = logprobx.detach().cpu().numpy() 
+
+                return  logprobx
+
+        Log_Prob = Flow_posterior(torch.from_numpy(scaled_theta.T).float(), data_scaled)
+
+
+        return np.exp(Log_Prob)
+    
+    
+    def Flow_samples(self, conditional, n):
+        "Sample the flow using conditional statements"
+        n_conditional = self.hyperparameters['n_conditional_inputs']
+        Y_conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) #scael conditional statemnt 
+
+
+        conditional = np.array(Y_conditional)
+        data = np.array(conditional)
+        data_scaled = torch.from_numpy(data.astype('float32'))
+
+        self.flow.eval()
+        self.flow.to('cpu')
+
+
+        with torch.no_grad():
+            samples = self.flow.sample(n, conditional=data_scaled.to('cpu'))
+            samples= self.scaler_x.inverse_transform(samples.to('cpu'))
+
+        return samples
+    
+    
+    
+    
+    def p_theta_H0_one_go_batch(self, df, conditional):
+        "Functio for evaluating the numerator, takes in all the posterior samples for batch of the conditional statement"
+        "Input: df = Data frame of posterior samples (dl, ra, dec, m1, m2) or (x,y,z, m1, m2)"
+        "       conditional = singular value of the conditional statemnt (thsi case, H0 = 70 example ) "
+        "Output: p(theta|H0,D) numerator "
+        
+        N_samples = len(conditional); N_theta = len(df)
+        
+        conv_df = self.convert_data(df) #convert data 
+        scaled_theta = self.scaler_x.transform(conv_df) #scale data 
+        # conditional = np.repeat(conditional, len(conv_df))  #repeat condittional singualr value N times as many posterior sampels 
+        Y_H0_conditional = self.scaler_y.transform(conditional.reshape(-1,self.hyperparameters['n_conditional_inputs'])) #scael conditional statemnt 
+        samples = scaled_theta
+
+        if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
+            dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4]}
+
+        # elif flow_class.hyperparameters['xyz'] == 1:
+        #     dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
+
+        samples = pd.DataFrame(dict_rand) #make data frame to pass 
+        scaled_theta = samples 
+        scaled_theta = np.array(scaled_theta) 
+        conditional = np.array(Y_H0_conditional)
+        
+        
+        target_tensor, conditional_tensor = self.make_data_batch_flow(scaled_theta, conditional, N_samples)
+        target_tensor = torch.from_numpy(target_tensor).float()
+        conditional_tensor = torch.from_numpy(conditional_tensor.astype('float32'))
+        
+        # print(np.shape(target_tensor), np.shape(conditional_tensor))
+        def Flow_posterior(target, conditional): 
+            self.flow.eval()
+            self.flow.to(self.device)
+            with torch.no_grad():
+                logprobx = self.flow.log_prob(target.to(self.device), conditional=conditional.to(self.device))
+                logprobx = logprobx.detach().cpu().numpy() 
+                return  logprobx
+
+        Log_Prob = Flow_posterior(target_tensor, conditional_tensor)
+        return np.exp(Log_Prob)
+    
+    
+    
+    
+    def make_data_batch_flow(self, target, conditional, N_samples):
+        
+        N_theta = len(target)
+        data_tensor = np.zeros((N_theta,N_samples,self.hyperparameters['n_inputs']))
+        conditional_tensor = np.zeros((N_theta,N_samples, self.hyperparameters['n_conditional_inputs']))
+        
+        for i in range(N_samples):
+            data_tensor[:,i,:] = target
+            conditional_tensor[:,i,:] = conditional[i]
+            
+        data_tensor = data_tensor.reshape(int(N_theta*N_samples), self.hyperparameters['n_inputs'])
+        conditional_tensor = conditional_tensor.reshape(int(N_theta*N_samples), self.hyperparameters['n_conditional_inputs'])
+        
+        return data_tensor, conditional_tensor
+    
+    def get_posterior_from_batch(self, flow_samples ,N_samples,  N_theta , N_event):
+        log_posterior = np.ones(N_samples)
+        for k in range(N_event):
+            if k == N_event - 1: 
+                break
+            flow_samples_temp = flow_samples[int(k*(N_theta)):int((k+1)*N_theta), : ]
+            log_posterior += np.log(np.sum(flow_samples_temp,axis = 0)/N_theta )
+        posterior = np.exp(log_posterior)
+        return posterior
+        

@@ -118,13 +118,19 @@ def sigmoid_data(data_to_sigmoid):
 
 def scale_data(data_to_scale, Scaler, n_conditionals = 1):
     target = data_to_scale[data_to_scale.columns[0:-n_conditionals]]
-    conditioners = np.array(data_to_scale[data_to_scale.columns[-n_conditionals]]).reshape(-1,1)
+    if n_conditionals == 1:
+        conditioners = np.array(data_to_scale[data_to_scale.columns[-n_conditionals]]).reshape(-1,1)
+    else:
+        conditioners = np.array(data_to_scale[data_to_scale.columns[-n_conditionals:]])
+
     if Scaler == 'MinMax':
         scaler_x = MinMaxScaler()
         scaler_y = MinMaxScaler()
     elif Scaler == 'Standard':
         scaler_x = StandardScaler()
         scaler_y = StandardScaler()
+    else: 
+        raise ValueError('Scaler = {} is not an option, use either Standard or MinMax'.format(Scaler))
     scaled_target = scaler_x.fit_transform(target) 
     scaled_conditioners = scaler_y.fit_transform(conditioners)  
     scaled_data = np.hstack((scaled_target, scaled_conditioners))
