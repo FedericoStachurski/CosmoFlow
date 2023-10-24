@@ -301,8 +301,8 @@ class Handle_Flow(object):
         if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
             dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4]}
 
-        # elif flow_class.hyperparameters['xyz'] == 1:
-        #     dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
+        elif self.hyperparameters['xyz'] == 1:
+            dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
 
         samples = pd.DataFrame(dict_rand) #make data frame to pass 
         scaled_theta = samples 

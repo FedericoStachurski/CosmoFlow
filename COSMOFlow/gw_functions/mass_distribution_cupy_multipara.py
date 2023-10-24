@@ -66,8 +66,8 @@ def truncnorm(xx, mu, sigma, high, low):
     norm = 2**0.5 / np.pi**0.5 / sigma
     norm /= erf((high - mu) / 2**0.5 / sigma) + erf((mu - low) / 2**0.5 / sigma)  #vector of norms
     try:
-        prob = xp.exp(-xp.power(xx[None,:] - mu[:,None], 2) / (2 * sigma[:,None]**2)) # array of dims len(xx) * len(mu)
-        prob *= norm[:,None]  # should be fine considering dimensionality
+        prob = xp.exp(-xp.power(xx - mu[None,:], 2) / (2 * sigma[None,:]**2)) # array of dims len(xx) * len(mu)
+        prob *= norm[None,:]  # should be fine considering dimensionality
         prob[x_op < lo_op] = 0
         prob[x_op > hi_op] = 0
     except IndexError:
@@ -83,7 +83,8 @@ def powerlaw(xx, lam, xmin, xmax):
 
     norm = (1+lam)/(xmax**(1+lam) - xmin**(1+lam)) # vector of norms
     try:
-        out =  xx[None,:]**lam[:,None] * norm[:,None] # array of dims len(xx) * len(lam)
+        
+        out =  xx**lam[None,:] * norm[None,:] # array of dims len(xx) * len(lam)
         out[x_op < lo_op] = 0
         out[x_op > hi_op] = 0
     except IndexError:
@@ -100,7 +101,7 @@ def smoothing(masses, mmin, delta_m):
     lows = xp.repeat(mmin, masses.size).reshape((mmin.size,masses.size))
     deltas = xp.repeat(delta_m, masses.size).reshape((delta_m.size,masses.size))
     try:
-        ans = (1 + smooth_exp(masses[None,:] - mmin[:,None], delta_m[:,None]))**-1
+        ans = (1 + smooth_exp(masses - mmin[None,:], delta_m[None,:]))**-1
         ans[big_masses < lows] = 0
         ans[big_masses > lows + deltas] = 1
     except IndexError:
@@ -116,13 +117,13 @@ def ligo_ppop(m, parameters):
     return tcs * smth  # NOT normalised!
 
 def two_component_single(
-    mass, alpha, mmin, mmax, lam, mpp, sigpp, gaussian_mass_maximum=100
+    mass, alpha, mmin, mmax, lam, mpp, sigpp, gaussian_mass_maximum=200
 ):
     p_pow = powerlaw(mass, -alpha, mmin, mmax)  # 2d array, dims N_samp * N_hp
     p_norm = truncnorm(mass, mu=mpp, sigma=sigpp, high=xp.asarray(gaussian_mass_maximum), low=mmin)  # same as above
-
     try:
-        prob = (1 - lam[:,None]) * p_pow + lam[:,None] * p_norm
+        prob = (1 - lam[None,:]) * p_pow + lam[None,:] * p_norm
+        
     except IndexError:
         prob = (1 - lam) * p_pow + lam * p_norm
     return prob
@@ -135,34 +136,46 @@ def p1(m, mgrid, truths):
 def p1_grid(mgrid, truths):
     p = ligo_ppop(mgrid, truths)
     p1norm = trapz(p, x=mgrid)
-    return p/p1norm
+    return (p.T/p1norm).T
 
 def qfunc(q, m1, beta, mmin, delta_m):
     return q**beta * smoothing(q*m1, mmin, delta_m) # not normalised
 
 def pq(q, m1, truths):
     norm_interp = construct_qnorm_interpolator(truths)
-    probs = qfunc(q[:,None], m1[None,:], truths["beta"], truths["mmin"],truths["delta_m"])
+    probs = qfunc(q[:,None], m1[None,:], truths["beta"][None,:], truths["mmin"][None,:],truths["delta_m"][None,:])
     norm = norm_interp(m1)
     return xp.nan_to_num(xp.squeeze(probs/norm[None,:]))
 
 def construct_qnorm_interpolator(truths):
     qvec = xp.linspace(truths["mmin"]/100, 1, 1000)
     mvec = xp.linspace(truths["mmin"],100,1000)
-    probs = qfunc(qvec[:,None], mvec[None,:], truths["beta"], truths["mmin"],truths["delta_m"])
+    probs = qfunc(qvec[:,None], mvec[None,:], truths["beta"][None,:], truths["mmin"][None,:],truths["delta_m"][None,:])
     integrated = trapz(probs, dx=qvec[1]-qvec[0], axis=0)
     return lambda x: xp.interp(x, mvec, integrated)
+
+def sample_snakes_cdf(size, cdfs, sample_vec):
+    arange = xp.arange(np.shape(cdfs)[1])
+    cdf_snake = (cdfs + arange[None,:]).T.flatten()# (q_grid_size * size)
+    samples_all = (sample_vec[:,None] + arange[None,:]).T.flatten()
+    samples = xp.interp(xp.random.random(size), cdf_snake, samples_all) - arange# (size)
+    return samples
 
 def sample_m1_q_fast(truths, size, mmax=200, m1_grid_size=1000, q_grid_size = 250):
     mvec = xp.linspace(truths['mmin'],mmax, m1_grid_size)# (m1_grid_size,)
     probs = p1_grid(mvec, truths)
-    cdf = xp.cumsum(probs)# (m1_grid_size, )
+    print(probs)
+    cdf = xp.cumsum(probs,axis = 1)# (m1_grid_size, )
     cdf /= cdf.max()
-    m1samples = xp.interp(xp.random.random(size), cdf, mvec)# (size, )
+    
+    m1samples = sample_snakes_cdf(size, cdf, mvec)
+    
+    
+    # m1samples = xp.interp(xp.random.random(size), cdf, mvec)# (size, )
 
     qvec = xp.linspace(truths['mmin']/mmax, 1, q_grid_size)# (q_grid_size, )
     q_curves = pq(qvec, m1samples, truths) # (q_grid_size, size)
-    cdfs = xp.nan_to_num(xp.cumsum(q_curves, axis=0) / xp.sum(q_curves,axis=0))# (q_grid_size, size)
+    cdfs = xp.nan_to_num(xp.cumsum(q_curves, axis=1) / xp.sum(q_curves,axis=1))# (q_grid_size, size)
     arange = xp.arange(size)
     cdf_snake = (cdfs + arange[None,:]).T.flatten()# (q_grid_size * size)
     sample_snake = xp.random.random(size) + arange

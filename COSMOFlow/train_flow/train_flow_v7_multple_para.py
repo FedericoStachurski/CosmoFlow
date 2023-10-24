@@ -159,7 +159,7 @@ def read_data(batch_of_data):
     return GW_data
 
 list_data = [] 
-for i in range(10): #how many batcehs of data to be used, i nthis case 1, (should be user input)
+for i in range(11): #how many batcehs of data to be used, i nthis case 1, (should be user input)
     list_data.append(read_data(i+1))
 
 #concatenate batches together and perform sanity check of the data for repeats 

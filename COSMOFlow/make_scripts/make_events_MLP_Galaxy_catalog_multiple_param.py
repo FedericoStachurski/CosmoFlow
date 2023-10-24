@@ -231,6 +231,8 @@ Npix = hp.nside2npix(NSIDE)
 H0 = np.random.uniform(Hmin,Hmax,N) ; Om0 = 0.3 ; w0 = -1.0
 gamma = np.random.uniform(Gamma_min,Gamma_max,N) ; k = np.random.uniform(kappa_min,kappa_max,N) ; zp = np.random.uniform(zp_min,zp_max,N)
 
+# H0 = np.sort(H0) ; gamma = np.sort(gamma) ; k = np.sort(k) ; zp = np.sort(zp)
+
 #define popualtion parameters of GWs
 population_parameters = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 100, 'mu_g': 32.27, 'sigma_g': 3.88, 'lambda_peak': 0.03,'delta_m': 4.8,
                          'gamma': gamma, 'k': k, 'zp': zp, 'lam': 0, 'Om0':Om0, 'w0': w0, 'H0': H0, 'name': name_pop}
