@@ -9,6 +9,7 @@ from scipy.stats import norm, gaussian_kde
 from scipy.stats import entropy
 from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
 from torch import logit, sigmoid
+import h5py
 
 def round_base(x, base=100):
     return int(base * round(float(x)/base))
@@ -145,3 +146,47 @@ def KL_evaluate_gaussian(samples, gaussian_samples, gauss_vector):
         return np.array(kde_points)
     pdf_samples = pdf_evaluate(samples)
     return pdf_samples, entropy(pdf_samples, gaussian_samples)
+
+def load_data_GWTC(event, path = None):
+    if path is None:
+        path = '/data/wiay/federico'
+        
+    if int(event[2:8]) <= 190930:
+        path_gw = path+'/PhD/GWTC_2.1/'
+        file_name = path_gw+'IGWN-GWTC2p1-v2-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
+    else:   
+        path_gw = path+'/PhD/GWTC_3/'
+        file_name = path_gw+'IGWN-GWTC3p0-v1-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
+    
+    d = h5py.File(file_name,'r')
+    samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
+    d.close()
+    df = pd.DataFrame(samples)
+    return df
+
+def proposal_pdf(low,high,N):
+    samples_proposal = np.random.uniform(low,high,N)
+    prod_result_target = np.ones(N)
+    return samples_proposal, prod_result_target
+
+def make_samples(N_samples):
+    h0_samples_proposal, _ = proposal_pdf(20,180,N_samples)
+    gamma_samples_proposal, _ = proposal_pdf(0,12,N_samples)
+    kappa_samples_proposal, _ = proposal_pdf(0,6,N_samples)
+    zp_samples_proposal, _ = proposal_pdf(0,4,N_samples)
+    
+    alpha_samples_proposal, _ = proposal_pdf(1.5,12,N_samples)
+    beta_samples_proposal, _ = proposal_pdf(-4.0,12,N_samples)
+    mmax_samples_proposal, _ = proposal_pdf(50.0,200.0,N_samples)
+    mmin_samples_proposal, _ = proposal_pdf(2.0,10.0,N_samples)
+    
+    mug_samples_proposal, _ = proposal_pdf(20.0,50.0,N_samples)
+    sigmag_samples_proposal, _ = proposal_pdf(0.4,10.0,N_samples)
+    lambda_samples_proposal, _ = proposal_pdf(0.0,1.0,N_samples)
+    delta_samples_proposal, _ = proposal_pdf(0.0,10.0,N_samples)
+    
+    proposed_samples = [h0_samples_proposal, gamma_samples_proposal, kappa_samples_proposal, zp_samples_proposal, alpha_samples_proposal,
+                       beta_samples_proposal, mmax_samples_proposal, mmin_samples_proposal, mug_samples_proposal, sigmag_samples_proposal,
+                       lambda_samples_proposal, delta_samples_proposal]
+    proposed_samples = np.array(proposed_samples).reshape(12,N_samples)
+    return proposed_samples
