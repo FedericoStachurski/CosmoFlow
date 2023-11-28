@@ -279,10 +279,6 @@ print('seed = {}'.format(seed))
 print()
 
 
-
-model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
-print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
-
 indicies_detectors = [] #Check which detectors to use
 if 'H1' in detectors: 
     indicies_detectors.append(0)
@@ -290,6 +286,13 @@ if 'L1' in detectors:
     indicies_detectors.append(1)
 if 'V1' in detectors:
     indicies_detectors.append(2)
+
+if run == 'O1':
+   model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1/model.pth'.format(approximator, run), device = device) #load MLP model 
+   print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1'.format(approximator, run))
+else: 
+   model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
+   print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
 
 
 in_out = utilities.str2bool(in_out) #cehck if with catalogue or no catalogue

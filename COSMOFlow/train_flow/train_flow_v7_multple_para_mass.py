@@ -152,7 +152,8 @@ os.chdir('..')
 #read data to be used to train the flow 
 def read_data(batch_of_data):
     path_name ="data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
-    data_name ="run_O3_det_['H1', 'L1', 'V1']_name_test_multiple_para_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
+    data_name ="run_O2_det_['H1', 'L1']_name_test_multiple_para_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
+    print(data_name)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
                                                                               'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m',
                                                                               'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec','a_1', 'a_2', 'tilt_1',
@@ -160,7 +161,7 @@ def read_data(batch_of_data):
     return GW_data
 
 list_data = [] 
-for i in range(2): #how many batcehs of data to be used, i nthis case 1, (should be user input)
+for i in range(5): #how many batcehs of data to be used, i nthis case 1, (should be user input)
     list_data.append(read_data(i+1))
 
 #concatenate batches together and perform sanity check of the data for repeats 
