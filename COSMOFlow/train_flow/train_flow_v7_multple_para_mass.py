@@ -152,7 +152,7 @@ os.chdir('..')
 #read data to be used to train the flow 
 def read_data(batch_of_data):
     path_name ="data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
-    data_name ="run_O2_det_['H1', 'L1']_name_test_multiple_para_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
+    data_name ="run_O3_det_['H1', 'L1']_name_test_multiple_para_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
     print(data_name)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
                                                                               'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m',

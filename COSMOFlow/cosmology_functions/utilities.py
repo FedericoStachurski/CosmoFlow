@@ -190,3 +190,30 @@ def make_samples(N_samples):
                        lambda_samples_proposal, delta_samples_proposal]
     proposed_samples = np.array(proposed_samples).reshape(12,N_samples)
     return proposed_samples
+
+def split_into_four(number, number_split):
+    # Calculate the closest integer division by 4
+    quotient = number // int(number_split)
+    remainder = number % int(number_split)
+    # Initialize the list to store the four integers
+    result = [quotient] * int(number_split)
+    # Distribute the remainder to the first few elements
+    for i in range(remainder):
+        result[i] += 1
+    return result
+
+def random_det_setup(run, N):
+    if run == 'O2' or run == 'O3':
+        det_setup = [[1,1,1],[1,1,0], [1,0,1],[0,1,1]]
+        N_setups = split_into_four(N, len(det_setup))
+        HLV = np.repeat([1,1,1], repeats=N_setups[0], axis=0).reshape(3,N_setups[0]).T
+        HL = np.repeat([1,1,0], repeats=N_setups[1], axis=0).reshape(3,N_setups[1]).T
+        HV = np.repeat([1,0,1], repeats=N_setups[2], axis=0).reshape(3,N_setups[2]).T
+        LV = np.repeat([0,1,1], repeats=N_setups[3], axis=0).reshape(3,N_setups[3]).T
+        
+        result = np.concatenate((HLV,HL, HV, LV))
+        np.random.shuffle(result)
+    elif run == 'O1':
+        result = np.repeat([1,1,0], repeats=N, axis=0).reshape(3,N).T
+        
+    return result
