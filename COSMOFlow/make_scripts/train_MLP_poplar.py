@@ -106,8 +106,7 @@ tot_neurons = [neurons_per_layer]*layers
 
 def read_data(batch):
     path_name =r"data_for_MLP/training/"
-    data_name = "_NSBH_test_v1_200000_det_H1_L1_V1_run_{}_approx_{}_batch_{}.csv".format(run, approximator, batch)
-
+    data_name = "_NSBH_MLP_1000000_det_H1_L1_V1_run_{}_approx_{}_batch_{}.csv".format(run, approximator, batch)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
     return GW_data
 
@@ -128,8 +127,8 @@ dl = GW_data['luminosity_distance']
 
 #Try with both RA and Geo time in sidereal day 
 GW_data['geocent_time'] = GW_data['geocent_time']%86164.0905
-#data = GW_data[['mass_1','mass_2','theta_jn', 'ra', 'dec','psi', 'geocent_time','a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_jl', 'phi_12' ]]
-data = GW_data[['mass_1','mass_2', 'ra', 'dec','psi', 'geocent_time', 'tilt_1', 'tilt_2' ]]
+data = GW_data[['mass_1','mass_2','theta_jn', 'ra', 'dec','psi', 'geocent_time','a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_jl', 'phi_12' ]]
+# data = GW_data[['mass_1','mass_2', 'ra', 'dec','psi', 'geocent_time', 'tilt_1', 'tilt_2' ]]
 
 
 snrs = GW_data[['snr_H1', 'snr_L1','snr_V1']] 
@@ -164,10 +163,11 @@ train(
     n_batches=batches, 
     loss_function=loss_function,
     optimiser=optimiser,
-    update_every=1000,
+    update_every=100,
     verbose=True,
     outdir='models/MLP_models',
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max = epochs, eta_min=0, last_epoch=-1, verbose=False),
+    scheduler = None,
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max = epochs, eta_min=0, last_epoch=-1, verbose=False),
     save_best= True
 )
 
@@ -209,26 +209,61 @@ detectors = ['H1', 'L1', 'V1']
 
 for i,det in enumerate(detectors):
 
-    plt.figure(figsize = (7,7))
-    c = plt.scatter(x = snr_columns_pred[:,i], y = snr_columns_true[:,i], c = (abs(snr_columns_pred[:,i] - snr_columns_true[:,i])), s= 10, cmap = 'jet')
-    cbar = plt.colorbar(c)
+    # Creating subplots
+    fig, axs = plt.subplots(2, 1, figsize=(7, 7),  gridspec_kw={'height_ratios': [3, 1]})
+    
+    residuals = snr_columns_pred[:,i] - snr_columns_true[:,i]
+    abs_residuals = np.abs(residuals)
+    vmin, vmax = np.percentile(abs_residuals, 1), np.percentile(abs_residuals, 99)
+    
+    c = axs[0].scatter(x = snr_columns_pred[:,i], y = snr_columns_true[:,i], c = (abs(residuals)), s= 10, cmap = 'jet', vmin=0, vmax=4)
+    x = np.linspace(0,120, 100)
+    cbar = fig.colorbar(c, ax=axs[0], extend='both')
     cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
-    plt.clim(0,4)
-    plt.xlim([0, 100])
-    plt.ylim([0, 100])
-    x = np.linspace(0,100_000)
-    plt.plot(x,x, '--k', linewidth = 2)
-    plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
-    plt.ylabel(r'$\rho_{true}$', fontsize = 15)
-    plt.grid(True)
+    axs[0].set_xlabel(r'$\rho_{pred}$', fontsize = 18)
+    axs[0].set_ylabel(r'$\rho_{true}$',  fontsize = 18)
+    axs[0].grid(True)
+    axs[0].plot(x,x, '--k', label = r'$\rho_{pred} = \rho_{true}$')
+    axs[0].legend(loc = 'upper left', fontsize = 10)
+    axs[0].set_xlim([0,50])
+    axs[0].set_ylim([0,50])
+    
+
+
+    # Residual plot
+    axs[1].plot(residuals)
+    
+    axs[1].axhline(y = 0, linestyle = 'dashed', color = 'black')
+    axs[1].set_xlabel('points', fontsize = 13)
+    axs[1].set_ylabel(r'$\rho_{pred} - \rho_{true}$',  fontsize = 15)
+    axs[1].grid(True)
+    # Adjust layout
+    plt.tight_layout()
     plt.savefig('models/MLP_models/{}/true_vs_spred_line_{}.png'.format(name, det))
     plt.close()
 
+    
+    # plt.figure(figsize = (7,7))
+    # c = plt.scatter(x = snr_columns_pred[:,i], y = snr_columns_true[:,i], c = (abs(snr_columns_pred[:,i] - snr_columns_true[:,i])), s= 10, cmap = 'jet')
+    # cbar = plt.colorbar(c)
+    # cbar.set_label(label = r'$|\rho_{pred} - \rho_{true}|$', fontsize=20)
+    # plt.clim(0,4)
+    # plt.xlim([0, 100])
+    # plt.ylim([0, 100])
+    # x = np.linspace(0,100_000)
+    # plt.plot(x,x, '--k', linewidth = 2)
+    # plt.xlabel(r'$\rho_{pred}$', fontsize = 15)
+    # plt.ylabel(r'$\rho_{true}$', fontsize = 15)
+    # plt.grid(True)
+    # plt.savefig('models/MLP_models/{}/true_vs_spred_line_{}.png'.format(name, det))
+    # plt.close()
+    figure = plt.figure()
     point = 11
     lim_snr_inx = np.where((snr_columns_true[:,i]>point - 0.1) & (snr_columns_true[:,i]<point + 0.1))[0]
     plt.hist(np.array(snr_columns_pred[:,i])[lim_snr_inx], bins = 'auto', histtype = 'step', linewidth = 3, label = 'SNR_pred')
     plt.axvline(x = point, color = 'r', label = 'SNRth = {} +/- 0.1'.format(point))
     plt.xlabel(r'$\rho_{pred}$', fontsize = 15 )
+    plt.ylabel(r'Count', fontsize = 15 )
     plt.grid(True)
     plt.legend(loc = 'upper right')
     plt.savefig('models/MLP_models/{}/snrTH_distribution_{}.png'.format(name, det))

@@ -2,8 +2,10 @@ import bilby as bl
 import numpy as np
 from bilby.gw import utils as gwutils
 
-def run_bilby_sim(df,idx_n, detector, run, approximator,snr_type = 'optimal', sampling_frequency = 4096 , f_min = 20):
+def run_bilby_sim(df,idx_n, detector, run, approximator,snr_type = 'optimal', sampling_frequency = 8192 , f_min = 10):
         #
+        extra_time = 2.5
+        
         def get_length(fmin,m1,m2):
             return gwutils.calculate_time_to_merger(frequency=fmin,mass_1=m1,mass_2=m2)
         
@@ -48,7 +50,7 @@ def run_bilby_sim(df,idx_n, detector, run, approximator,snr_type = 'optimal', sa
 
         waveform_arguments = dict(waveform_approximant=approximator,reference_frequency=f_min,minimum_frequency=f_min)
         waveform_generator = bl.gw.waveform_generator.WaveformGenerator(
-            sampling_frequency=sampling_frequency, duration=duration+1.5,
+            sampling_frequency=sampling_frequency, duration=duration+extra_time,
             frequency_domain_source_model=bl.gw.source.lal_binary_black_hole,#DOUBLE CHECK THIS 
             parameter_conversion=bl.gw.conversion.convert_to_lal_binary_black_hole_parameters,
             waveform_arguments=waveform_arguments)
@@ -59,7 +61,7 @@ def run_bilby_sim(df,idx_n, detector, run, approximator,snr_type = 'optimal', sa
             ifos[j].power_spectral_density = psds[ifos_list[j]] #DUBLE CHECK 
             ifos[j].minimum_frequency = f_min
         ifos.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=sampling_frequency, duration=duration+1.5,
+            sampling_frequency=sampling_frequency, duration=duration+extra_time,
             start_time=injection_parameters['geocent_time']-duration)
         
         try:

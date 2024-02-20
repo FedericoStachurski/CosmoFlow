@@ -8,6 +8,7 @@ from scipy.stats import norm
 from scipy.special import erf
 from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
 import cupy as xp
+import healpy as hp
 
 zmax = 10                             # max redshift
 H0 = 70                                #Hubble constant
@@ -52,9 +53,7 @@ def z_to_dl_H_Omegas_EoS(z,H, omega_m, w0):
     omega_k = 0 
     omega_lambda = 1 - omega_m #Flat universe
     def E(z):
-        return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda**(3*(1+w0))))
-    # def I(z):
-    #     return xp.trapz(E(z), x = z)
+        return np.sqrt((omega_m*(1+z)**(3) + omega_k*(1+z)**(2) + omega_lambda*(1+z)**(3*(1+w0))))
     def I(z):
         fact = lambda x: 1/E(x)
         integral = quad(fact, 0, z)
@@ -167,3 +166,25 @@ def spherical_to_cart(dl, ra, dec):
 def cart_to_spherical(x,y,z):
     dl, dec, ra = cartesian_to_spherical(x,y,z)
     return dl, ra, dec
+
+
+def pix_from_RAdec(NSIDE, RA, dec):
+    phi = np.array(np.deg2rad(np.rad2deg(RA)))
+    theta = np.pi/2 - np.array(np.deg2rad(np.rad2deg(dec)))
+    pix_inx = hp.ang2pix(NSIDE, theta, phi)
+    return pix_inx
+
+
+def target_ra_dec(N, pixels_event, NSIDE):
+    RA_data, dec_data = [], []
+    while True:
+        RA, dec = draw_RA_Dec(N)
+        pixels_data = pix_from_RAdec(NSIDE, RA, dec)
+        indicies = np.where(np.in1d(pixels_data, np.unique(pixels_event)))[0]
+        RA_data.append(RA[indicies])
+        dec_data.append(dec[indicies])#
+        if len(np.concatenate(RA_data)) >= N:
+            break
+        else:
+            continue
+    return np.concatenate(RA_data)[:N], np.concatenate(dec_data)[:N]

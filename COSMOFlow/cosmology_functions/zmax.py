@@ -13,8 +13,13 @@ class RedshiftGW_fast_zmax(object):
         
         if self.run == 'O3':
             self.magic_snr_dl = 71404.52441406266
+            
+        elif self.run == 'O3_NSBH':
+            self.magic_snr_dl = 71404.52441406266
+            
         elif self.run == 'O2':
             self.magic_snr_dl = 62386.692042968854
+            
         elif self.run == 'O1':
             self.magic_snr_dl = 48229.26957734367
 

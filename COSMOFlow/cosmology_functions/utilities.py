@@ -149,46 +149,57 @@ def KL_evaluate_gaussian(samples, gaussian_samples, gauss_vector):
 
 def load_data_GWTC(event, path = None):
     if path is None:
-        path = '/data/wiay/federico'
+        path = '/data/wiay/federico/PhD'
         
     if int(event[2:8]) <= 190930:
-        path_gw = path+'/PhD/GWTC_2.1/'
+        path_gw = path+'/GWTC_2.1/'
         file_name = path_gw+'IGWN-GWTC2p1-v2-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
     else:   
-        path_gw = path+'/PhD/GWTC_3/'
+        path_gw = path+'/GWTC_3/'
         file_name = path_gw+'IGWN-GWTC3p0-v1-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
     
     d = h5py.File(file_name,'r')
     samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
     d.close()
     df = pd.DataFrame(samples)
+    df = df.loc[df.mass_2 > 4.8]
+    df =  df.sample(frac=1).reset_index(drop=True)
     return df
+
+
+
 
 def proposal_pdf(low,high,N):
     samples_proposal = np.random.uniform(low,high,N)
     prod_result_target = np.ones(N)
     return samples_proposal, prod_result_target
 
-def make_samples(N_samples):
+def make_samples(N_samples, dimensions):
     h0_samples_proposal, _ = proposal_pdf(20,180,N_samples)
-    gamma_samples_proposal, _ = proposal_pdf(0,12,N_samples)
-    kappa_samples_proposal, _ = proposal_pdf(0,6,N_samples)
-    zp_samples_proposal, _ = proposal_pdf(0,4,N_samples)
+    om0_samples_proposal, _ = proposal_pdf(0,1,N_samples)
+#     gamma_samples_proposal, _ = proposal_pdf(0,12,N_samples)
+#     kappa_samples_proposal, _ = proposal_pdf(0,6,N_samples)
+#     zp_samples_proposal, _ = proposal_pdf(0,4,N_samples)
     
-    alpha_samples_proposal, _ = proposal_pdf(1.5,12,N_samples)
-    beta_samples_proposal, _ = proposal_pdf(-4.0,12,N_samples)
-    mmax_samples_proposal, _ = proposal_pdf(50.0,200.0,N_samples)
-    mmin_samples_proposal, _ = proposal_pdf(2.0,10.0,N_samples)
+#     alpha_samples_proposal, _ = proposal_pdf(1.5,12,N_samples)
+#     beta_samples_proposal, _ = proposal_pdf(-4.0,12,N_samples)
+#     mmax_samples_proposal, _ = proposal_pdf(50.0,200.0,N_samples)
+#     mmin_samples_proposal, _ = proposal_pdf(2.0,10.0,N_samples)
     
-    mug_samples_proposal, _ = proposal_pdf(20.0,50.0,N_samples)
-    sigmag_samples_proposal, _ = proposal_pdf(0.4,10.0,N_samples)
-    lambda_samples_proposal, _ = proposal_pdf(0.0,1.0,N_samples)
-    delta_samples_proposal, _ = proposal_pdf(0.0,10.0,N_samples)
+#     mug_samples_proposal, _ = proposal_pdf(20.0,50.0,N_samples)
+#     sigmag_samples_proposal, _ = proposal_pdf(0.4,10.0,N_samples)
+#     lambda_samples_proposal, _ = proposal_pdf(0.0,1.0,N_samples)
+#     delta_samples_proposal, _ = proposal_pdf(0.0,10.0,N_samples)
     
-    proposed_samples = [h0_samples_proposal, gamma_samples_proposal, kappa_samples_proposal, zp_samples_proposal, alpha_samples_proposal,
-                       beta_samples_proposal, mmax_samples_proposal, mmin_samples_proposal, mug_samples_proposal, sigmag_samples_proposal,
-                       lambda_samples_proposal, delta_samples_proposal]
-    proposed_samples = np.array(proposed_samples).reshape(12,N_samples)
+    # proposed_samples = [h0_samples_proposal, gamma_samples_proposal, kappa_samples_proposal, zp_samples_proposal, alpha_samples_proposal,
+    #                    beta_samples_proposal, mmax_samples_proposal, mmin_samples_proposal, mug_samples_proposal, sigmag_samples_proposal,
+    #                    lambda_samples_proposal, delta_samples_proposal]
+    # proposed_samples = np.array(proposed_samples).reshape(12,N_samples)
+    # proposed_samples = [h0_samples_proposal, gamma_samples_proposal, mmax_samples_proposal, mug_samples_proposal]
+    proposed_samples = [h0_samples_proposal, om0_samples_proposal]
+    
+    proposed_samples = np.array(proposed_samples).reshape(dimensions,N_samples)
+    
     return proposed_samples
 
 def split_into_four(number, number_split):
@@ -217,3 +228,29 @@ def random_det_setup(run, N):
         result = np.repeat([1,1,0], repeats=N, axis=0).reshape(3,N).T
         
     return result
+
+def replace_small_values(matrix, threshold=1e-5):
+    matrix[np.abs(matrix) < threshold] = 0
+    return matrix
+
+def make_det_setup_dataframe(setup, N):
+    def zeros_or_ones(det):
+        if det in setup:
+            return np.ones(N)
+        else: 
+            return np.zeros(N)
+    h1 = zeros_or_ones('H1')
+    l1 = zeros_or_ones('L1')
+    v1 = zeros_or_ones('V1')
+    dictionary_setup = {'H1': h1, 'L1': l1, 'V1': v1}
+    return pd.DataFrame(dictionary_setup)
+
+
+def _MLP_luminosity_distance(z_samples,H0_samples,Om0_samples, model, device = 'cpu'):
+    testing_data = {'z':z_samples, 'H0':H0_samples, 'Om0':Om0_samples}
+    testing_data = pd.DataFrame(testing_data)
+    data_testing = testing_data[['z','Om0']]
+    xdata_testing = torch.as_tensor(data_testing.to_numpy(), device=device).float()
+    ypred = model.run_on_dataset(xdata_testing.to(device))
+    DL_pred = ypred.cpu().numpy()/np.array(testing_data.H0)
+    return DL_pred

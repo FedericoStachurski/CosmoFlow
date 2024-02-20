@@ -86,7 +86,8 @@ ap.add_argument("-Scaler", "--Scaler", required=True,
    help="choose how to scale the data: MinMax or Standard", default = 'MinMax')
 ap.add_argument("-save_step", "--save_step", required=False,
    help="how many steps before it saves the flow model each time", default = 100)
-
+ap.add_argument("-batches_data", "--batches_data", required=False,
+   help="batcehs of the data", default = 1)
 
 
 args = vars(ap.parse_args())
@@ -108,6 +109,7 @@ device = str(args['device'])
 xyz = int(args['xyz'])
 Scaler = str(args['Scaler'])
 save_steps = int(args['save_step'])
+batches_data = int(args['batches_data'])
 
 
 linear_transform = args['linear_transform']
@@ -152,16 +154,17 @@ os.chdir('..')
 #read data to be used to train the flow 
 def read_data(batch_of_data):
     path_name ="data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
-    data_name ="run_O3_det_['H1', 'L1']_name_test_multiple_para_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
+    data_name ="run_O3_det_['H1', 'L1', 'V1']_name_BBH_data_full_sky_NSIDE_32_OM0_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
     print(data_name)
-    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True, usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
-                                                                              'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m',
-                                                                              'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec','a_1', 'a_2', 'tilt_1',
-                                                                              'tilt_2', 'theta_jn','phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag', 'inx'])
+    GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
+                          # usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
+                          #                                                     'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m',
+                          #                                                     'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec','a_1', 'a_2', 'tilt_1',
+                          #                                                     'tilt_2', 'theta_jn','phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag', 'inx'])
     return GW_data
 
 list_data = [] 
-for i in range(5): #how many batcehs of data to be used, i nthis case 1, (should be user input)
+for i in range(batches_data): #how many batcehs of data to be used, i nthis case 1, (should be user input)
     list_data.append(read_data(i+1))
 
 #concatenate batches together and perform sanity check of the data for repeats 
@@ -173,35 +176,42 @@ print()
 print((GW_data.head()))  
 
 #make dataframe structure correct, using only the columns needed
+# data = GW_data[['luminosity_distance','mass_1', 'mass_2',
+#                 'ra', 'dec', 'theta_jn', 'psi', 'geocent_time',
+#                  'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
+#                 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
+
 data = GW_data[['luminosity_distance','mass_1', 'mass_2',
                 'ra', 'dec', 'theta_jn', 'psi', 'geocent_time',
-                 'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
-                'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
+                 'H0', 'Om0']]
+#, 'gamma', 'mmax', 'mu_g']]
 
 
-#get polar coordinates 
-coordinates= data[['luminosity_distance', 'ra', 'dec']]
-dl = np.array(coordinates.luminosity_distance)
-ra = np.array(coordinates.ra)
-dec = np.array(coordinates.dec)
-
-x,y,z = cosmology.spherical_to_cart(dl, ra, dec)
-
-#add cartesian coordiantes to dataframe 
-data.loc[:,'xcoord'] = x
-data.loc[:,'ycoord'] = y
-data.loc[:,'zcoord'] = z
 
 #convert geocentric time into siderael day seconds 
 data['geocent_time'] = utilities.convert_gps_sday(data['geocent_time'])
 
 #check if user wants to train data using cartesian or polar coordiantes 
 if xyz == 1:
-    data = data[['xcoord', 'ycoord', 'zcoord', 'mass_1', 'mass_2', 'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
+    #get polar coordinates 
+    coordinates= data[['luminosity_distance', 'ra', 'dec']]
+    dl = np.array(coordinates.luminosity_distance)
+    ra = np.array(coordinates.ra)
+    dec = np.array(coordinates.dec)
+
+    x,y,z = cosmology.spherical_to_cart(dl, ra, dec)
+
+    #add cartesian coordiantes to dataframe 
+    data.loc[:,'xcoord'] = x
+    data.loc[:,'ycoord'] = y
+    data.loc[:,'zcoord'] = z
+    data = data[['xcoord', 'ycoord', 'zcoord', 'mass_1', 'mass_2', 'H0', 'Om0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
                 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
 else: 
-    data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
-                'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
+    # data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
+    #             'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
+    data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'Om0']]
+                 #, 'gamma', 'mmax', 'mu_g']]
 
 #print some data to check beofre it starts training 
 print(data.head(10))
@@ -241,7 +251,7 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
                                            shuffle=False) #initialize dataloader for the validation data set 
 
 
-conditional_val = scaler_y.inverse_transform(np.array(Y_scale_val)) #unscale validation data set 
+conditional_val = scaler_y.inverse_transform(np.array(Y_scale_val).reshape(-1, n_conditional) ) #unscale validation data set 
 target_val = scaler_x.inverse_transform(X_scale_val)
 
 

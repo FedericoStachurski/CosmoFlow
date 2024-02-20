@@ -79,11 +79,14 @@ elif run == 'O2':
         events = ['GW170104_101158', 'GW170608_020116', 'GW170823_131358'] #O2
 elif run == 'O3':
     if detectors = 'HLV':
-        events = ['GW190408_181802', 'GW190412_053044', 'GW190503_185404', 'GW190512_180714', 'GW190513_205428',
-                  'GW190517_055101', 'GW190519_153544', 'GW190521_030229', 'GW190602_175927', 'GW190701_203306',
-                  'GW190720_000836', 'GW190727_060333', 'GW190728_064510', 'GW190828_063405', 'GW190828_065509',
-                  'GW190915_235702', 'GW190924_021846', 'GW200129_065458', 'GW200202_154313', 'GW200224_222234',
-                  'GW200311_115853']
+        if population = 'NSBH':
+            events = ['GW190814_211039']
+        else: 
+            events = ['GW190408_181802', 'GW190412_053044', 'GW190503_185404', 'GW190512_180714', 'GW190513_205428',
+                      'GW190517_055101', 'GW190519_153544', 'GW190521_030229', 'GW190602_175927', 'GW190701_203306',
+                      'GW190720_000836', 'GW190727_060333', 'GW190728_064510', 'GW190828_063405', 'GW190828_065509',
+                      'GW190915_235702', 'GW190924_021846', 'GW200129_065458', 'GW200202_154313', 'GW200224_222234',
+                      'GW200311_115853']
     elif detectors = 'HL':
         events = ['GW190521_074359', 'GW190706_222641', 'GW190707_093326', 'GW191109_010717', 'GW191204_171526',
                   'GW191222_033537', 'GW200225_060421']
@@ -98,22 +101,22 @@ elif run == 'O3':
     #          'GW190828_063405', 'GW190828_065509', 'GW190910_112807', 'GW190915_235702',  
     #          'GW190924_021846', 'GW200129_065458', 
     #          'GW200202_154313', 'GW200224_222234', 'GW200311_115853']
+    
    
-
 def load_data_GWTC(event, xyz = 0 ):
     if int(event[2:8]) <= 190930:
-        
+
         path_gw = '/data/wiay/federico/PhD/GWTC_2.1/'
         file_name = path_gw+'IGWN-GWTC2p1-v2-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
     else:   
         path_gw = '/data/wiay/federico/PhD/GWTC_3/'
         file_name = path_gw+'IGWN-GWTC3p0-v1-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
-    
+
     d = h5py.File(file_name,'r')
     samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
     d.close()
-    df = pd.DataFrame(samples)
-    return df
+df = pd.DataFrame(samples)
+return df
 
 
 def convert_data(df):

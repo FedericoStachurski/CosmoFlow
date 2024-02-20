@@ -75,6 +75,13 @@ class MassPrior(object):
         factor2 = self.gaussian_peak(xx, self.parameters['mu_g'], self.parameters['sigma_g'], self.parameters['mmax'], self.parameters['mmin'])
         return (factor1*(1-self.parameters['lambda_peak']) + factor2*(self.parameters['lambda_peak']))*self.smooth_factor(xx,self.parameters['mmin'], self.parameters['delta_m'])
     
+    def powerlaw_plus_peak_smooth_2gaussian(self,xx): ##Not normalised 
+        factor1 = self.power_law(xx, self.parameters['alpha'], self.parameters['mmax'], self.parameters['mmin'])
+        factor2 = self.gaussian_peak(xx, self.parameters['mu_g'], self.parameters['sigma_g'], self.parameters['mmax'], self.parameters['mmin'])
+        factor3 = self.gaussian_peak(xx, self.parameters['mu_g2'], self.parameters['sigma_g2'], self.parameters['mmax'], self.parameters['mmin'])
+        return (factor1*(1-self.parameters['lambda_peak']) + (self.parameters['lambda_peak'])*(factor2*(1-self.parameters['lambda_peak2']) + factor3*self.parameters['lambda_peak2']))*self.smooth_factor(xx,self.parameters['mmin'], self.parameters['delta_m'])
+    
+    
     def powerlaw_plus_peak_smooth_vect(self,xx): ##Not normalised 
         factor1 = self.power_law(xx[None,:], self.parameters['alpha'][:,None], self.parameters['mmax'][:,None], self.parameters['mmin'][:,None])
         factor2 = self.gaussian_peak(xx[None,:], self.parameters['mu_g'][:,None], self.parameters['sigma_g'][:,None], self.parameters['mmax'][:,None], self.parameters['mmin'][:,None])
@@ -116,6 +123,11 @@ class MassPrior(object):
         t = xp.random.uniform(0,1, size = N*Nsamples) + xp.repeat(xp.arange(N), Nsamples)
         # print(len(cdfs_snake), len(m_array), len(t))
         return xp.interp(t, cdfs_snake, m_array).get()
+    
+    def draw_m_simple(self, Nsamples,cdf, m_array_long = None):
+        t = xp.random.uniform(0,1, size = Nsamples)
+        return xp.interp(t, cdf, self.m_vect).get()
+    
     
     # def sample_m1_m2()
 

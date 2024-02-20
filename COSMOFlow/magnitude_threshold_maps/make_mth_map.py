@@ -7,14 +7,18 @@ import matplotlib.pyplot as plt
 
 band = 'K'
 
-NSIDE = 32
+NSIDE = 128
 Npix = hp.nside2npix(NSIDE)
 
 def mth_per_pixel(pix):
-    loaded_pix = pd.read_csv('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/pixelated_catalogs/GLADE+_pix/pixel_{}'.format(pix))
+    loaded_pix = pd.read_csv('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/pixelated_catalogs/GLADE+_pix_NSIDE_{}/pixel_{}'.format(NSIDE,pix))
+    
+    loaded_pix = loaded_pix[['RA', 'dec', 'm'+band, 'z', 'sigmaz' ]]
+    loaded_pix.replace(0, np.nan, inplace=True)
+    loaded_pix = loaded_pix.dropna()
     Npix = len(loaded_pix)
-    magnitudes = loaded_pix['m'+band].dropna()
-    if len(magnitudes) >= 10: 
+    magnitudes = loaded_pix['m'+band]
+    if (len(magnitudes) >= 1) and ( np.sum(loaded_pix.z) >= 0 ): 
         mag = np.median(magnitudes)
     else: 
         mag = 0
@@ -47,7 +51,7 @@ hp.graticule(True)
 # ax = plt.gca()
 # image = ax.get_images()[0]
 # cmap = fig.colorbar(image, ax=ax)
-plt.savefig('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_32_mth_map_GLADE_'+band+'.png')
+plt.savefig('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_128_mth_map_GLADE_'+band+'.png')
 plt.show()
 
 

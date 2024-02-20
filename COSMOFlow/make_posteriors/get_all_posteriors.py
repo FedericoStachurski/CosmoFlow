@@ -46,6 +46,8 @@ ap.add_argument("-SNRth", "--SNRth", required=True,
    help="SNR threshold")
 ap.add_argument("-Flow", "--Flow", required=True,
    help="Trained flow to use")
+ap.add_argument("-population", "--population", required=True,
+   help="Trained flow to use")
 ap.add_argument("-run", "--run", required=True,
    help="Trained flow to use")
 ap.add_argument("-det", "--detectors", required=True,
@@ -63,6 +65,7 @@ Folder = str(args['Name_folder'])
 Nsamples= int(args['samples'])
 rth= int(args['SNRth'])
 Flow= str(args['Flow'])
+population= str(args['population'])
 run = str(args['run'])
 detectors= str(args['detectors'])
 device= str(args['device'])
@@ -101,11 +104,15 @@ elif run == 'O2':
     else: raise ValueError('detecotrs not found')
 elif run == 'O3':
     if detectors == 'HLV':
-        events = ['GW190408_181802', 'GW190412_053044', 'GW190503_185404', 'GW190512_180714', 'GW190513_205428',
-                  'GW190517_055101', 'GW190519_153544', 'GW190521_030229', 'GW190602_175927', 'GW190701_203306',
-                  'GW190720_000836', 'GW190727_060333', 'GW190728_064510', 'GW190828_063405', 'GW190828_065509',
-                  'GW190915_235702', 'GW190924_021846', 'GW200129_065458', 'GW200202_154313', 'GW200224_222234',
-                  'GW200311_115853']
+        if population == 'NSBH':
+            events = [ 'GW200105_162426', 'GW200115_042309'] #'GW190814_211039',
+        else: 
+            events = ['GW190814_211039']
+            # events = ['GW190408_181802', 'GW190412_053044', 'GW190503_185404', 'GW190512_180714', 'GW190513_205428',
+            #           'GW190517_055101', 'GW190519_153544', 'GW190521_030229', 'GW190602_175927', 'GW190701_203306',
+            #           'GW190720_000836', 'GW190727_060333', 'GW190728_064510', 'GW190828_063405', 'GW190828_065509',
+            #           'GW190915_235702', 'GW190924_021846', 'GW200129_065458', 'GW200202_154313', 'GW200224_222234',
+            #           'GW200311_115853']
     elif detectors == 'HL':
         events = ['GW190521_074359', 'GW190706_222641', 'GW190707_093326', 'GW191109_010717', 'GW191129_134029',
                   'GW191204_171526','GW191222_033537', 'GW200225_060421']
@@ -124,8 +131,15 @@ def load_data_GWTC(event, xyz = 0 ):
         path_gw = '/data/wiay/federico/PhD/GWTC_3/'
         file_name = path_gw+'IGWN-GWTC3p0-v1-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
     
+
     d = h5py.File(file_name,'r')
-    samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
+    if population == 'BBH':
+        samples = np.array(d.get('C01:Mixed/posterior_samples'))
+    elif population == 'NSBH':
+        if event == 'GW200115_042309':
+            samples = np.array(d.get('C01:IMRPhenomNSBH:LowSpin/posterior_samples'))
+        else: 
+            samples = np.array(d.get('C01:IMRPhenomNSBH/posterior_samples'))
     d.close()
     df = pd.DataFrame(samples)
     return df
@@ -157,7 +171,7 @@ def get_likelihoods(h0, df, N_samples, flow_class):
 def get_gwcosmo_posterior(event_name, H0vec):
     
     #Catalog
-    short_names = ['GW150914', 'GW151226', 'GW170104', 'GW170608', 'GW170809', 'GW170814', 'GW170818', 'GW170823','GW190412', 'GW190521']
+    short_names = ['GW150914', 'GW151226', 'GW170104', 'GW170608', 'GW170809', 'GW170814', 'GW170818', 'GW170823','GW190412', 'GW190521', 'GW190814']
     for name in short_names:
         if event_name == 'GW190521_074359':
             break
@@ -167,7 +181,7 @@ def get_gwcosmo_posterior(event_name, H0vec):
             break
 
    
-    O3_events_posteriors = json.load(open('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/O3_Posteriors_file/O3_gwcosmo_H0_event_posteriors.json'))
+    O3_events_posteriors = json.load(open('/data/wiay/federico/PhD/O3_Posteriors_file/O3_gwcosmo_H0_event_posteriors.json'))
     posterior_of_event = O3_events_posteriors['Mu_g_32.27_Mmax_112.5_band_K_Lambda_4.59'][event_name]
     H0_grid = O3_events_posteriors['H0_grid']  
     
@@ -234,7 +248,7 @@ for GW_event in events:
     posterior = np.zeros(len(H0vec))
     posterio_no_w = np.zeros(len(H0vec))
     for i,like in enumerate(likelihoods):
-        plt.plot(H0vec, like/np.trapz(like, x = H0vec), alpha = 0.005, color = 'red', linewidth = 1)
+        plt.plot(H0vec, like/np.trapz(like, x = H0vec), alpha = 0.05, color = 'red', linewidth = 1)
         posterior += (like/(pD[i]*pt[i]))
         posterio_no_w += (like)
         if i == Nsamples:

@@ -78,6 +78,9 @@ ap.add_argument("-zmax", "--zmax", required=False,
    help="zmax", default = 1.5)
 ap.add_argument("-zmin", "--zmin", required=False,
    help="zmin", default = 0.0001)
+ap.add_argument("-targeted", "--targeted", required=False,
+   help="Do you want to do targeted event?", default = 0)
+
 
 # Cosmology Setup
 ap.add_argument("-H0", "--H0", nargs='+', required=True,
@@ -147,7 +150,7 @@ mass_distribution = str(args['mass_distribution'])
 name_pop = str(args['name_pop'])
 zmax = float(args['zmax'])
 zmin = float(args['zmin'])
-
+targeted_event = args['targeted']
 
 H0 = list(map(float,args['H0']))
 gamma = list(map(float,args['gamma']))
@@ -188,6 +191,7 @@ print('mass_distribution = {}'.format(mass_distribution))
 print('population type = {}'.format(name_pop))
 print('zmax = {}'.format(zmax))
 print('zmin = {}'.format(zmin))
+print('target = {}'.format(targeted_event))
 print('SNRth_combined_network = {}'.format(SNRth))
 print('SNRth_single_detector = {}'.format(SNRth_single))
 print('mag_band = {}'.format(mag_band))
@@ -216,7 +220,13 @@ print('save_timer= {}'.format(save_timer))
 print('seed = {}'.format(seed))
 print()
 
-
+if targeted_event != 0:
+    print('Aiming at event: {}'.format(targeted_event))
+    with open('pixel_event/'+str(targeted_event)+'.pickle', 'rb') as file:
+        # Load the dictionary from the file
+        event_pixels = pickle.load(file)
+        pixels_event = event_pixels['pixels']
+        NSIDE_event = event_pixels['NSIDE']
 
 def decide_either_uniform_or_ones(value,N):
     if len(value) > 1:
@@ -232,24 +242,24 @@ alpha = decide_either_uniform_or_ones(alpha,N) ; beta = decide_either_uniform_or
 mmin = decide_either_uniform_or_ones(mmin,N) ; mu_g = decide_either_uniform_or_ones(mu_g,N) ; sigma_g = decide_either_uniform_or_ones(sigma_g,N)
 lambda_peak = decide_either_uniform_or_ones(lambda_peak,N) ; delta_m = decide_either_uniform_or_ones(delta_m,N)
 
-#make det stup randomized
-det_setp = utilities.random_det_setup(run,N)
 
-
-# indicies_detectors = [] #Check which detectors to use
-# if 'H1' in detectors: 
-#     indicies_detectors.append(0)
-# if 'L1' in detectors:
-#     indicies_detectors.append(1)
-# if 'V1' in detectors:
-#     indicies_detectors.append(2)
+indicies_detectors = [] #Check which detectors to use
+if 'H1' in detectors: 
+    indicies_detectors.append(0)
+if 'L1' in detectors:
+    indicies_detectors.append(1)
+if 'V1' in detectors:
+    indicies_detectors.append(2)
 
 if run == 'O1':
     model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1/model.pth'.format(approximator, run), device = device) #load MLP model 
     print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1'.format(approximator, run))
     
 else: 
-    model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
+    if name_pop == 'NSBH':
+        model = load_model('models/MLP_models/NSBH_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP 
+    else: 
+        model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
     print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
 
 
@@ -267,14 +277,14 @@ Npix = hp.nside2npix(NSIDE)
 #define cosmological parameters of GWs
 cosmological_parameters = {'gamma': gamma, 'k': k, 'zp': zp, 'lam': 0, 'Om0':Om0, 'w0': w0, 'H0': H0}
 ### Initiate redshift and mass classes 
-z_class = RedshiftGW_fast_z_para(cosmological_parameters, zmin = zmin , zmax = zmax, run = run, SNRth = SNRth)#initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
+z_class = RedshiftGW_fast_z_para(cosmological_parameters, zmin = zmin , zmax = zmax, run = run, SNRth = SNRth, population = name_pop)#initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
+print('SNR_Dl cut off = {}'.format(z_class.magic_snr_dl))
+
 population_parameters = {'beta': xp.array(beta), 'alpha': xp.array(alpha), 'mmin': xp.array(mmin) ,'mmax': xp.array(mmax), 
                              'mu_g': xp.array(mu_g), 'sigma_g': xp.array(sigma_g), 
-                             'lambda_peak': xp.array(lambda_peak),'delta_m': xp.array(delta_m), 'name': name_pop}
+                             'lambda_peak': xp.array(lambda_peak),'delta_m': xp.array(delta_m), 'name': 'BBH-powerlaw-gaussian'}
 # print(np.shape(population_parameters['delta_m'].get()), np.shape(population_parameters['mmin'].get()))
 mass_class_temp = MassPrior(population_parameters, mgrid = 250) #initiate mass prior class, p(m1,m2)
-
-
 
 
 if in_out is True: #check if using a catalog
@@ -331,7 +341,7 @@ def select_gal_from_pix(pixels_H0_gamma_para):
         gal_id = np.random.choice(np.arange(Ngalpix), size = 1, p = weights_gal) #random choice of galaxy in the pixel 
         return loaded_pixel.iloc[gal_id,:]
     
-    else: #if no galaxies in pixel, return None 
+    else: #if no galaxies in pixel, return None Total for federico: 1 jobs; 0 completed, 0 removed, 1 idle
         return None 
 
     
@@ -356,7 +366,8 @@ if type_of_data == 'testing': #
         path_data = parentdir + r"/data_cosmoflow/empty_catalog/testing_data_from_MLP/"
 
     R_nums = np.random.uniform(0,1, size = N) #this is a random number which is used to keep track of which H0 is being used at any given moment 
-
+    cdfs_zmax = z_class.make_cdfs()
+    cdfs_m1 = mass_class_temp.make_cdfs()
 
     
 #rename variables (should change this) #Add more comments explainign everything 
@@ -369,7 +380,7 @@ missed_alpha = alpha ; missed_beta = beta ; missed_mmax = mmax ; missed_mmin = m
 missed_mu_g = mu_g ; missed_sigma_g = sigma_g ; missed_lambda = lambda_peak ; missed_delta_m = delta_m
 missed_cdfs_zmax = cdfs_zmax
 missed_cdfs_m1 = cdfs_m1
-missed_det_setp = det_setp
+
 
 if type_of_data =='testing':
     missed_R = R_nums
@@ -381,13 +392,14 @@ timer_list = [] #
 
 #begin loop for generating data 
 while True: 
-    if type_of_data == 'testing':
-        repeated_Rnums = np.repeat(missed_R, select) 
-        
+    
     start = time.time() # start timer to check efficency in save counter 
     n = len(missed_H0) #check how many H0s are there to be detected
     select = int(Nselect*(N/N_missed)) #use this is the selct value, which increases the more H0s are detected
     nxN = int(n*select) #defin the number of samples we are going to sample nxN (n = H0s, N = sampels per H0s)
+    
+    if type_of_data == 'testing':
+        repeated_Rnums = np.repeat(missed_R, select) 
     
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
     repeated_gamma = np.repeat(missed_gamma, select) #repeat Gammas for Nselect samples 
@@ -402,19 +414,21 @@ while True:
     repeated_lambda = np.repeat(missed_lambda, select) #repeat lambdas for Nselect samples 
     repeated_delta_m = np.repeat(missed_delta_m, select) #repeat delta_ms for Nselect samples 
     
-    repeated_det_setp = np.tile(missed_det_setp,(select,1)) #repeat delta_ms for Nselect samples 
     
-    population_parameters = {'beta': xp.array(repeated_beta), 'alpha': xp.array(repeated_alpha), 'mmin': xp.array(repeated_mmin) ,'mmax': xp.array(repeated_mmax), 
-                             'mu_g': xp.array(repeated_mu_g), 'sigma_g': xp.array(repeated_sigma_g), 
-                             'lambda_peak': xp.array(repeated_lambda),'delta_m': xp.array(repeated_delta_m), 'name': name_pop}
-    # print(np.shape(population_parameters['delta_m'].get()), np.shape(population_parameters['mmin'].get()))
+    population_parameters = {'beta': xp.array(repeated_beta), 'alpha': xp.array(repeated_alpha), 'mmin': xp.array(repeated_mmin) ,
+                             'mmax': xp.array(repeated_mmax),  'mu_g': xp.array(repeated_mu_g), 'sigma_g': xp.array(repeated_sigma_g), 
+                             'lambda_peak': xp.array(repeated_lambda),'delta_m': xp.array(repeated_delta_m),
+                             'name': 'BBH-powerlaw-gaussian'}
+
     mass_class = MassPrior(population_parameters, mgrid = 100) #initiate mass prior class, p(m1,m2)
     
     
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
-    
-    RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
+    if targeted_event != 0:
+        RA, dec = cosmology.target_ra_dec(nxN, pixels_event, NSIDE_event)
+    else:     
+        RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
     z = z_class.draw_z_zmax(select, missed_cdfs_zmax.T) #sampleredshift from zmax-H0 distributions 
     dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
@@ -476,13 +490,18 @@ while True:
     # m1, m2 = mass_class.PL_PEAK_GWCOSMO(nxN) #use GWCOSMO mass prior distribution #NOTE: Deifne better 
     samples_m1 = mass_class_temp.draw_m(select, missed_cdfs_m1)
     samples_m1[samples_m1 < population_parameters['mmin'].get()] = 0.0
-    m2_array_vect = np.concatenate(xp.linspace(xp.zeros(len(samples_m1)), samples_m1, mass_class.mgrid, axis = 1))
-    cdfs_m2 = mass_class.make_cdfs_m2(xp.array(samples_m1))
-    samples_m2 = mass_class.draw_m(1, cdfs_m2,  m_array_long = m2_array_vect)
     
-    samples_m2[samples_m2< population_parameters['mmin'].get()] = 0.0
-    samples_m1[np.isnan(samples_m2)] = 0.0
-    samples_m2[np.isnan(samples_m2)] = 0.0
+    if name_pop == 'NSBH':
+        samples_m2 = np.random.uniform(1,3,nxN)
+    
+    else: 
+        m2_array_vect = np.concatenate(xp.linspace(xp.zeros(len(samples_m1)), samples_m1, mass_class.mgrid, axis = 1))
+        cdfs_m2 = mass_class.make_cdfs_m2(xp.array(samples_m1))
+        samples_m2 = mass_class.draw_m(1, cdfs_m2,  m_array_long = m2_array_vect)
+
+        samples_m2[samples_m2< population_parameters['mmin'].get()] = 0.0
+        samples_m1[np.isnan(samples_m2)] = 0.0
+        samples_m2[np.isnan(samples_m2)] = 0.0
     
     m1z = samples_m1*(1+z) #turn source masses into detector frame masses 
     m2z = samples_m2*(1+z)
@@ -497,18 +516,18 @@ while True:
     x_data_MLP  = utilities.prep_data_for_MLP_full(GW_data, device) #prep data to be passes to MLP 
     ypred = model.run_on_dataset(x_data_MLP.to(device)) #get the predicted y values (SNR * distance)
     snr_pred = ypred.cpu().numpy()/np.array(GW_data['luminosity_distance'])[:,None] #divide by distance to get SNR 
-    # network_snr_sq = np.sum(snr_pred[:, indicies_detectors]**2, axis = 1) #get detector netwrok snr 
-    # print(np.shape(snr_pred),np.shape(repeated_det_setp))
-    snrs_temp = snr_pred * repeated_det_setp ### USe det _setup mask of detectors on or off, if off SNR == 0
-    
+
     temp_dict = {} 
     temp_snrs = []
-    temp_dict['snr_h1'] = snrs_temp[:,0]
-    temp_snrs.append(snrs_temp[:,0])
-    temp_dict['snr_l1'] = snrs_temp[:,1]
-    temp_snrs.append(snrs_temp[:,1])
-    temp_dict['snr_v1'] = snrs_temp[:,2]
-    temp_snrs.append(snrs_temp[:,2])
+    if 'H1' in detectors: 
+        temp_dict['snr_h1'] = snr_pred[:,0]
+        temp_snrs.append(snr_pred[:,0])
+    if 'L1' in detectors: 
+        temp_dict['snr_l1'] = snr_pred[:,1]
+        temp_snrs.append(snr_pred[:,1])
+    if 'V1' in detectors: 
+        temp_dict['snr_v1'] = snr_pred[:,2]
+        temp_snrs.append(snr_pred[:,2])
     
     network_snr_sq = np.sum((np.array(temp_snrs)**2).T, axis = 1) #get detector netwrok snr 
     snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
@@ -516,23 +535,40 @@ while True:
     temp_dict['observed'] = snrs_obs   
     df_temp_snrs = pd.DataFrame(temp_dict)
     
-#     if SNRth_single > 0:
-#     # if SNRth_single is > 0, then check if individual GW event was detected in each individaul detector, only keep those 
-#         bad_inx = np.where(((df_temp_snrs['snr_h1']>SNRth_single) & (df_temp_snrs['snr_l1']>SNRth_single) & (df_temp_snrs['observed']>SNRth)) == False)[0]
-#         df_temp_snrs.loc[bad_inx] = np.nan
-#         GW_data['H1'] = np.array(df_temp_snrs.snr_h1)
-#         GW_data['L1'] = np.array(df_temp_snrs.snr_l1)
-#         GW_data['V1'] = np.array(df_temp_snrs.snr_v1)
-#         GW_data['snr'] = np.array(df_temp_snrs.observed)
+    if SNRth_single > 0:
+    # if SNRth_single is > 0, then check if individual GW event was detected in each individaul detector, only keep those 
+        if 'H1' and 'L1' in detectors:
+            bad_inx = np.where(((df_temp_snrs['snr_h1']>SNRth_single) & (df_temp_snrs['snr_l1']>SNRth_single) & (df_temp_snrs['observed']>SNRth)) == False)[0]
+            df_temp_snrs.loc[bad_inx] = np.nan
+            GW_data['H1'] = np.array(df_temp_snrs.snr_h1)
+            GW_data['L1'] = np.array(df_temp_snrs.snr_l1)
+
+        if 'H1' and 'V1' in detectors: 
+            bad_inx = np.where(((df_temp_snrs['snr_h1']>SNRth_single) & (df_temp_snrs['snr_v1']>SNRth_single) & (df_temp_snrs['observed']>SNRth)) == False)[0]
+            df_temp_snrs.loc[bad_inx] = np.nan
+            GW_data['H1'] = np.array(df_temp_snrs.snr_h1)
+            GW_data['V1'] = np.array(df_temp_snrs.snr_v1)
+
+        if 'L1' and 'V1' in detectors: 
+            bad_inx = np.where(((df_temp_snrs['snr_l1']>SNRth_single) & (df_temp_snrs['snr_v1']>SNRth_single) & (df_temp_snrs['observed']>SNRth)) == False)[0]
+            df_temp_snrs.loc[bad_inx] = np.nan
+            GW_data['L1'] = np.array(df_temp_snrs.snr_l1)
+            GW_data['V1'] = np.array(df_temp_snrs.snr_v1)
+
+        if 'H1' and 'L1' and 'V1' in detectors:  
+            bad_inx = np.where(((df_temp_snrs['snr_h1']>SNRth_single) & (df_temp_snrs['snr_l1']>SNRth_single) & (df_temp_snrs['snr_v1']>SNRth_single) & (df_temp_snrs['observed']>SNRth)) == False)[0]
+            df_temp_snrs.loc[bad_inx] = np.nan
+            GW_data['H1'] = np.array(df_temp_snrs.snr_h1)
+            GW_data['L1'] = np.array(df_temp_snrs.snr_l1)
+            GW_data['V1'] = np.array(df_temp_snrs.snr_v1)
         
-#     else: 
-#         GW_data['snr'] = snrs_obs
-    GW_data['snr'] = snrs_obs
-    GW_data['H1'] = repeated_det_setp[:,0]
-    GW_data['L1'] = repeated_det_setp[:,1]
-    GW_data['V1'] = repeated_det_setp[:,2]
+        GW_data['snr'] = np.array(df_temp_snrs.observed)
+        
+    else: 
+        GW_data['snr'] = snrs_obs
     
-        
+    GW_data['snr'] = snrs_obs
+
     #get indicies of detected events     
     
     inx_out = np.where((GW_data.snr >= SNRth))[0]   
@@ -548,13 +584,13 @@ while True:
     GW_data['sigma_g'] = repeated_sigma_g #add gamma to the GW_data 
     GW_data['lambda_peak'] = repeated_lambda#add H0 to the GW_data 
     GW_data['delta_m'] = repeated_delta_m #add H0 to the GW_data
+    GW_data['inx'] = inx_gal
     
     if in_out is True:
         GW_data['app_mag'] = app_samples #if using galaxy catalog, get app_mag data 
     else:
         GW_data['app_mag'] = np.ones(len(repeated_H0)) #if not, fill data with ones 
-    GW_data['inx'] = inx_gal
-
+    
     if type_of_data =='testing':
         GW_data['R'] = repeated_Rnums #for tewsting data, get random numbers data 
 
@@ -575,70 +611,65 @@ while True:
     out_data = GW_data.loc[np.array(inds_to_keep)] #data to be stored 
     list_data.append(out_data) #append data to lsit 000,802,304
     counter += 1 #add one to counter 
-
-    if type_of_data =='training':
+    
+    ###Check indicies and thow away observed repeated ones
+    if type_of_data == 'training':
         temp_missed_H0 = np.setxor1d(out_data['H0'].to_numpy(),repeated_H0) #check which repeated H0s are not in the stored data and 
         new_missed_H0 = missed_H0[np.where(np.in1d(missed_H0, temp_missed_H0) == True)[0]] #get the missed H0s that have not been detected 
         inx_new_missed = np.where(np.in1d(missed_H0,new_missed_H0) == True) #get the indicies of the missed H0s 
         
-        new_missed_H0 = missed_H0[inx_new_missed] #new missed H0s
-        new_missed_gamma = missed_gamma[inx_new_missed] ; new_missed_kappa = missed_kappa[inx_new_missed]; new_missed_zp = missed_zp[inx_new_missed]
-        new_missed_alpha = missed_alpha[inx_new_missed] ; new_missed_beta = missed_beta[inx_new_missed]; new_missed_mmax = missed_mmax[inx_new_missed]
-        new_missed_mmin = missed_mmin[inx_new_missed] ; new_missed_mu_g = missed_mu_g[inx_new_missed]; new_missed_sigma_g = missed_sigma_g[inx_new_missed]
-        new_missed_lambda = missed_lambda[inx_new_missed] ; new_missed_delta_m = missed_delta_m[inx_new_missed]
-        new_missed_det_setp = missed_det_setp[inx_new_missed] ; 
+    if type_of_data =='testing': #same but doen for random number being used 
+        temp_missed_R = np.setxor1d(out_data['R'].to_numpy(),repeated_Rnums)
+        new_missed_R = missed_R[np.where(np.in1d(missed_R, temp_missed_R) == True)[0]]
+        inx_new_missed = np.where(np.in1d(missed_R,new_missed_R) == True) 
+        new_missed_R = missed_R[inx_new_missed] #new missed H0
+        inx_missed_R = np.argsort(new_missed_R)
+        missed_R = new_missed_R[inx_missed_R]
         
-        inx_missed_H0 = np.argsort(new_missed_H0) #sort the indicies of missed H0s 
-        
-        missed_H0 = new_missed_H0[inx_missed_H0] #missed H0s sorted 
-        missed_gamma = new_missed_gamma[inx_missed_H0] ; missed_kappa = new_missed_kappa[inx_missed_H0]; missed_zp = new_missed_zp[inx_missed_H0]
-        missed_alpha = new_missed_alpha[inx_missed_H0] ; missed_beta = new_missed_beta[inx_missed_H0]; missed_mmax = new_missed_mmax[inx_missed_H0]
-        missed_mmin = new_missed_mmin[inx_missed_H0] ; missed_mu_g = new_missed_mu_g[inx_missed_H0]; missed_sigma_g = new_missed_sigma_g[inx_missed_H0]
-        missed_lambda= new_missed_lambda[inx_missed_H0] ; missed_delta_m = new_missed_delta_m[inx_missed_H0];
-        missed_det_setp = new_missed_det_setp[inx_missed_H0] ;
-        
-        missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed to be used in next iteration
-        missed_cdfs_m1 = xp.array([missed_cdfs_m1[index,:] for index in inx_missed_H0])
-        
-        sys.stdout.write('\rEvents we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter)) #print status of data generation 
-        N_missed = len(missed_H0) #append relevant information 
-        counter_list.append(counter)
-        Nmissed_list.append(N_missed)
-        end = time.time()
-        timer_list.append(abs(end - start))
-        
-        if len(missed_H0) == 0 : #double check why this is here 
-            # repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
-            # repeated_gamma = np.repeat(missed_gamma, select) #repeat Gammas for Nselect samples 
-            # repeated_kappa = np.repeat(missed_kappa, select) #repeat Kappas for Nselect samples 
-            # repeated_zp = np.repeat(missed_zp, select) #repeat zps for Nselect samples 
-            # repeated_alpha = np.repeat(missed_alpha, select) #repeat alphas for Nselect samples 
-            # repeated_beta = np.repeat(missed_beta, select) #repeat betas for Nselect samples 
-            # repeated_mmax = np.repeat(missed_mmax, select) #repeat mmaxs for Nselect samples 
-            # repeated_mmin = np.repeat(missed_mmin, select) #repeat mmins for Nselect samples 
-            # repeated_mu_g = np.repeat(missed_mu_g, select) #repeat mus for Nselect samples 
-            # repeated_sigma_g = np.repeat(missed_sigma_g, select) #repeat sigmas for Nselect samples 
-            # repeated_lambda = np.repeat(missed_lambda, select) #repeat lambdas for Nselect samples 
-            # repeated_delta_m = np.repeat(missed_delta_m, select) #repeat delta_ms for Nselect sample
-            break
 
-    elif type_of_data =='testing': #same but doen for random number being used 
-        missed_R = np.setxor1d(out_data['R'].to_numpy(),repeated_Rnums)
+    new_missed_H0 = missed_H0[inx_new_missed] #new missed H0s
+    new_missed_gamma = missed_gamma[inx_new_missed] ; new_missed_kappa = missed_kappa[inx_new_missed]; new_missed_zp = missed_zp[inx_new_missed]
+    new_missed_alpha = missed_alpha[inx_new_missed] ; new_missed_beta = missed_beta[inx_new_missed]; new_missed_mmax = missed_mmax[inx_new_missed]
+    new_missed_mmin = missed_mmin[inx_new_missed] ; new_missed_mu_g = missed_mu_g[inx_new_missed]; new_missed_sigma_g = missed_sigma_g[inx_new_missed]
+    new_missed_lambda = missed_lambda[inx_new_missed] ; new_missed_delta_m = missed_delta_m[inx_new_missed]
 
-        temp = []
-        for x in R_nums:
-            temp.append(np.where(missed_R == x)[0])
 
-        indices_R = np.concatenate(temp,axis=0) 
-        missed_H0 = missed_H0[indices_R]
+    inx_missed_H0 = np.argsort(new_missed_H0) #sort the indicies of missed H0s 
 
-        
-        sys.stdout.write('\rEvents we missed: {} | Nselect = {} '.format(len(missed_H0), nxN))
-        N_missed = len(missed_H0)
-        if N_missed == 0 : 
-            repeated_H0 = np.repeat(missed_H0, select)
-            break
-        
+    missed_H0 = new_missed_H0[inx_missed_H0] #missed H0s sorted 
+    
+    missed_gamma = new_missed_gamma[inx_missed_H0] ; missed_kappa = new_missed_kappa[inx_missed_H0]; missed_zp = new_missed_zp[inx_missed_H0]
+    missed_alpha = new_missed_alpha[inx_missed_H0] ; missed_beta = new_missed_beta[inx_missed_H0]; missed_mmax = new_missed_mmax[inx_missed_H0]
+    missed_mmin = new_missed_mmin[inx_missed_H0] ; missed_mu_g = new_missed_mu_g[inx_missed_H0]; missed_sigma_g = new_missed_sigma_g[inx_missed_H0]
+    missed_lambda= new_missed_lambda[inx_missed_H0] ; missed_delta_m = new_missed_delta_m[inx_missed_H0];
+    missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
+    missed_cdfs_m1 = xp.array([missed_cdfs_m1[index,:] for index in inx_missed_H0])
+
+    sys.stdout.write('\rEvents we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter)) #print status of data generation 
+    N_missed = len(missed_H0) #append relevant information 
+    counter_list.append(counter)
+    Nmissed_list.append(N_missed)
+    end = time.time()
+    timer_list.append(abs(end - start))
+
+    if len(missed_H0) == 0 : #double check why this is here 
+        break
+
+#         temp = []
+#         for x in R_nums:
+#             temp.append(np.where(missed_R == x)[0])
+
+#         indices_R = np.concatenate(temp,axis=0) 
+#         missed_H0 = missed_H0[indices_R]
+
+
+    sys.stdout.write('\rEvents we missed: {} | Nselect = {} '.format(len(missed_H0), nxN))
+    N_missed = len(missed_H0)
+ 
+    if N_missed == 0 : 
+        repeated_H0 = np.repeat(missed_H0, select)
+        break
+
 
 print('\nFINISHED Sampling events')  
 
@@ -647,7 +678,7 @@ GW_data = pd.concat(list_data)
 output_df = GW_data[['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta', 'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m',
                      'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
                      'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn',
-                     'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','H1','L1','V1','inx']]
+                     'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','inx']]
 
 output_df.to_csv(path_data+'run_{}_det_{}_name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}__Full_para_v1.csv'.format(run,detectors, Name, in_out,band, int(batch), int(N), int(SNRth), int(Nselect)))
 
