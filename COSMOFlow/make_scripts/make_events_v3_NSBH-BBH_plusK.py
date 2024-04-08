@@ -85,6 +85,8 @@ ap.add_argument("-targeted", "--targeted", required=False,
 # Cosmology Setup
 ap.add_argument("-H0", "--H0", nargs='+', required=True,
    help="Hubble values: OPTIONS [min, max] or value", default = 70)
+ap.add_argument("-K", "--K", nargs='+', required=True,
+   help="Constant distance testing values: OPTIONS [min, max] or value", default = 500)
 ap.add_argument("-Om0", "--Om0", nargs='+', required=True,
    help="Baryonic density values: OPTIONS [min, max] or value", default = 70)
 ap.add_argument("-w0", "--w0", nargs='+', required=True,
@@ -158,6 +160,7 @@ zmin = float(args['zmin'])
 targeted_event = args['targeted']
 
 H0 = list(map(float,args['H0']))
+K = list(map(float,args['K']))
 Om0 = list(map(float,args['Om0']))
 w0 = list(map(float,args['w0']))
 
@@ -209,6 +212,7 @@ print('detectors = {}'.format(detectors))
 print('approximator = {}'.format(approximator))
 print('run = {}'.format(run))
 print('H0 = {}'.format(H0))
+print('K = {}'.format(K))
 print('Om0 = {}'.format(Om0))
 print('w0 = {}'.format(w0))
 
@@ -250,6 +254,7 @@ def decide_either_uniform_or_ones(value,N):
     
 #Sample from flat pripors (or fixed values) Cosmological and population parameters 
 H0 = decide_either_uniform_or_ones(H0,N) ; Om0 = decide_either_uniform_or_ones(Om0,N) ; w0 = decide_either_uniform_or_ones(w0,N)
+K = decide_either_uniform_or_ones(K,N)
 gamma = decide_either_uniform_or_ones(gamma,N) ; k = decide_either_uniform_or_ones(k,N) ; zp = decide_either_uniform_or_ones(zp,N)
 # gamma = 4.59 ; k = 2.86 ; zp = 2.47
 alpha = 3.78 ; beta = 0.81; mmax = 112.5
@@ -339,7 +344,7 @@ def select_gal_from_pix(pixels_H0_gamma_para):
     # "Input: tuple(pixel_inx,H0); 
     # "Returns: dataframe of pixel id (z, ra, dec...)" 
     
-    pixel, H0, Om0 = pixels_H0_gamma_para
+    pixel, H0, Om0, K = pixels_H0_gamma_para
     # print(pixel)
     loaded_pixel, Ngalpix = load_pixel(int(pixel)) ############# PROBLEM HERE
     mth = map_mth[int(pixel)]
@@ -361,7 +366,8 @@ def select_gal_from_pix(pixels_H0_gamma_para):
         z_gal_selected = loaded_pixel.z #get redshift 
         repeated_H0_in_pix = np.ones(Ngalpix)*H0 #for that specific pixel, make vector of H0s used for the specific pixel 
         repeated_Om0_in_pix = np.ones(Ngalpix)*Om0
-        dl_galaxies = cosmology.z_to_dl_H_Omegas_EoS(np.array(z_gal_selected).flatten(),
+        repeated_K_in_pix = np.ones(Ngalpix)*K ########## Repeated constant
+        dl_galaxies = np.array(repeated_K_in_pix).flatten()+cosmology.z_to_dl_H_Omegas_EoS(np.array(z_gal_selected).flatten(),
                                            np.array(repeated_H0_in_pix).flatten(),
                                            np.array(repeated_Om0_in_pix).flatten(),
                                            -1*np.ones(len(np.array(repeated_Om0_in_pix).flatten())))
@@ -415,6 +421,7 @@ missed_gamma = gamma
 missed_k = k
 missed_zp = zp
 missed_cdfs_zmax = cdfs_zmax
+missed_K = K
 
 
 if type_of_data =='testing':
@@ -437,15 +444,12 @@ while True:
         repeated_Rnums = np.repeat(missed_R, select) 
         
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
+    repeated_K = np.repeat(missed_K, select) #repeat H0s for Nselect samples 
     repeated_Om0 = np.repeat(missed_Om0, select) #repeat H0s for Nselect samples
     repeated_gamma = np.repeat(missed_gamma, select) #repeat H0s for Nselect samples 
     repeated_k = np.repeat(missed_k, select) #repeat H0s for Nselect samples
     repeated_zp = np.repeat(missed_zp, select) #repeat H0s for Nselect samples
-    print(missed_H0)
-    print(missed_Om0)
-    print(missed_gamma)
-    print(missed_k)
-    print(missed_zp)
+ 
     
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
@@ -455,12 +459,12 @@ while True:
         RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
         
     z = z_class.draw_z_zmax(select, missed_cdfs_zmax) #sampleredshift from zmax-H0 distributions 
-    dl = utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
+    dl =  utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
     # dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
     #Make sure all are arrays
     z = np.array(z)
-    dl = np.array(dl)
+    dl = np.array(repeated_K)  + np.array(dl)
     
     #If using galaxy catalog 
     if in_out is True:
@@ -477,12 +481,13 @@ while True:
 
             pix_list = np.array(pix_list[inx_in_gal]) #get list of pixels from where to get the galaxies 
             H0_in_list = np.array(repeated_H0[inx_in_gal]) #get the associated H0s from each pixel
+            K_in_list = np.array(repeated_K[inx_in_gal]) #get the associated H0s from each pixel
             Om0_in_list = np.array(repeated_Om0[inx_in_gal])
             # gamma_in_list = np.array(repeated_gamma[inx_in_gal]) #get the associated H0s from each pixel
             # kappa_in_list = np.array(repeated_kappa[inx_in_gal]) #get the associated H0s from each pixel
             # zp_in_list = np.array(repeated_zp[inx_in_gal]) #get the associated H0s from each pixel
             
-            pixel_H0 = np.array([pix_list, H0_in_list, Om0_in_list]).T #make an array of lists with pixel index and H0 to be used in the select galaxy function
+            pixel_H0 = np.array([pix_list, H0_in_list, Om0_in_list, K_in_list]).T #make an array of lists with pixel index and H0 to be used in the select galaxy function
 
             with multiprocessing.Pool(threads) as p: #multiprocess for galaxy pixel loading 
                 selected_cat_pixels = list(p.imap(select_gal_from_pix,pixel_H0))
@@ -494,6 +499,7 @@ while True:
                 # If you also need to keep only the actual non-empty DataFrames:
                 selected_cat_pixels = [df for df in selected_cat_pixels if isinstance(df, pd.DataFrame) and not df.empty]
                 H0_in_list = H0_in_list[valid_indices]
+                K_in_list = K_in_list[valid_indices]
                 Om0_in_list = Om0_in_list[valid_indices]
                 inx_in_gal = inx_in_gal[valid_indices]
                 
@@ -511,7 +517,9 @@ while True:
                 RA_gal = np.array(gal_selected.RA) #get RA of galaxy 
                 dec_gal = np.array(gal_selected.dec) #get dec of galaxy
                 z_true_gal = np.array(gal_selected.z) #get redshift of galaxy 
-                sigmaz_gal = np.array(gal_selected.sigmaz) #get redshift uncertainty 
+                sigmaz_gal = abs(np.array(gal_selected.sigmaz)) #get redshift uncertainty 
+                min_scale = 1e-5 # A small positive number close to zero
+                sigmaz_gal = np.maximum(sigmaz_gal, min_scale)  # Ensure sca
                 a, b = (zmin - z_true_gal) / sigmaz_gal, (zmax - z_true_gal) / sigmaz_gal #sample from truncated gaussian redshift using the uncertainty 
                 
                 z_obs_gal = truncnorm.rvs(a, b, loc=z_true_gal, scale=abs(sigmaz_gal), size=len(z_true_gal))
@@ -519,7 +527,7 @@ while True:
                 
                 # print(len(z_obs_gal), len(H0_in_list))
                 
-                dl_gal = utilities._MLP_luminosity_distance(np.array(z_obs_gal), np.array(H0_in_list),
+                dl_gal = np.array(K_in_list)  + utilities._MLP_luminosity_distance(np.array(z_obs_gal), np.array(H0_in_list),
                                                np.array(Om0_in_list), model = model_luminosity_distance, device = device )
                 # dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(H0_in_list)) #compute the distance 
                 #Switch z values in z array with zgal and dgal
@@ -631,6 +639,7 @@ while True:
     
     inx_out = np.where((GW_data.snr >= SNRth))[0]   
     GW_data['H0'] = repeated_H0 #add H0 to the GW_data 
+    GW_data['K'] = repeated_K #add H0 to the GW_data 
     GW_data['Om0'] = repeated_Om0 #add H0 to the GW_data 
     GW_data['gamma'] = repeated_gamma #add H0 to the GW_data 
     GW_data['k'] = repeated_k #add H0 to the GW_data 
@@ -678,6 +687,7 @@ while True:
         missed_R = new_missed_R[inx_missed_R]
         
     new_missed_H0 = missed_H0[inx_new_missed] #new missed H0s
+    new_missed_K = missed_K[inx_new_missed] #new missed H0s
     new_missed_Om0 = missed_Om0[inx_new_missed]
     new_missed_gamma = missed_gamma[inx_new_missed]
     new_missed_k = missed_k[inx_new_missed]
@@ -688,12 +698,13 @@ while True:
     inx_missed_H0 = np.argsort(new_missed_H0) #sort the indicies of missed H0s 
     
     missed_H0 = new_missed_H0[inx_missed_H0] #missed H0s sorted 
+    missed_K = new_missed_K[inx_missed_H0] #missed H0s sorted 
     missed_Om0 = new_missed_Om0[inx_missed_H0] #missed H0s sorted 
     missed_gamma = new_missed_gamma[inx_missed_H0] #missed H0s sorted 
     missed_k = new_missed_k[inx_missed_H0] #missed H0s sorted
     missed_zp = new_missed_zp[inx_missed_H0] #missed H0s sorted
-    missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
-
+    # missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
+    missed_cdfs_zmax = missed_cdfs_zmax[:,inx_missed_H0]
     
     sys.stdout.write('\rEvents we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter)) #print status of data generation 
     N_missed = len(missed_H0) #append relevant information 
@@ -714,7 +725,7 @@ print('\nFINISHED Sampling events')
 
 #save data 
 GW_data = pd.concat(list_data)
-output_df = GW_data[['snr', 'H0', 'Om0','gamma','k','zp',
+output_df = GW_data[['snr', 'H0', 'Om0','gamma','k','zp', 'K',
                      'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
                      'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn',
                      'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','inx']]

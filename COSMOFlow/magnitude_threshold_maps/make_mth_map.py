@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 band = 'K'
 
-NSIDE = 128
+NSIDE = 32
 Npix = hp.nside2npix(NSIDE)
 
 def mth_per_pixel(pix):

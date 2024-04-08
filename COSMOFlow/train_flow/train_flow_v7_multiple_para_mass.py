@@ -151,10 +151,11 @@ os.mkdir(path+folder_name)
 os.mkdir(path+folder_name+'/flows_epochs')
 os.chdir('..')
 
+#run_O3_det_['H1', 'L1', 'V1']_name_NSBH_data_full_sky_128_catalog_True_band_K_batch_{}_N_250000_SNR_11_Nelect_2__Full_para_v1.csv
 #read data to be used to train the flow 
 def read_data(batch_of_data):
     path_name ="data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
-    data_name ="run_O3_det_['H1', 'L1', 'V1']_name_BBH_data_full_sky_NSIDE_32_OM0_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_5__Full_para_v1.csv".format(batch_of_data)
+    data_name ="run_O2_det_['H1', 'L1', 'V1']_name_BBH_data_full_sky_32_H0_wieghted_galaxy_catalog_True_band_K_batch_1_N_250000_SNR_11_Nelect_2__Full_para_v1.csv".format(batch_of_data)
     print(data_name)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
                           # usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
@@ -183,7 +184,8 @@ print((GW_data.head()))
 
 data = GW_data[['luminosity_distance','mass_1', 'mass_2',
                 'ra', 'dec', 'theta_jn', 'psi', 'geocent_time',
-                 'H0', 'Om0']]
+                 'H0']]
+#, 'gamma', 'k', 'zp']]
 #, 'gamma', 'mmax', 'mu_g']]
 
 
@@ -210,7 +212,8 @@ if xyz == 1:
 else: 
     # data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'gamma', 'kappa','zp', 'alpha', 'beta','mmax', 
     #             'mmin', 'mu_g', 'sigma_g', 'lambda_peak', 'delta_m']]
-    data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'Om0']]
+    # data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0', 'gamma']]
+    data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0']]
                  #, 'gamma', 'mmax', 'mu_g']]
 
 #print some data to check beofre it starts training 
@@ -399,6 +402,9 @@ for j in range(n_epochs):
         target_train, conditionals_train = batch 
         flow.train() #set flow in train mode 
         optimiser.zero_grad() # set derivatives to zero 
+        
+        # print( scaler_y.inverse_transform(conditionals_train.reshape(-1,n_conditional)))
+        
         loss = -flow.log_prob(target_train.to(device)[:,:n_inputs], conditional=conditionals_train.reshape(-1,n_conditional).to(device)).cpu().mean() #compute loss
         loss.backward() #compute dloss/dx for every parameter with requires_grad=True (i.e. x.grad += dloss/dx)
         

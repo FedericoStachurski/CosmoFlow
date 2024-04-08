@@ -23,6 +23,8 @@ from scipy import interpolate
 from scipy.stats import ncx2
 import bilby
 
+torch.set_printoptions(precision=12)
+
 
 
 class Handle_Flow(object):
@@ -207,7 +209,6 @@ class Handle_Flow(object):
         data_scaled = torch.from_numpy(data.astype('float32'))
         Log_Prob = self.Flow_posterior(torch.from_numpy(scaled_theta.T).float(), data_scaled)
 
-
         return np.exp(Log_Prob)
     
     def p_theta_OMEGA_test(self, df, conditional):
@@ -217,30 +218,39 @@ class Handle_Flow(object):
         scaled_theta = np.array(scaled_theta)
         N_samples = np.shape(scaled_theta)[0]
         conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) 
-        
+ 
         conditional = np.repeat(conditional, N_samples)
         conditional = conditional.reshape(N_samples, n_conditional)
-        # print(conditional)
-        conditional = torch.from_numpy(conditional.astype('float32'))
+
+        target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float()
+        conditional_tensor = torch.from_numpy(conditional.astype('float32'))
         
-        Log_Prob = self.Flow_posterior(torch.from_numpy(scaled_theta).float(), conditional)
-        return Log_Prob
+        
+        # print(target_tensor, conditional_tensor)
+        Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
+        return Log_Prob.astype('float32')
+    
     
     def p_theta_OMEGA_test_batching(self, df, conditional):
         n_conditional = self.hyperparameters['n_conditional_inputs']
+        conditional = conditional.T
+        N_priors = np.shape(conditional)[0]
+        N_samples = len(df)
+        df = pd.concat([df]*N_priors, ignore_index=True)
+        
+        # print(df)
         scaled_theta = self.convert_data(df) #convert data 
         scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
         scaled_theta = np.array(scaled_theta)
-        N_samples = np.shape(conditional)[0]
         conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) 
+        conditional = (np.repeat(conditional, N_samples).reshape(int(N_samples*N_priors),n_conditional))
+
+        target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float()
+        conditional_tensor = torch.from_numpy(conditional.astype('float32'))
         
-        # print(np.shape(conditional))
-        target_tensor, conditional_tensor = self.make_data_batch_flow(scaled_theta, conditional, N_samples) ########NEW 
-        target_tensor = torch.from_numpy(target_tensor).float()
-        conditional_tensor = torch.from_numpy(conditional_tensor.astype('float32'))
-        
+        # print(target_tensor, conditional_tensor)
         Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
-        return Log_Prob
+        return Log_Prob.astype('float32')
   
     
     

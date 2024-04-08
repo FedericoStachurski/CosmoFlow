@@ -325,6 +325,9 @@ if in_out is True: #check if using a catalog
     map_mth = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(32,band))
     inx_0 = np.where(map_mth == 0.0 )[0] #if mag threshold is zero, set it to -inf 
     
+    ### Load weighted maps 
+    w_catalog = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/luminosity_weighted_map/NSIDE_{}_Luminosity_weight_PIXEL_map_GLADE_{}_zmax1.6.txt'.format(NSIDE,band))
+    w_IN = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/luminosity_weighted_map/NSIDE_{}_Luminosity_weight_IN_map_GLADE_{}_zmax1.6.txt'.format(NSIDE,band))
     
     if NSIDE != 32:
         map_mth = utilities.upscale_map(map_mth,32,NSIDE) ## Upscale the magnitide threhold map 
@@ -430,54 +433,130 @@ while True:
     
     start = time.time() # start timer to check efficency in save counter 
     n = len(missed_H0) #check how many H0s are there to be detected
-    select = int(Nselect*(N/N_missed)) #use this is the selct value, which increases the more H0s are detected
+    select = int((Nselect*(N/N_missed))) #use this is the selct value, which increases the more H0s are detected
     nxN = int(n*select) #defin the number of samples we are going to sample nxN (n = H0s, N = sampels per H0s)
     
     if type_of_data == 'testing':
         repeated_Rnums = np.repeat(missed_R, select) 
-        
+      
+
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
     repeated_Om0 = np.repeat(missed_Om0, select) #repeat H0s for Nselect samples
     repeated_gamma = np.repeat(missed_gamma, select) #repeat H0s for Nselect samples 
     repeated_k = np.repeat(missed_k, select) #repeat H0s for Nselect samples
     repeated_zp = np.repeat(missed_zp, select) #repeat H0s for Nselect samples
-    print(missed_H0)
-    print(missed_Om0)
-    print(missed_gamma)
-    print(missed_k)
-    print(missed_zp)
+    # print(np.shape(missed_cdfs_zmax))
+    repeated_cdfs_z = np.repeat(missed_cdfs_zmax, select, axis = 1)# (np.repeat(missed_cdfs_zmax, select, axis = 1).T).reshape(-1,select).T
     
+    # print(repeated_cdfs_z)
+
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
     if targeted_event != 0:
         RA, dec = cosmology.target_ra_dec(nxN, pixels_event, NSIDE_event)
     else:     
-        RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
+        #RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
+        temp_ra, temp_dec, temp_pix = [], [], []
+        while True:
+            RA, dec = cosmology.draw_RA_Dec(nxN)
+            pixels = cosmology.pix_from_RAdec(NSIDE, RA, dec)
+
+            selected_w_from_pix = w_catalog[pixels] ######## Weights from total luminosity catalog
+            R_gen_number_cat = np.random.uniform(0,1, len(selected_w_from_pix))
+            inx_good = np.where(selected_w_from_pix>R_gen_number_cat)
+
+            temp_ra.append(RA[inx_good]) ; temp_dec.append(dec[inx_good]) ; temp_pix.append(pixels[inx_good])
+            if len(np.concatenate(temp_ra)) >= nxN:
+                RA = np.concatenate(temp_ra)[:nxN]
+                dec = np.concatenate(temp_dec)[:nxN]
+                pixels = np.concatenate(temp_pix)[:nxN]
+                break
         
-    z = z_class.draw_z_zmax(select, missed_cdfs_zmax) #sampleredshift from zmax-H0 distributions 
-    dl = utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
+        
+    w_IN_pix = w_IN[pixels]
+    mth_pix = map_mth[pixels]
+
+    R_IN = np.random.uniform(0,1,len(pixels))
+    
+    
+    inx_in = np.where(w_IN_pix > R_IN)[0]
+    inx_out = np.where(w_IN_pix < R_IN)[0]
+    
+    inx_gal[inx_in] = 1
+    
+    # RA_out = RA[inx_out]
+    # dec_out = dec[inx_out]
+    
+    pixels_IN = pixels[inx_in]
+    pixels_OUT = pixels[inx_out]
+    
+    N_in = len(pixels_IN)
+    N_out = len(pixels_OUT)
+
+    H0_in = repeated_H0[inx_in]
+    H0_out = repeated_H0[inx_out]
+    
+    inx_gal[inx_in] = 1
+    
+
+    # missed_cdfs_zmax_out = missed_cdfs_zmax[inx_out]
+    # print(np.shape(missed_cdfs_zmax), len(inx_out))
+    missed_cdfs_zmax_out = repeated_cdfs_z[:,inx_out]
+
+    
+    mth_out =  mth_pix[w_IN_pix < R_IN] 
+
+    arr_truths = np.zeros(len(H0_out)) 
+    
+    z = np.zeros(len(pixels))
+    z_valsout = np.zeros(len(mth_out))
+
+    while True:
+        inx_to_check = np.where(arr_truths == 0 )[0]
+        temp_missed_cdfs_zmax_out = np.array(missed_cdfs_zmax_out[:, inx_to_check])
+
+        z_out = z_class.draw_z_zmax(1, temp_missed_cdfs_zmax_out) 
+        M_out = sch_fun.sample_M_from_cdf_weighted(100, N = len(H0_out[inx_to_check]))
+        M_out = M_out + 5*np.log10(H0_out[inx_to_check]/100) 
+        m = cosmology.m_MzH0(M_out,z_out,H0_out[inx_to_check])
+        inx_out_catalog = np.where(m > mth_out[inx_to_check])[0]
+        arr_truths[inx_to_check[inx_out_catalog]] = 1
+
+        z_valsout[inx_to_check[inx_out_catalog]] = z_out[inx_out_catalog]
+
+        if int(np.sum(arr_truths))==len(H0_out):
+            break
+    
+      
+    z_valsout = np.array(z_valsout)  ## OUT z
+    # dl = utilities._MLP_luminosity_distance(np.array(z_valsout), np.array(H0_out), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
     # dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
     #Make sure all are arrays
-    z = np.array(z)
-    dl = np.array(dl)
+    # dl = np.array(dl) ## OUT Dl
     
     #If using galaxy catalog 
     if in_out is True:
-        M_abs = sch_fun.sample_M_from_cdf_weighted(100, N = nxN) #sample absolute magnitudes from H0 = 100
-        M_abs = M_abs + 5*np.log10(repeated_H0/100) #shift absolute magnitudes by 5log10(H0/100) to conver them 
-        app_samples = cosmology.app_mag(M_abs.flatten(),dl.flatten()) #compute apparent magnitudes 
-        
-        #Handle Magnitude threshold map
-        mth_list = np.array([utilities.mth_from_RAdec(NSIDE, RA, dec, map_mth)]).flatten() #list of mths 
-        pix_list = np.array([utilities.pix_from_RAdec(NSIDE, RA, dec)]).flatten() #list of pixels per mth
-        inx_in_gal = np.where((app_samples < mth_list) == True)[0]  #check where theapp_mag is brighter than the mth (if yes, that is a galaxy in the catalog)
-        # print(len(inx_in_gal), len(pix_list))
-        if len(inx_in_gal) > 0: #if the nubmer of galaxies selected is greater than zero, start galaxy selection
+        ### No need for this part
+#         M_abs = sch_fun.sample_M_from_cdf_weighted(100, N = nxN) #sample absolute magnitudes from H0 = 100
+#         M_abs = M_abs + 5*np.log10(repeated_H0/100) #shift absolute magnitudes by 5log10(H0/100) to conver them 
+#         app_samples = cosmology.app_mag(M_abs.flatten(),dl.flatten()) #compute apparent magnitudes 
 
-            pix_list = np.array(pix_list[inx_in_gal]) #get list of pixels from where to get the galaxies 
-            H0_in_list = np.array(repeated_H0[inx_in_gal]) #get the associated H0s from each pixel
-            Om0_in_list = np.array(repeated_Om0[inx_in_gal])
+#         #Handle Magnitude threshold map
+#         mth_list = np.array([utilities.mth_from_RAdec(NSIDE, RA, dec, map_mth)]).flatten() #list of mths 
+#         pix_list = np.array([utilities.pix_from_RAdec(NSIDE, RA, dec)]).flatten() #list of pixels per mth
+#         inx_in_gal = np.where((app_samples < mth_list) == True)[0]  #check where theapp_mag is brighter than the mth (if yes, that is a galaxy in the catalog)
+        
+        
+        # print(len(inx_in_gal), len(pix_list))
+        if N_in > 0: #if the nubmer of galaxies selected is greater than zero, start galaxy selection
+
+            # pix_list = np.array(pix_list[inx_in_gal]) #get list of pixels from where to get the galaxies 
+            # H0_in_list = np.array(repeated_H0[inx_in_gal]) #get the associated H0s from each pixel
+            
+            pix_list = pixels_IN
+            H0_in_list = H0_in
+            Om0_in_list = np.array(repeated_Om0[inx_in])
             # gamma_in_list = np.array(repeated_gamma[inx_in_gal]) #get the associated H0s from each pixel
             # kappa_in_list = np.array(repeated_kappa[inx_in_gal]) #get the associated H0s from each pixel
             # zp_in_list = np.array(repeated_zp[inx_in_gal]) #get the associated H0s from each pixel
@@ -519,16 +598,23 @@ while True:
                 
                 # print(len(z_obs_gal), len(H0_in_list))
                 
-                dl_gal = utilities._MLP_luminosity_distance(np.array(z_obs_gal), np.array(H0_in_list),
-                                               np.array(Om0_in_list), model = model_luminosity_distance, device = device )
+                # dl_gal = utilities._MLP_luminosity_distance(np.array(z_obs_gal), np.array(H0_in_list),
+                #                                np.array(Om0_in_list), model = model_luminosity_distance, device = device )
                 # dl_gal = cosmology.fast_z_to_dl_v2(np.array(z_obs_gal),np.array(H0_in_list)) #compute the distance 
                 #Switch z values in z array with zgal and dgal
-                z[inx_in_gal] = z_obs_gal #switch galaxies from initial set with galaxies sampled fro mgalaxy catalog 
-                dl[inx_in_gal] = dl_gal 
-                RA[inx_in_gal] = RA_gal
-                dec[inx_in_gal] = dec_gal
-                app_samples[inx_in_gal] = m_obs_gal
-                inx_gal[inx_in_gal] = 1 #set the index of that event 1, to identify it was fro mthe galaxy catalog 
+                
+                z[inx_in] = z_obs_gal ; z[inx_out] = z_valsout #switch galaxies from initial set with galaxies sampled fro mgalaxy catalog 
+                RA[inx_in] = RA_gal
+                dec[inx_in] = dec_gal
+                
+        else:
+            z[inx_out] = z_valsout
+        
+        
+        dl  = utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0),
+                                               np.array(repeated_Om0), model = model_luminosity_distance, device = device )
+
+                
 
                 ###### NOTE: scatter weights beofre instead of here. 
     
@@ -637,10 +723,10 @@ while True:
     GW_data['zp'] = repeated_zp
     GW_data['inx'] = inx_gal
     
-    if in_out is True:
-        GW_data['app_mag'] = app_samples #if using galaxy catalog, get app_mag data 
-    else:
-        GW_data['app_mag'] = np.ones(len(repeated_H0)) #if not, fill data with ones 
+    # if in_out is True:
+    #     GW_data['app_mag'] = app_samples #if using galaxy catalog, get app_mag data 
+    # else:
+    #     GW_data['app_mag'] = np.ones(len(repeated_H0)) #if not, fill data with ones 
     
     if type_of_data =='testing':
         GW_data['R'] = repeated_Rnums #for tewsting data, get random numbers data 
@@ -692,7 +778,8 @@ while True:
     missed_gamma = new_missed_gamma[inx_missed_H0] #missed H0s sorted 
     missed_k = new_missed_k[inx_missed_H0] #missed H0s sorted
     missed_zp = new_missed_zp[inx_missed_H0] #missed H0s sorted
-    missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
+    missed_cdfs_zmax = missed_cdfs_zmax[:,inx_missed_H0]
+    # missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
 
     
     sys.stdout.write('\rEvents we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter)) #print status of data generation 
@@ -701,7 +788,7 @@ while True:
     Nmissed_list.append(N_missed)
     end = time.time()
     timer_list.append(abs(end - start))
-    sys.stdout.write('\rEvents we missed: {} | Nselect = {}  | TOI: {} minutes | Total _time: {} minutes'.format(len(missed_H0), nxN, np.round(abs(end - start)/60,3),
+    sys.stdout.write('\rEvents we missed: {} | Nselect = {}  | TOI: {} minutes | Total_time: {} minutes'.format(len(missed_H0), nxN, np.round(abs(end - start)/60,3),
                     round(np.sum(timer_list)/60,3)))
     N_missed = len(missed_H0)
  
@@ -717,7 +804,7 @@ GW_data = pd.concat(list_data)
 output_df = GW_data[['snr', 'H0', 'Om0','gamma','k','zp',
                      'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
                      'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn',
-                     'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','inx']]
+                     'phi_jl', 'phi_12', 'psi','geocent_time', 'inx']]
 
 output_df.to_csv(path_data+'run_{}_det_{}_name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}__Full_para_v1.csv'.format(run,detectors, Name, in_out,band, int(batch), int(N), int(SNRth), int(Nselect)))
 

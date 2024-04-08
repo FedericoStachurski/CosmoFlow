@@ -202,6 +202,68 @@ def make_samples(N_samples, dimensions):
     
     return proposed_samples
 
+def prior_samples(N_samples, parameters_dictionary):
+    dimensions = len(parameters_dictionary)
+    prior_samples = []
+    if 'H0' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['H0'][0],parameters_dictionary['H0'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+    if 'gamma' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['gamma'][0],parameters_dictionary['gamma'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+    if 'k' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['k'][0],parameters_dictionary['k'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+    if 'zp' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['zp'][0],parameters_dictionary['zp'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+    if 'Om0' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['Om0'][0],parameters_dictionary['Om0'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+    if 'Ktest' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['Ktest'][0],parameters_dictionary['Ktest'][1],N_samples)
+        prior_samples.append(samples_proposal)
+        
+        
+    prior_samples = np.array(prior_samples).reshape(dimensions,N_samples)
+    
+    return prior_samples
+        
+    
+    
+    
+    
+    
+    
+#     om0_samples_proposal, _ = proposal_pdf(0,1,N_samples)
+#     gamma_samples_proposal, _ = proposal_pdf(0,12,N_samples)
+#     kappa_samples_proposal, _ = proposal_pdf(0,6,N_samples)
+#     zp_samples_proposal, _ = proposal_pdf(0,4,N_samples)
+    
+#     alpha_samples_proposal, _ = proposal_pdf(1.5,12,N_samples)
+#     beta_samples_proposal, _ = proposal_pdf(-4.0,12,N_samples)
+#     mmax_samples_proposal, _ = proposal_pdf(50.0,200.0,N_samples)
+#     mmin_samples_proposal, _ = proposal_pdf(2.0,10.0,N_samples)
+    
+#     mug_samples_proposal, _ = proposal_pdf(20.0,50.0,N_samples)
+#     sigmag_samples_proposal, _ = proposal_pdf(0.4,10.0,N_samples)
+#     lambda_samples_proposal, _ = proposal_pdf(0.0,1.0,N_samples)
+#     delta_samples_proposal, _ = proposal_pdf(0.0,10.0,N_samples)
+    
+    # proposed_samples = [h0_samples_proposal, gamma_samples_proposal, kappa_samples_proposal, zp_samples_proposal, alpha_samples_proposal,
+    #                    beta_samples_proposal, mmax_samples_proposal, mmin_samples_proposal, mug_samples_proposal, sigmag_samples_proposal,
+    #                    lambda_samples_proposal, delta_samples_proposal]
+    # proposed_samples = np.array(proposed_samples).reshape(12,N_samples)
+    # proposed_samples = [h0_samples_proposal, gamma_samples_proposal, mmax_samples_proposal, mug_samples_proposal]
+
+
+
+
 def split_into_four(number, number_split):
     # Calculate the closest integer division by 4
     quotient = number // int(number_split)
@@ -254,3 +316,25 @@ def _MLP_luminosity_distance(z_samples,H0_samples,Om0_samples, model, device = '
     ypred = model.run_on_dataset(xdata_testing.to(device))
     DL_pred = ypred.cpu().numpy()/np.array(testing_data.H0)
     return DL_pred
+
+
+
+
+
+def upscale_map(map,NSIDE_low,NSIDE_high):
+    "Upscale in resolution the magnitude threhold map"
+
+    #Get number of pixels in high res
+    Npix_high = hp.nside2npix(NSIDE_high)
+
+    # Apply this logic to all pixels in your high-resolution catalog
+    associated_mth_values = []
+
+    for i in range(Npix_high):
+        # Calculate the corresponding low NSIDE pixel for the current high NSIDE pixel
+        low_res_pixel = hp.pixelfunc.nest2ring(NSIDE_low, hp.pixelfunc.ring2nest(NSIDE_high, i) // (NSIDE_high // NSIDE_low)**2)
+        # Retrieve the magnitude threshold for this low_res_pixel
+        mag_threshold = map[low_res_pixel]
+        associated_mth_values.append(mag_threshold)
+    associated_mth_values = np.array(associated_mth_values)
+    return associated_mth_values

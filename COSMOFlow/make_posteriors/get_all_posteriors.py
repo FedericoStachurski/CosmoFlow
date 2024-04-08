@@ -270,7 +270,7 @@ for GW_event in events:
     plt.title(GW_event +r'; $JS_c = {} ; JS_e = {}$'.format(round(JS_catalog,3), round(JS_empty,3)))
     plt.plot([], [], color = 'red', label = 'likelihoods')
     plt.plot(H0vec, posterior,color = 'blue',  linewidth =5, label = 'CosmoFlow')
-    plt.plot(H0vec, posterio_no_w,color = 'tab:brown', linewidth =5, label = 'CosmoFlow | Not weighted')
+    # plt.plot(H0vec, posterio_no_w,color = 'tab:brown', linewidth =5, label = 'CosmoFlow | Not weighted')
     plt.plot(H0vec,post_O3, '--g', alpha=1, linewidth=5, label = 'O3 GWcosmo Posterior') 
     plt.plot(H0vec,post_O3_empty, '--k', alpha=1, linewidth=5, label = 'O3 GWcosmo Posterior EMPTY') 
 

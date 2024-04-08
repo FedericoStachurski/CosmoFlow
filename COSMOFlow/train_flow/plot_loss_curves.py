@@ -29,6 +29,7 @@ flow = 'trained_flows_and_curves/'+Name
 #load_data
 kl_data = pd.read_pickle(flow+'/kl_data.pickle')
 loss_dict = pd.read_pickle(flow+'/loss_data.pickle')
+# print(loss_dict)
 
 # print(kl_data)
 # print(loss)
@@ -49,7 +50,8 @@ ax1.set_xlabel('Epochs', fontsize = 20)
 if log == 1: 
     ax1.set_xscale('log')
     
-ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])*1.25])
+# ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])*1.25])
+ax1.set_ylim([3.75,5])
 ax1.set_xlim([1,n_epochs])
 ax1.xaxis.set_tick_params(labelsize=20)
 ax1.yaxis.set_tick_params(labelsize=20)
@@ -70,7 +72,7 @@ for i, kl_key in enumerate(kls):
 
 ax2.set_xlim([1,n_epochs])
 ax2.set_ylim([1e-4,10])
-ax2.set_xscale('log')
+# ax2.set_xscale('log')
 ax2.set_yscale('log')
 ax2.xaxis.set_tick_params(labelsize=20)
 ax2.yaxis.set_tick_params(labelsize=20)

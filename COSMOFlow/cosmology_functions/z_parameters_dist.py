@@ -30,6 +30,12 @@ class RedshiftGW_fast_z_para(object):
     
     def zmax_H0_Om0_w0(self,H0, SNRth):
         return cosmology_functions.cosmology.z_to_dl_H_Omegas_EoS(self.magic_snr_dl/SNRth,H0, Om0, w0) 
+    
+    def Step_mth(self, m,mth):
+        if m < mth:
+            return 0
+        else: 
+            return 1
   
     
     
@@ -58,19 +64,24 @@ class RedshiftGW_fast_z_para(object):
     
 
     def p_z_zmax(self,z,  zp, gamma, k, H0, Om0, w0, SNRth):
-        
+        zmax = self.zmax_H0(H0, SNRth)
         priorz = self.Madau_factor(z, zp, gamma, k)  * priors.p_z_omega_EoS(z, Om0, w0) * self.time_z(z) 
-        
+        # print(np.shape(priorz))
+
         if self.fast == True:
-            zmax = self.zmax_H0(H0, SNRth)
+            
             if np.size(z) > 1: 
+                
                 priorz[z > zmax] = 0.00
+
             else: 
                 if z > zmax:
                     priorsz = 0
             return priorz
         else: 
             return priorz
+            
+ 
             
     
     def make_cdfs(self):
@@ -87,12 +98,13 @@ class RedshiftGW_fast_z_para(object):
         return cdf
 
     def draw_z_zmax(self, Nsamples,cdfs):
-        N = len(cdfs)
-        cdfs_snake = xp.asarray(np.concatenate(cdfs)) 
+        N = np.shape(cdfs)[1]
+        # cdfs_snake = xp.asarray(np.concatenate(cdfs)) 
+        cdfs_snake = xp.hstack(cdfs.T) #+np.repeat(np.arange(2), 250)
         zlist = np.ndarray.tolist(self.z_grid)
         zlist = N*zlist
         z_array = xp.asarray(zlist)
-        # print(z_array)
-        cdfs_snake = cdfs_snake + xp.repeat(xp.arange(N), len(self.z_grid))
+        cdfs_snake = cdfs_snake + xp.repeat(xp.arange(N),  np.shape(cdfs)[0])
+        # cdfs_snake = cdfs_snake + xp.repeat(xp.arange(N), len(self.z_grid))
         t = xp.random.uniform(0,1, size = N*Nsamples) + xp.repeat(xp.arange(N), Nsamples)
         return xp.interp(t, cdfs_snake, z_array).get()

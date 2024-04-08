@@ -154,9 +154,15 @@ def draw_RA_Dec(N):
     dec = xp.arcsin(2*P-1) 
     return ra_obs.get(), dec.get()
 
+def m_MzH0(M,z,H0):
+    return M + 5*(np.log10(fast_z_to_dl_v2(z,H0)))+25
+
 
 def mag2lum(M):
     return L0*10**(M/(-2.5))
+
+def lum2mag(L):
+    return -2.5*np.log10(L/L0)
 
 #transform Polar into cartesian and spins to sigmoids
 def spherical_to_cart(dl, ra, dec):
