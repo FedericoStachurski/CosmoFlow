@@ -50,8 +50,8 @@ ax1.set_xlabel('Epochs', fontsize = 20)
 if log == 1: 
     ax1.set_xscale('log')
     
-# ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])*1.25])
-ax1.set_ylim([3.75,5])
+ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])*1.25])
+# ax1.set_ylim([3.75,5])
 ax1.set_xlim([1,n_epochs])
 ax1.xaxis.set_tick_params(labelsize=20)
 ax1.yaxis.set_tick_params(labelsize=20)

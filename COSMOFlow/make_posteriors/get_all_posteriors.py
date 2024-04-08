@@ -134,7 +134,7 @@ def load_data_GWTC(event, xyz = 0 ):
 
     d = h5py.File(file_name,'r')
     if population == 'BBH':
-        samples = np.array(d.get('C01:Mixed/posterior_samples'))
+        samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
     elif population == 'NSBH':
         if event == 'GW200115_042309':
             samples = np.array(d.get('C01:IMRPhenomNSBH:LowSpin/posterior_samples'))
