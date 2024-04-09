@@ -516,7 +516,7 @@ while True:
         temp_missed_cdfs_zmax_out = np.array(missed_cdfs_zmax_out[:, inx_to_check])
 
         z_out = z_class.draw_z_zmax(1, temp_missed_cdfs_zmax_out) 
-        M_out = sch_fun.sample_M_from_cdf_weighted(100, N = len(H0_out[inx_to_check]))
+        M_out = sch_fun.sample_M_from_cdf(100, N = len(H0_out[inx_to_check]))
         M_out = M_out + 5*np.log10(H0_out[inx_to_check]/100) 
         m = cosmology.m_MzH0(M_out,z_out,H0_out[inx_to_check])
         inx_out_catalog = np.where(m > mth_out[inx_to_check])[0]
