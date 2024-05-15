@@ -76,8 +76,10 @@ class Handle_Flow(object):
                 n_conditional_inputs = n_conditional_inputs,
                 n_blocks_per_transform = n_blocks_per_transform,
                 batch_norm_between_transforms=True,
+                # batch_norm_within_blocks=True,
                 dropout_probability=dropout,
-                linear_transform='lu')
+                linear_transform='lu',
+                volume_preserving = volume_preserving)
         elif flow_type == 'CouplingNSF':   
                 flow_empty = CouplingNSF(n_inputs= n_inputs,
                 n_transforms= n_transforms,
@@ -299,9 +301,9 @@ class Handle_Flow(object):
             flow_data = np.reshape(flow_data, (N_prior_values*N_samples_per_event*Nevents, N_gw_params))
             flow_conditional = np.reshape(flow_conditional, (N_prior_values*N_samples_per_event*Nevents, N_prior_components))
 
-            # check that the final reshape is successful
-            if (data_array_to_flow[5,:]).all() == (flow_data[-1,:]).all() and (conditional_array_to_flow[5,:]).all() == (flow_conditional[-1,:]).all():
-                print('Batch for flow made successfully; reshaped into\n', 'data:', np.shape(flow_data), 'conditional', np.shape(flow_conditional))
+            # # check that the final reshape is successful
+            # if (data_array_to_flow[5,:]).all() == (flow_data[-1,:]).all() and (conditional_array_to_flow[5,:]).all() == (flow_conditional[-1,:]).all():
+            #     print('Batch for flow made successfully; reshaped into\n', 'data:', np.shape(flow_data), 'conditional', np.shape(flow_conditional))
 
         else:
 
@@ -319,16 +321,16 @@ class Handle_Flow(object):
     
     
     
-    def temp_funct_post(self, flow_class, target_data, prior_samples, N_events, N_post, N_priors):
+    def temp_funct_post(self, flow_class, target_data, prior_samples, N_events, N_post, N_priors, ndim_target = 5):
 
-        scaled_theta = self.convert_data(target_data) #convert data #####UNCOMMENT!!!!
-        scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
+        target_data = self.convert_data(target_data) #convert data #####UNCOMMENT!!!!
+        scaled_theta = self.scaler_x.transform(target_data) #scale data 
         scaled_theta = np.array(scaled_theta) ### make sure the data is an array
         conditional = self.scaler_y.transform(prior_samples.T)  ### reshape conditional data 
 
         # print(prior_samples, conditional)
 
-        target_tensor , conditional_tensor = self.flow_input(conditional, N_post , np.array(scaled_theta).reshape(N_events,N_post,5)) ### Change 1 to 5
+        target_tensor , conditional_tensor = self.flow_input(conditional, N_post , np.array(scaled_theta).reshape(N_events,N_post, ndim_target)) ### Change 1 to 5
 
         target_tensor = torch.from_numpy(target_tensor.astype('float32')).float()
         conditional_tensor = torch.from_numpy(conditional_tensor.astype('float32'))

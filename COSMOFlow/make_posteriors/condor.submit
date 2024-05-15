@@ -1,0 +1,15 @@
+universe = vanilla 
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = nested_sampling_CosmoFLow_flows.py -runs O3 -flow_name 12D -Ntheta 1 -Nomega 1 -Ntotal 1 -device cuda:0 -sampler Nested_AI -data_type Testing
+
+
+
+error = condor.err
+log = condor.log
+output = condor.out
+run_as_owner = True
+request_cpus = 5
+request_gpus = 1
+request_memory = 10 GB
+request_disk = 10 GB
+queue 1 

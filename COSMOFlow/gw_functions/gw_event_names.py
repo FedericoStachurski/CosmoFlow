@@ -16,29 +16,29 @@ class GW_events(object):
         self.events_o3_lv = ['GW190630_185205', 'GW190708_232457', 'GW190910_112807', 'GW200112_155838' ]
         
         self.parameters = parameters 
-    def get_event(self):
+    def get_event(self, run, detectors):
         if self.parameters['population'] == 'BBH':
-            if self.parameters['run'] == 'O1':
+            if run == 'O1':
                 return self.events_o1
-            elif self.parameters['run'] == 'O2':
-                if self.parameters['detectors'] == 'HLV':
+            elif run == 'O2':
+                if detectors == 'HLV':
                     return self.events_o2_hlv 
-                elif self.parameters['detectors'] == 'HL':
+                elif detectors == 'HL':
                     return self.events_o2_hl
                 else: raise ValueError('No events found')
-            elif self.parameters['run'] == 'O3':
-                if self.parameters['detectors']== 'HLV':
+            elif run == 'O3':
+                if detectors == 'HLV':
                     return self.events_o3_hlv
-                elif self.parameters['detectors'] == 'HL':
+                elif detectors == 'HL':
                     return self.events_o3_hl
-                elif self.parameters['detectors'] == 'HV':
+                elif detectors == 'HV':
                     return self.events_o3_hv
-                elif self.parameters['detectors'] == 'LV':
+                elif detectors == 'LV':
                     return self.events_o3_lv
                 else: raise ValueError('No events found')
         elif self.parameters['population'] == 'NSBH':
-            if self.parameters['run']== 'O3':
-                if self.parameters['detectors'] == 'HLV':
+            if run == 'O3':
+                if detectors == 'HLV':
                     return self.events_03_hlv_NSBH
                 else:
                     raise ValueError('No events found')

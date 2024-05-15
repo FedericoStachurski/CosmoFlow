@@ -228,7 +228,38 @@ def prior_samples(N_samples, parameters_dictionary):
     if 'Ktest' in parameters_dictionary:
         samples_proposal, _ = proposal_pdf(parameters_dictionary['Ktest'][0],parameters_dictionary['Ktest'][1],N_samples)
         prior_samples.append(samples_proposal)
-        
+
+    if 'alpha' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['alpha'][0],parameters_dictionary['alpha'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'beta' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['beta'][0],parameters_dictionary['beta'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'mmax' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['mmax'][0],parameters_dictionary['mmax'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'mmin' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['mmin'][0],parameters_dictionary['mmin'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'mu_g' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['mu_g'][0],parameters_dictionary['mu_g'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'sigma_g' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['sigma_g'][0],parameters_dictionary['sigma_g'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'delta_m' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['delta_m'][0],parameters_dictionary['delta_m'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'lambda_peak' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['lambda_peak'][0],parameters_dictionary['lambda_peak'][1],N_samples)
+        prior_samples.append(samples_proposal)
         
     prior_samples = np.array(prior_samples).reshape(dimensions,N_samples)
     

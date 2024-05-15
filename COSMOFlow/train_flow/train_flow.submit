@@ -1,14 +1,12 @@
 universe = vanilla 
-executable = /home/federico/.conda/envs/gwcosmoFlow_env/bin/python3
-arguments = train_flow_v5.py -Name test_v3_real -batch 50000 -train_size 0.8 -flow_type RealNVP -epochs 2500 -neurons 128 -layers 7 -nblock 4 -lr 0.001 -log_it 0 -lr_scheduler CosineAnnealingLR -linear_transform lu
-
-error = train_flow.err
-log = train_flow.log
-
-request_cpus = 10
-
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = train_flow_v7_multiple_para_mass.py -Name H0_128_O3_BBH_spline -batch 10000 -train_size 0.8 -flow_type CouplingNSF -epochs 1000 -linear_transform lu -log_it 0  -neurons 128 -layers 4 -nblock 2 -n_cond 1 -lr 0.0005 -device cuda:0 -xyz 0 -Scaler MinMax -save_step 100 -batches_data 4 -lr_scheduler CosineAnnealingLR
+error = train_flow_spline.err
+log = train_flow_spline.log
+output = train_flow_spline.out
+run_as_owner = True
+request_cpus = 5
 request_gpus = 1
-
-request_memory = 4 GB
-request_disk = 1 GB
-queue 1 
+request_memory = 10 GB
+request_disk = 10 GB
+queue 1  

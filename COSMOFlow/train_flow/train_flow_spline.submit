@@ -1,0 +1,13 @@
+universe = vanilla 
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = train_flow_v7_multiple_para_mass.py -Name 1D_O2_H1_L1_V1_SPLINE_v5 -batch 50000 -train_size 0.8 -flow_type CouplingNSF -epochs 1000 -linear_transform lu -log_it 0  -neurons 128 -layers 5 -nblock 3 -n_cond 1 -lr 0.0005 -device cuda:0 -xyz 0 -Scaler MinMax -save_step 10000 -batches_data 4 -lr_scheduler CosineAnnealingLR --Volume_preserving False
+
+error = condor/train_flow_spline.err
+log = condor/train_flow_spline.log
+output = condor/train_flow_spline.out
+run_as_owner = True
+request_cpus = 5
+request_gpus = 1
+request_memory = 12 GB
+request_disk = 12 GB
+queue 1  

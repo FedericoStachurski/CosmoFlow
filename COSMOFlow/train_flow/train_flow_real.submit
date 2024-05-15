@@ -1,0 +1,12 @@
+universe = vanilla 
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = train_flow_v7_multiple_para_mass.py -Name 12D_O3_H1_L1_REALnvp_v1 -batch 50000 -train_size 0.8 -flow_type RealNVP -epochs 1000 -linear_transform lu -log_it 0  -neurons 64 -layers 4 -nblock 2 -n_cond 12 -lr 0.0003 -device cuda:0 -xyz 0 -Scaler Standard -save_step 2000 -batches_data 2 -lr_scheduler CosineAnnealingLR
+error = train_flow_real.err
+log = train_flow_real.log
+output = train_flow_real.out
+run_as_owner = True
+request_cpus = 5
+request_gpus = 1
+request_memory = 10 GB
+request_disk = 10 GB
+queue 1  

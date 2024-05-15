@@ -57,6 +57,7 @@ class Handle_Flow(object):
         n_blocks_per_transform = hyperparameters['n_blocks_per_transform']
         dropout = hyperparameters['dropout']
         flow_type = hyperparameters['flow_type']
+        volume_preserving = hyperparameters['volume_preserving']
 
         #open scaler_x and scaler_y
         scalerfile_x = path+flow_name+'/'+'scaler_x.sav'
@@ -80,7 +81,8 @@ class Handle_Flow(object):
                 n_blocks_per_transform = n_blocks_per_transform,
                 batch_norm_between_transforms=True,
                 dropout_probability=dropout,
-                linear_transform='lu')
+                linear_transform='lu',
+                volume_preserving = volume_preserving)
         elif flow_type == 'CouplingNSF':   
                 flow_empty = CouplingNSF(n_inputs= n_inputs,
                 n_transforms= n_transforms,

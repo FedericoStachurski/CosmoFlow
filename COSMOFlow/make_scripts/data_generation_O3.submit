@@ -1,0 +1,13 @@
+universe = vanilla 
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = make_events_v4_NSBH-BBH.py -Name BBH_O3_events_all_para -batch 5 -in_out 1 -type training -mass_distribution PowerLaw+Peak -name_pop BBH -zmax 5.0 -zmin 0.00001 -H0 20 180 -Om0 0.3 -w0 -1 -gamma 0.0 12.0 -k 0.0 6.0 -zp 0.0 4.0 -mmax 50.0 200.0 -mmin 2.0 10.0 -alpha 1.5 12.0 -mu_g 20.0 50.0 -sigma_g 0.4 10.0 -lambda_peak 0.0 1.0 -beta -4.0 12.0 -delta_m 0.0 10.0  -SNRth 11.0 -SNRth_single 0.0 -band K -run O3 -detectors H1 L1 V1 -N 250_000 -Nselect 4 -device cuda:0  -threads 10 -seed 5555 -NSIDE 32
+
+output = condor/data_generation_O3.out
+error = condor/data_generation_O3.err
+log = condor/data_generation_O3.log
+run_as_owner = True
+request_cpus = 5
+request_gpus = 1
+request_memory = 12 GB
+request_disk = 12 GB
+queue 1  

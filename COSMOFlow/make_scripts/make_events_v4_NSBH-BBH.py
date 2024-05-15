@@ -251,10 +251,12 @@ def decide_either_uniform_or_ones(value,N):
 #Sample from flat pripors (or fixed values) Cosmological and population parameters 
 H0 = decide_either_uniform_or_ones(H0,N) ; Om0 = decide_either_uniform_or_ones(Om0,N) ; w0 = decide_either_uniform_or_ones(w0,N)
 gamma = decide_either_uniform_or_ones(gamma,N) ; k = decide_either_uniform_or_ones(k,N) ; zp = decide_either_uniform_or_ones(zp,N)
-# gamma = 4.59 ; k = 2.86 ; zp = 2.47
-alpha = 3.78 ; beta = 0.81; mmax = 112.5
-mmin = 4.9 ; mu_g = 32.27; sigma_g = 3.88
-lambda_peak = 0.03 ; delta_m = 4.8
+
+### population parameters
+alpha = decide_either_uniform_or_ones(alpha,N) ; beta = decide_either_uniform_or_ones(beta,N) ; mmax = decide_either_uniform_or_ones(mmax,N)
+mmin = decide_either_uniform_or_ones(mmin,N) ; mu_g = decide_either_uniform_or_ones(mu_g,N) ; sigma_g = decide_either_uniform_or_ones(sigma_g,N)
+lambda_peak = decide_either_uniform_or_ones(lambda_peak,N) ; delta_m = decide_either_uniform_or_ones(delta_m,N) ;
+
 
 
 indicies_detectors = [] #Check which detectors to use
@@ -290,21 +292,35 @@ np.random.seed(seed) # set random seed
 NSIDE = NSIDE  #Define NSIDE for healpix map
 Npix = hp.nside2npix(NSIDE)
 
-
-# H0 = np.sort(H0) ; gamma = np.sort(gamma) ; k = np.sort(k) ; zp = np.sort(zp)
-
 #define cosmological parameters of GWs
 cosmological_parameters = {'gamma': gamma, 'k': k, 'zp': zp, 'lam': 0, 'Om0':Om0, 'w0': w0, 'H0': H0}
 ### Initiate redshift and mass classes 
-z_class = RedshiftGW_fast_z_para(cosmological_parameters, zmin = zmin , zmax = zmax, run = run, SNRth = SNRth, population = name_pop)#initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
+z_class = RedshiftGW_fast_z_para(cosmological_parameters, zmin = zmin , zmax = zmax, run = run, SNRth = SNRth, population = name_pop)#initiate zmax calss for zmax 
+cdfs_zmax = z_class.make_cdfs()
+print('computing p(z) cdfs')
+
 print('SNR_Dl cut off = {}'.format(z_class.magic_snr_dl))
-population_parameters = {'beta': xp.array(np.ones(1)*beta), 'alpha': xp.array(np.ones(1)*alpha),
-                         'mmin': xp.array(np.ones(1)*mmin) ,'mmax': xp.array(np.ones(1)*mmax),
-                         'mu_g': xp.array(np.ones(1)*mu_g), 'sigma_g': xp.array(np.ones(1)*sigma_g),
-                         'lambda_peak': xp.array(np.ones(1)*lambda_peak),
-                         'delta_m': xp.array(np.ones(1)*delta_m), 'name': 'BBH-powerlaw-gaussian'}
-# print(np.shape(population_parameters['delta_m'].get()), np.shape(population_parameters['mmin'].get()))
-mass_class = MassPrior(population_parameters, mgrid = 250) #initiate mass prior class, p(m1,m2)
+
+
+##### Initiate mass class and compute cdfs
+N_iter = 1
+Ntemp = int(N/N_iter)
+cdfs_m1 = []
+for i in range(N_iter):
+    if i+1 == 11:
+        break
+    population_parameters = {'beta': xp.array(beta[i*Ntemp:(i+1)*Ntemp]), 'alpha': xp.array(alpha[i*Ntemp:(i+1)*Ntemp]),
+                             'mmin': xp.array(mmin[i*Ntemp:(i+1)*Ntemp]),'mmax': xp.array(mmax[i*Ntemp:(i+1)*Ntemp]),
+                             'mu_g': xp.array(mu_g[i*Ntemp:(i+1)*Ntemp]), 'sigma_g': xp.array(sigma_g[i*Ntemp:(i+1)*Ntemp]),
+                             'lambda_peak': xp.array(lambda_peak[i*Ntemp:(i+1)*Ntemp]),
+                             'delta_m': xp.array(delta_m[i*Ntemp:(i+1)*Ntemp]), 'name': 'BBH-powerlaw-gaussian'}
+    mass_class = MassPrior(population_parameters, mgrid = 250) #initiate mass prior class, p(m1,m2)
+    cdfs_m1.append(mass_class.make_cdfs())
+
+print('computing p(m1,m2) cdfs')
+cdfs_m1 = xp.concatenate(cdfs_m1)
+
+
 
 
 if in_out is True: #check if using a catalog
@@ -324,14 +340,7 @@ if in_out is True: #check if using a catalog
     #load mth map for specific filter band 
     map_mth = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE,band))
     inx_0 = np.where(map_mth == 0.0 )[0] #if mag threshold is zero, set it to -inf 
-    
-    
-    # if NSIDE != 32:
-    #     map_mth = utilities.upscale_map(map_mth,32,NSIDE) ## Upscale the magnitide threhold map 
-        
-            
     map_mth[inx_0] = -np.inf
-    
     
     
 def select_gal_from_pix(pixels_H0_gamma_para): 
@@ -372,11 +381,9 @@ def select_gal_from_pix(pixels_H0_gamma_para):
         #get luminsoity
         absolute_mag = cosmology.abs_M(loaded_pixel['m'+band],dl_galaxies)
         luminosities =  cosmology.mag2lum(absolute_mag)
-        
-        #weights = L * madau(z) * (1/(1+z))
         weights_gal = luminosities #* z_class.time_z(z_gal_selected) #* z_class.Madau_factor(z_gal_selected, zp, gamma, k) 
         weights_gal = np.nan_to_num(weights_gal) #If NaN set to zero and re weight
-        # print(np.sum(weights_gal))
+
         
         if np.sum(weights_gal) == 0.0:
             print()
@@ -399,8 +406,8 @@ if in_out is True:
 else:
     path_data = parentdir + r"/data_cosmoflow/empty_catalog/"+str(type_of_data)+"_data_from_MLP/"
 
-cdfs_zmax = z_class.make_cdfs()
-cdfs_m1 = mass_class.make_cdfs()[0]
+
+
 R_nums = np.random.uniform(0,1, size = N) #this is a random number which is used to keep track of which H0 is being used at any given moment 
 
 
@@ -414,7 +421,19 @@ missed_Om0 = Om0
 missed_gamma = gamma
 missed_k = k
 missed_zp = zp
+
 missed_cdfs_zmax = cdfs_zmax
+missed_cdfs_m1 = cdfs_m1
+
+
+missed_beta = beta
+missed_alpha =  alpha
+missed_mmin = mmin
+missed_mmax = mmax
+missed_mu_g = mu_g
+missed_sigma_g = sigma_g
+missed_lambda_peak = lambda_peak
+missed_delta_m = delta_m
 
 
 if type_of_data =='testing':
@@ -435,17 +454,25 @@ while True:
     
     if type_of_data == 'testing':
         repeated_Rnums = np.repeat(missed_R, select) 
-        
+
+    
+    ##Cosmology missed parameters
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
-    repeated_Om0 = np.repeat(missed_Om0, select) #repeat H0s for Nselect samples
-    repeated_gamma = np.repeat(missed_gamma, select) #repeat H0s for Nselect samples 
-    repeated_k = np.repeat(missed_k, select) #repeat H0s for Nselect samples
-    repeated_zp = np.repeat(missed_zp, select) #repeat H0s for Nselect samples
-    # print(missed_H0)
-    # print(missed_Om0)
-    # print(missed_gamma)
-    # print(missed_k)
-    # print(missed_zp)
+    repeated_Om0 = np.repeat(missed_Om0, select) 
+    repeated_gamma = np.repeat(missed_gamma, select)
+    repeated_k = np.repeat(missed_k, select) 
+    repeated_zp = np.repeat(missed_zp, select) 
+    
+    ## Population missed parameters 
+    repeated_beta = np.repeat(missed_beta, select) 
+    repeated_alpha = np.repeat(missed_alpha, select)
+    repeated_mmin = np.repeat(missed_mmin, select) 
+    repeated_mmax = np.repeat(missed_mmax, select) 
+    
+    repeated_mu_g = np.repeat(missed_mu_g, select) 
+    repeated_sigma_g = np.repeat(missed_sigma_g, select)
+    repeated_lambda_peak = np.repeat(missed_lambda_peak, select) 
+    repeated_delta_m = np.repeat(missed_delta_m, select) 
     
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
@@ -455,7 +482,15 @@ while True:
         RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
         
     z = z_class.draw_z_zmax(select, missed_cdfs_zmax) #sampleredshift from zmax-H0 distributions 
-    dl = utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
+
+    # print('zmax = {}'.format(z_class.zmax_H0(repeated_H0, SNRth)))
+    # print('z = {}'.format(z))
+    
+    # dl = utilities._MLP_luminosity_distance(np.array(z), np.array(repeated_H0), np.array(repeated_Om0), model = model_luminosity_distance, device = device ) ### MLP for luminosity_distance
+    dl = cosmology.z_to_dl_H_Omegas_EoS(np.array(z).flatten(),
+                                           np.array(repeated_H0).flatten(),
+                                           np.array(repeated_Om0).flatten(),
+                                           -1*np.ones(len(np.array(repeated_Om0).flatten())))
     # dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
     #Make sure all are arrays
@@ -472,16 +507,10 @@ while True:
         mth_list = np.array([utilities.mth_from_RAdec(NSIDE, RA, dec, map_mth)]).flatten() #list of mths 
         pix_list = np.array([utilities.pix_from_RAdec(NSIDE, RA, dec)]).flatten() #list of pixels per mth
         inx_in_gal = np.where((app_samples < mth_list) == True)[0]  #check where theapp_mag is brighter than the mth (if yes, that is a galaxy in the catalog)
-        # print(len(inx_in_gal), len(pix_list))
         if len(inx_in_gal) > 0: #if the nubmer of galaxies selected is greater than zero, start galaxy selection
-
             pix_list = np.array(pix_list[inx_in_gal]) #get list of pixels from where to get the galaxies 
             H0_in_list = np.array(repeated_H0[inx_in_gal]) #get the associated H0s from each pixel
             Om0_in_list = np.array(repeated_Om0[inx_in_gal])
-            # gamma_in_list = np.array(repeated_gamma[inx_in_gal]) #get the associated H0s from each pixel
-            # kappa_in_list = np.array(repeated_kappa[inx_in_gal]) #get the associated H0s from each pixel
-            # zp_in_list = np.array(repeated_zp[inx_in_gal]) #get the associated H0s from each pixel
-            
             pixel_H0 = np.array([pix_list, H0_in_list, Om0_in_list]).T #make an array of lists with pixel index and H0 to be used in the select galaxy function
 
             with multiprocessing.Pool(threads) as p: #multiprocess for galaxy pixel loading 
@@ -497,12 +526,6 @@ while True:
                 Om0_in_list = Om0_in_list[valid_indices]
                 inx_in_gal = inx_in_gal[valid_indices]
                 
-                # inx_0_gal = np.where(selected_cat_pixels != 0)[0]
-                # print(inx_0_gal, np.shape(selected_cat_pixels))
-                # selected_cat_pixels = selected_cat_pixels[inx_0_gal]
-                # H0_in_list = H0_in_list[inx_0_gal]
-                # Om0_in_list = Om0_in_list[inx_0_gal]
-                # print(selected_cat_pixels, pix_list)
         
             if len(selected_cat_pixels) >= 1: #if we have selected more or one galaxy
                 gal_selected = pd.concat(selected_cat_pixels) #get selected galaxy 
@@ -517,7 +540,6 @@ while True:
                 z_obs_gal = truncnorm.rvs(a, b, loc=z_true_gal, scale=abs(sigmaz_gal), size=len(z_true_gal))
                 m_obs_gal = np.array(gal_selected['m'+band]) #get the apparent magnitude 
                 
-                # print(len(z_obs_gal), len(H0_in_list))
                 
                 dl_gal = utilities._MLP_luminosity_distance(np.array(z_obs_gal), np.array(H0_in_list),
                                                np.array(Om0_in_list), model = model_luminosity_distance, device = device )
@@ -537,26 +559,16 @@ while True:
     _, _, _, a1, a2, tilt1, tilt2, _, _, theta_jn, phi_jl, phi_12, psi, _, geo_time = gw_priors_v2.draw_prior(int(nxN))
     
     
-    #Sample primary and secondary masses
-    # m1, m2 = mass_class.PL_PEAK_GWCOSMO(nxN) #use GWCOSMO mass prior distribution #NOTE: Deifne better 
-    # samples_m1 = mass_class.draw_m_simple(nxN, cdfs_m1)
-    # print('Sampling masses for {}'.format(name_pop))
-    samples_m1 = mass_class.draw_m_simple(nxN , cdfs_m1)
-    
     if name_pop == 'NSBH':
+        samples_m1 = mass_class.draw_m_simple(select, missed_cdfs_m1)
         samples_m2 = np.random.uniform(1,3,nxN)
         
     elif name_pop == 'BBH':
-        # population_parameters_temp = {'beta': xp.array(np.ones(1)*beta), 'alpha': xp.array(np.ones(1)*alpha),
-        #                  'mmin': xp.array(np.ones(1)*mmin) ,'mmax': xp.array(np.ones(1)*mmax),
-        #                  'mu_g': xp.array(np.ones(1)*mu_g), 'sigma_g': xp.array(np.ones(1)*sigma_g),
-        #                  'lambda_peak': xp.array(np.ones(1)*lambda_peak),
-        #                  'delta_m': xp.array(np.ones(1)*delta_m), 'name': 'BBH-powerlaw-gaussian'}
-        # # print(np.shape(population_parameters['delta_m'].get()), np.shape(population_parameters['mmin'].get()))
-        # mass_class_temp = MassPrior(population_parameters_temp, mgrid = 250) #initiate mass prior class, p(m1,m2)
-        cdfs_m2 = mass_class.make_cdfs_m2(xp.array(samples_m1))
-        m2_array_vect = np.concatenate(xp.linspace(xp.zeros(len(samples_m1)), samples_m1, mass_class.mgrid, axis = 1))
-        samples_m2 = mass_class.draw_m(1, cdfs_m2,  m_array_long = m2_array_vect)
+        samples_m1, samples_m2 = mass_class.m1_m2_sampling(1, select, xp.array(repeated_beta),
+               xp.array(repeated_mmin),
+               xp.array(repeated_delta_m),
+               missed_cdfs_m1, mass_class)
+    
     
     m1z = samples_m1*(1+z) #turn source masses into detector frame masses 
     m2z = samples_m2*(1+z)
@@ -635,6 +647,16 @@ while True:
     GW_data['gamma'] = repeated_gamma #add H0 to the GW_data 
     GW_data['k'] = repeated_k #add H0 to the GW_data 
     GW_data['zp'] = repeated_zp
+    GW_data['z'] = z
+    
+    GW_data['beta'] = repeated_beta
+    GW_data['alpha'] = repeated_alpha
+    GW_data['mmax'] = repeated_mmax
+    GW_data['mmin'] = repeated_mmin
+    GW_data['mu_g'] = repeated_mu_g
+    GW_data['sigma_g'] = repeated_sigma_g
+    GW_data['lambda_peak'] = repeated_lambda_peak
+    GW_data['delta_m'] = repeated_delta_m
     GW_data['inx'] = inx_gal
     
     if in_out is True:
@@ -678,13 +700,25 @@ while True:
         missed_R = new_missed_R[inx_missed_R]
         
     new_missed_H0 = missed_H0[inx_new_missed] #new missed H0s
+    
     new_missed_Om0 = missed_Om0[inx_new_missed]
     new_missed_gamma = missed_gamma[inx_new_missed]
     new_missed_k = missed_k[inx_new_missed]
     new_missed_zp = missed_zp[inx_new_missed]
     new_missed_cdfs_zmax = missed_cdfs_zmax[:,inx_new_missed].reshape(250,-1)
     
-    # print(np.shape(missed_cdfs_zmax), np.shape(new_missed_cdfs_zmax))
+    new_missed_beta = missed_beta[inx_new_missed]
+    new_missed_alpha = missed_alpha[inx_new_missed]
+    new_missed_mmax = missed_mmax[inx_new_missed]
+    new_missed_mmin = missed_mmin[inx_new_missed]
+    new_missed_mu_g = missed_mu_g[inx_new_missed]
+    new_missed_sigma_g = missed_sigma_g[inx_new_missed]
+    new_missed_lambda_peak = missed_lambda_peak [inx_new_missed]
+    new_missed_delta_m = missed_delta_m[inx_new_missed]
+    new_missed_cdfs_m1 = missed_cdfs_m1[inx_new_missed[0],:]#.reshape(mass_class.mgrid,-1)
+    # print(np.shape(inx_new_missed), np.shape(missed_cdfs_m1), np.shape(new_missed_cdfs_m1))
+
+
     
     inx_missed_H0 = np.argsort(new_missed_H0) #sort the indicies of missed H0s 
 
@@ -693,8 +727,20 @@ while True:
     missed_gamma = new_missed_gamma[inx_missed_H0] #missed H0s sorted 
     missed_k = new_missed_k[inx_missed_H0] #missed H0s sorted
     missed_zp = new_missed_zp[inx_missed_H0] #missed H0s sorted
-    # missed_cdfs_zmax = np.array([missed_cdfs_zmax[:,index] for index in inx_missed_H0]).T #get cdfs from each H0s that has been missed 
+ 
     missed_cdfs_zmax = new_missed_cdfs_zmax[:,inx_missed_H0]
+    
+    missed_beta = new_missed_beta[inx_missed_H0]
+    missed_alpha = new_missed_alpha[inx_missed_H0]
+    missed_mmax = new_missed_mmax[inx_missed_H0]
+    missed_mmin = new_missed_mmin[inx_missed_H0]
+    missed_mu_g = new_missed_mu_g[inx_missed_H0]
+    missed_sigma_g = new_missed_sigma_g[inx_missed_H0]
+    missed_lambda_peak = new_missed_lambda_peak[inx_missed_H0]
+    missed_delta_m = new_missed_delta_m[inx_missed_H0]
+    missed_cdfs_m1 = new_missed_cdfs_m1[inx_missed_H0, :]
+
+    
     
     sys.stdout.write('\rEvents we missed: {} | Nselect = {} | counter = {}'.format(len(missed_H0), nxN, counter)) #print status of data generation 
     N_missed = len(missed_H0) #append relevant information 
@@ -715,10 +761,9 @@ print('\nFINISHED Sampling events')
 
 #save data 
 GW_data = pd.concat(list_data)
-output_df = GW_data[['snr', 'H0', 'Om0','gamma','k','zp',
-                     'luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec',
-                     'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn',
-                     'phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','inx']]
+output_df = GW_data[['snr', 'H0', 'Om0','gamma','k','zp','beta', 'alpha', 'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak',
+                     'delta_m', 'z','luminosity_distance', 'mass_1', 'mass_2', 'ra', 'dec','a_1', 'a_2', 'tilt_1', 'tilt_2',
+                     'theta_jn','phi_jl', 'phi_12', 'psi','geocent_time', 'app_mag','inx']]
 
 output_df.to_csv(path_data+'run_{}_det_{}_name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}__Full_para_v1.csv'.format(run,detectors, Name, in_out,band, int(batch), int(N), int(SNRth), int(Nselect)))
 

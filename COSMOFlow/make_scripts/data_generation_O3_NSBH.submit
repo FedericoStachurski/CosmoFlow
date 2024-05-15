@@ -1,0 +1,13 @@
+universe = vanilla 
+executable = /data/wiay/federico/PhD/cosmoflow_env/bin/python
+arguments = make_events_v3_NSBH-BBH.py -Name NSBH_data_full_sky_128 -batch 2 -in_out 1 -type training -mass_distribution PowerLaw+Peak -name_pop NSBH -zmax 1.0 -zmin 0.0001 -H0 20 140 -Om0 0.3 -w0 -1 -gamma 4.59 -k 2.86 -zp 2.47 -mmax 112.5 -mmin 4.98 -alpha 3.78 -mu_g 32.27 -sigma_g 3.88 -lambda_peak 0.03 -beta 0.81 -delta_m 4.8  -SNRth 11.0 -SNRth_single 0.0 -band K -run O3 -detectors H1 L1 V1 -N 250_000 -Nselect 2 -device cuda:0 -threads 10 -seed 123 -NSIDE 32
+
+output = data_generation.out
+error = data_generation.err
+log = data_generation.log
+run_as_owner = True
+request_cpus = 5
+request_gpus = 1
+request_memory = 10 GB
+request_disk = 10 GB
+queue 1  

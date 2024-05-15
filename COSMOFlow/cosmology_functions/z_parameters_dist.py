@@ -18,12 +18,13 @@ class RedshiftGW_fast_z_para(object):
             if self.population == 'NSBH':
                 self.magic_snr_dl = 13201.953173828133 #0.995 PERCENTILE
             else: 
-                self.magic_snr_dl = 71404.52441406266
+                # self.magic_snr_dl = 71404.52441406266 ### TOO small
+                self.magic_snr_dl = 109638.88392302892 # 99.999% quantile
 
         elif self.run == 'O2':
-            self.magic_snr_dl = 62386.692042968854
+            self.magic_snr_dl = 89547.08
         elif self.run == 'O1':
-            self.magic_snr_dl = 48229.26957734367
+            self.magic_snr_dl = 64859.84
 
     def zmax_H0(self,H0, SNRth):
         return cosmology.fast_dl_to_z_v2(self.magic_snr_dl/SNRth,H0)
@@ -80,6 +81,10 @@ class RedshiftGW_fast_z_para(object):
             return priorz
         else: 
             return priorz
+        
+    def p_z_single_values(self,z,  zp, gamma, k, H0, Om0, w0, SNRth):
+        priorz = self.Madau_factor(z, zp, gamma, k)  * priors.p_z_omega_EoS(z, Om0, w0) * self.time_z(z) 
+        return priorz
             
  
             
@@ -87,8 +92,10 @@ class RedshiftGW_fast_z_para(object):
     def make_cdfs(self):
         zp = self.parameters['zp'] ; gamma = self.parameters['gamma'] ; k = self.parameters['k']; H0 = self.parameters['H0']
         w0 = self.parameters['w0']; Om0 = self.parameters['Om0']
-        if (np.size(zp) == 1) and (np.size(gamma) == 1) and (np.size(k) == 1) and (np.size(Om0) == 1) and (np.size(w0) == 1):
+        if (np.size(zp) == 1) and (np.size(gamma) == 1) and (np.size(k) == 1) and (np.size(Om0) == 1) and (np.size(w0) == 1) and (np.size(H0) != 1) :
             pdf = self.p_z_zmax_single_values(self.z_grid[:,None],  zp, gamma, k, H0[None,:], Om0, w0, self.SNRth)
+        elif (np.size(H0) == 1):
+            pdf = self.p_z_zmax(self.z_grid[:,None],  zp, gamma, k, H0, Om0, w0, self.SNRth) 
         elif (np.size(Om0) != 1) and (np.size(w0) != 1):
             pdf = self.p_z_zmax(self.z_grid[:,None],  zp, gamma, k, H0[None,:], Om0[None,:], w0[None,:], self.SNRth)  
         else: 
