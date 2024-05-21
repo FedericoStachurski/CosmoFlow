@@ -102,7 +102,7 @@ if 'O2' in runs:
     
     
 if 'O3' in runs: 
-    flow_name_o3_hlv = flow_name+'_O3_H1_L1_V1_SPLINE_v1'
+    flow_name_o3_hlv = flow_name+'_O3_H1_L1_V1_SPLINE_v3'
     flow_class_o3_hlv = Handle_Flow(path, flow_name_o3_hlv, device, epoch = None)
     if data_type == 'Real':
         N_evetns_o3_hlv = len(GW_class.get_event('O3', 'HLV'))
@@ -251,7 +251,7 @@ if sampler == 'Rejection':
 
 elif sampler == 'Nested_AI':
     os.chdir("make_posteriors/posterior_samples_rejection/")
-    output = "nested_sampling_folders/NESSAI_run_{}_FLOW_{}_TESTING_data".format('O3_test',flow_name)
+    output = "nested_sampling_folders/NESSAI_run_{}_FLOW_{}_TESTING_data".format('O3_test_v2',flow_name)
     logger = setup_logger(output=output)
 
     class p_Omega(Model):

@@ -20,7 +20,7 @@ import json
 from scipy.spatial.distance import jensenshannon
 from scipy import interpolate
 from scipy.special import logsumexp
-
+import matplotlib.pyplot as plt
 from scipy.stats import ncx2
 import bilby
 
@@ -29,13 +29,16 @@ torch.set_printoptions(precision=12)
 
 
 class Handle_Flow(object):
-    def __init__(self, path, flow_name, device, epoch = None, threads = 1):
+    def __init__(self, path, flow_name, device, epoch = None, threads = 1, conditional = 1):
         self.path = path
         self.flow_name = flow_name
         self.device = device 
         self.epoch = epoch
         self.threads = threads
-        self.flow, self.hyperparameters, self.scaler_x, self.scaler_y = self.load_hyperparameters_scalers_flow()
+        if conditional == 1:
+            self.flow, self.hyperparameters, self.scaler_x, self.scaler_y = self.load_hyperparameters_scalers_flow()
+        else: 
+            self.flow, self.hyperparameters, self.scaler_x = self.load_hyperparameters_scalers_flow()
         
     def load_hyperparameters_scalers_flow(self):
         torch.set_num_threads(self.threads)
@@ -57,9 +60,11 @@ class Handle_Flow(object):
 
         #open scaler_x and scaler_y
         scalerfile_x = path+flow_name+'/'+'scaler_x.sav'
-        scalerfile_y = path+flow_name+'/'+'scaler_y.sav'
         scaler_x = pickle.load(open(scalerfile_x, 'rb'))
-        scaler_y = pickle.load(open(scalerfile_y, 'rb'))
+
+        if n_conditional_inputs != 0:
+            scalerfile_y = path+flow_name+'/'+'scaler_y.sav'
+            scaler_y = pickle.load(open(scalerfile_y, 'rb'))
 
 
         #Open flow model file flow.pt
@@ -94,7 +99,10 @@ class Handle_Flow(object):
         flow = flow_empty
         flow.eval()
 
-        return flow, hyperparameters, scaler_x, scaler_y
+        if n_conditional_inputs != 0:
+            return flow, hyperparameters, scaler_x, scaler_y
+        else:
+            return flow, hyperparameters, scaler_x
     
     
     def Flow_samples(self, conditional, n):
@@ -122,6 +130,14 @@ class Handle_Flow(object):
         self.flow.to(self.device)
         with torch.no_grad():
             logprobx = self.flow.log_prob(target.to(self.device), conditional=conditional.to(self.device))
+            logprobx = logprobx.detach().cpu().numpy() 
+            return  logprobx
+
+    def Flow_posterior_no_conditional(self, target): 
+        self.flow.eval()
+        self.flow.to(self.device)
+        with torch.no_grad():
+            logprobx = self.flow.log_prob(target.to(self.device))
             logprobx = logprobx.detach().cpu().numpy() 
             return  logprobx
  

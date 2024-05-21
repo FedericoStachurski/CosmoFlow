@@ -22,7 +22,7 @@ class RedshiftGW_fast_z_para(object):
                 self.magic_snr_dl = 109638.88392302892 # 99.999% quantile
 
         elif self.run == 'O2':
-            self.magic_snr_dl = 89547.08
+            self.magic_snr_dl = 65004.52441406266#59645000.44 # 89547.08
         elif self.run == 'O1':
             self.magic_snr_dl = 64859.84
 

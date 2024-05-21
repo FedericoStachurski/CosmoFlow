@@ -193,7 +193,7 @@ Npix = hp.nside2npix(NSIDE)
 
 
 #define popualtion parameters of GWs
-population_parameters = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 112.5, 'mu_g': 32.27, 'sigma_g': 3.88, 'lambda_peak': 0.03,'delta_m': 4.8,
+population_parameters = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 112.5, 'mu_g': 32.27, 'sigma_g': 3.88, 'lambda_peak': 0.03,'delta_m': 4.8, 'name': 'BBH-powerlaw-gaussian',
                          'gamma': 4.59, 'k': 2.86, 'zp': 2.47, 'lam': 0, 'Om':0.305, 'zmax':zmax}#put this in sepearte file #Specify 
 
 zmax_class = RedshiftGW_fast_zmax(parameters=population_parameters, run = run,zmin = zmin, zmax = zmax) #initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
@@ -266,7 +266,7 @@ if type_of_data == 'training':
     else:
         path_data = parentdir + r"/data_cosmoflow/empty_catalog/training_data_from_MLP/"
         
-    H0_samples = utilities.h_samples_alpha(N,-2, hmin = Hmin, hmax = Hmax) #np.random.uniform(Hmin,Hmax,N)
+    H0_samples = np.random.uniform(Hmin,Hmax,N)
     H0_samples = np.sort(H0_samples)
     
     #compute zmax from H0 

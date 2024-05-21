@@ -51,7 +51,7 @@ ax1.set_xlabel('Epochs', fontsize = 20)
 if log == 1: 
     ax1.set_xscale('log')
     
-ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])*1.25])
+ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])+0.1])
 # ax1.set_ylim([3.75,5])
 ax1.set_xlim([1,n_epochs])
 ax1.xaxis.set_tick_params(labelsize=20)
@@ -72,7 +72,7 @@ for i, kl_key in enumerate(kls):
     ax2.plot(smooth(np.array(kl_data[str(kl_key)]), npoints_filter), linewidth=2,alpha = 0.7 , color = color, label = r'$z{}$'.format(i))
 
 ax2.set_xlim([1,n_epochs])
-ax2.set_ylim([1e-4,10])
+ax2.set_ylim([1e-4,1])
 # ax2.set_xscale('log')
 if log == 1: 
     ax2.set_xscale('log')

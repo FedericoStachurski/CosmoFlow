@@ -1,4 +1,6 @@
-
+import h5py
+import pandas as pd
+import numpy as np
 class GW_events(object):
     def __init__(self, parameters):
         self.events_o1 = [ 'GW150914_095045','GW151226_033853'] # O1
@@ -43,3 +45,19 @@ class GW_events(object):
                 else:
                     raise ValueError('No events found')
             else: raise ValueError('No events found')
+
+    def load_data_GWTC(self, event):
+        if int(event[2:8]) <= 190930:
+            
+            path_gw = '/data/wiay/federico/PhD/GWTC_2.1/'
+            file_name = path_gw+'IGWN-GWTC2p1-v2-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
+        else:   
+            path_gw = '/data/wiay/federico/PhD/GWTC_3/'
+            file_name = path_gw+'IGWN-GWTC3p0-v1-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
+        
+        d = h5py.File(file_name,'r')
+        samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
+        # print(samples)
+        d.close()
+        df = pd.DataFrame(samples)
+        return df
