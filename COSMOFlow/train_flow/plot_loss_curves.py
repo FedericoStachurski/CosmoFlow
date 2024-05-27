@@ -30,6 +30,8 @@ flow = 'trained_flows_and_curves/'+Name
 kl_data = pd.read_pickle(flow+'/kl_data.pickle')
 loss_dict = pd.read_pickle(flow+'/loss_data.pickle')
 latent_samples = pd.read_pickle(flow+'/latent_data.pickle')
+print('Flow is at EPOCH = {}'.format(len(loss_dict['train'])))
+print()
 # print(loss_dict)
 
 # print(kl_data)
@@ -66,7 +68,7 @@ def smooth(y, box_pts):
 
 kls = ['KL_vals1', 'KL_vals2', 'KL_vals3', 'KL_vals4', 'KL_vals5']
 for i, kl_key in enumerate(kls):
-    l, = ax2.plot(kl_data[str(kl_key)],linewidth=1,alpha = 0.1, )
+    l, = ax2.plot(kl_data[str(kl_key)],linewidth=1,alpha = 0.25, )
     color = l.get_color()
     # ax2.plot(savgol_filter(np.array(kl_data[str(kl_key)]),  51, 3), linewidth=2,alpha = 0.7 , color = color, label = r'$z{}$'.format(i))
     ax2.plot(smooth(np.array(kl_data[str(kl_key)]), npoints_filter), linewidth=2,alpha = 0.7 , color = color, label = r'$z{}$'.format(i))
@@ -117,6 +119,8 @@ from scipy.integrate import quad
 np.random.seed(0)  # For reproducibility
 i = 3
 kls = []
+print()
+print('Showing KL divergences in 1D latent space')
 for i in range(5):
     if i+1 == 6:
         break

@@ -110,6 +110,12 @@ ap.add_argument("-save_timer", "--save_timer", required=False,
    help="If 1 save agnostic data of data generation, else not", default = 0)
 ap.add_argument("-approximator", "--approximator", required=True,
    help="waveform approxiamtor ", default = 'IMRPhenomXPHM')
+ap.add_argument("-name_pop", "--name_pop", required=False,
+   help="type of population", default = 'BBH')
+ap.add_argument("-NSIDE", "--NSIDE", required=True,
+   help="NSIDE resolution", default = 32)
+ap.add_argument("-targeted", "--targeted", required=True,
+   help="Do you want to do targeted event?", default = 'False')
 
 args = vars(ap.parse_args())
 Name = str(args['Name_file'])
@@ -137,6 +143,9 @@ seed = int(args['seed'])
 H0_testing = float(args['H0'])
 save_timer = int(args['save_timer'])
 approximator = str(args['approximator'])
+population = str(args['name_pop'])
+NSIDE = int(args['NSIDE'])
+targeted_event = str(args['targeted'])
 
 
 print()
@@ -154,6 +163,8 @@ print('n_detectors = {}'.format(n_det))
 print('detectors = {}'.format(detectors))
 print('approximator = {}'.format(approximator))
 print('run = {}'.format(run))
+print('population = {}'.format(population))
+print('NSIDE = {}'.format(NSIDE))
 
 if type_of_data == 'training':
     print('H0 = [{},{}]'.format(Hmin, Hmax))
@@ -170,12 +181,27 @@ print('seed = {}'.format(seed))
 print()
 
 
+if targeted_event != 'False':
+    print('Aiming at event: {}'.format(targeted_event))
+    with open('pixel_event/'+str(targeted_event)+'.pickle', 'rb') as file:
+        # Load the dictionary from the file
+        event_pixels = pickle.load(file)
+        pixels_event = event_pixels['pixels']
+        NSIDE_event = event_pixels['NSIDE']
+        print('NSIDE_event = {}'.format(NSIDE_event))
+
 if run == 'O1':
     model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1/model.pth'.format(approximator, run), device = device) #load MLP model 
     print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1'.format(approximator, run))
-else:
-    model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
-    print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
+else: 
+    if population == 'NSBH':
+        model = load_model('models/MLP_models/NSBH_v5_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP 
+        print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1_NSBH'.format(approximator, run))
+    else: 
+        model = load_model('models/MLP_models/SNR_MLP_TOTAL_v2_{}_{}_H1_L1_V1/model.pth'.format(approximator, run), device = device) #load MLP model 
+        print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
+
+
 
 indicies_detectors = [] #Check which detectors to use
 if 'H1' in detectors: 
@@ -191,14 +217,28 @@ band = mag_band #magnitude band to use
 np.random.seed(seed) # set random seed 
 
 #Load  pixelated galaxy catalog
-NSIDE = 32  #Define NSIDE for healpix map
+# NSIDE = 32  #Define NSIDE for healpix map
 Npix = hp.nside2npix(NSIDE)
 
-
+if population == 'BBH':
+    name_popualtion_model = 'BBH-powerlaw-gaussian'
+elif population == 'NSBH':
+    name_popualtion_model = 'NSBH-powerlaw-gaussian'
+    
 #define popualtion parameters of GWs
-population_parameters = {'beta': 0.81, 'alpha': 3.78, 'mmin': 4.98 ,'mmax': 112.5, 'mu_g': 32.27, 'sigma_g': 3.88, 'lambda_peak': 0.03,'delta_m': 4.8, 'name': 'BBH-powerlaw-gaussian','gamma': 4.59, 'k': 2.86, 'zp': 2.47, 'lam': 0, 'Om':0.305, 'zmax':zmax}#put this in sepearte file #Specify 
+population_parameters = {'beta': 0.81, 'alpha': 3.78,
+                         'mmin': 4.98 ,'mmax': 112.5,
+                         'mu_g': 32.27, 'sigma_g': 3.88,
+                         'lambda_peak': 0.03,
+                         'delta_m': 4.8, 
+                         'name': name_popualtion_model,
+                         'population':population,
+                         'gamma': 4.59, 'k': 2.86, 'zp': 2.47,
+                         'lam': 0,
+                         'Om':0.305, 'zmax':zmax}#put this in sepearte file #Specify 
 
-zmax_class = RedshiftGW_fast_zmax(parameters=population_parameters, run = run,zmin = zmin, zmax = zmax) #initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used 
+zmax_class = RedshiftGW_fast_zmax(parameters=population_parameters, run = run,zmin = zmin, zmax = zmax) #initiate zmax calss for zmax = f(H0, SNRth) #Hcekc if option is used
+print('Magic SNRxDL = {}'.format(zmax_class.magic_snr_dl))
 mass_class = MassPrior_sample(population_parameters, mass_distribution) #initiate mass prior class, p(m1,m2)
 
 
@@ -206,7 +246,7 @@ if in_out is True: #check if using a catalog
     sch_fun = Schechter_function(band) #initiate luminosity functions class 
     
     def load_cat_by_pix(pix): #load pixelated catalog 
-        loaded_pix = pd.read_csv('/data/wiay/federico/PhD/cosmoflow_review/COSMOFlow/pixelated_catalogs/GLADE+_pix/pixel_{}'.format(pix)) #Include NSIDE in the name of folders 
+        loaded_pix = pd.read_csv('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/pixelated_catalogs/GLADE+_pix_NSIDE_{}/pixel_{}'.format(NSIDE,pix)) #Include NSIDE in the name of folders 
         return loaded_pix
     
     def load_pixel(pix): #load pixel from catalog
@@ -217,7 +257,7 @@ if in_out is True: #check if using a catalog
         catalog_pixelated = list(tqdm(p.imap(load_cat_by_pix,np.arange(Npix)), total = Npix, desc = 'GLADE+ catalog, NSIDE = {}'.format(NSIDE)))
 
     #load mth map for specific filter band 
-    map_mth = np.loadtxt('/data/wiay/federico/PhD/cosmoflow_review/COSMOFlow/magnitude_threshold_maps/NSIDE_32_mth_map_GLADE_{}.txt'.format(band))
+    map_mth = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE,band))
     inx_0 = np.where(map_mth == 0.0 )[0] #if mag threshold is zero, set it to -inf 
     map_mth[inx_0] = -np.inf
         
@@ -249,19 +289,29 @@ def select_gal_from_pix(pixels_H0s):
         #get luminsoity
         absolute_mag = cosmology.abs_M(loaded_pixel['m'+band],dl_galaxies)
         luminosities =  cosmology.mag2lum(absolute_mag)
+
+
         
         #weights = L * madau(z) * (1/(1+z))
         weights_gal = luminosities * zmax_class.time_z(z_gal_selected)
+
+        if np.sum(weights_gal) == 0.0:
+            print()
+            print('ISSUE: w  ; L ; M ; Dl ; pixel')
+            print(weights_gal, luminosities, absolute_mag, dl_galaxies, pixel)
+            return 0
+        
         weights_gal /= np.sum(weights_gal) # check weights sum to 1
         gal_id = np.random.choice(np.arange(Ngalpix), size = 1, p = weights_gal) #random choice of galaxy in the pixel 
         return loaded_pixel.iloc[gal_id,:]
     
     else: #if no galaxies in pixel, return None 
-        return None 
+        return 0 
 
 
 
 if type_of_data == 'training':
+
     #if making training data, define paths where to store the data, and sample H0 
     if in_out is True: 
         path_data = parentdir + r"/data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
@@ -280,7 +330,7 @@ if type_of_data == 'training':
         cdfs_zmax = list(tqdm(p.imap(zmax_class.make_cdfs,zmax_samples), total = N, desc = 'Making cdfs from p(z)p(s|z)')) 
 
     
-if type_of_data == 'testing': #NOT TESTED 
+if type_of_data == 'testing': 
     #if making training data, define paths where to store the data, set H0 to specified value 
     if in_out is True: 
         path_data = parentdir + r"/data_cosmoflow/galaxy_catalog/testing_data_from_MLP/"
@@ -321,9 +371,12 @@ while True:
     nxN = int(n*select) #defin the number of samples we are going to sample nxN (n = H0s, N = sampels per H0s)
     repeated_H0 = np.repeat(missed_H0, select) #repeat H0s for Nselect samples 
     inx_gal = np.zeros(nxN) #define galxy indecies 
+
+    if targeted_event != 'False':
+        RA, dec = cosmology.target_ra_dec(nxN, pixels_event, NSIDE_event)
+    else:     
+        RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
     
-    
-    RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
     z = zmax_class.draw_z_zmax(select, missed_cdfs_zmax) #sampleredshift from zmax-H0 distributions 
     dl = cosmology.fast_z_to_dl_v2(np.array(z),np.array(repeated_H0)) #convert z-H0s into luminosity distances 
     
@@ -350,7 +403,17 @@ while True:
 
             with multiprocessing.Pool(threads) as p: #multiprocess for galaxy pixel loading 
                 selected_cat_pixels = list(p.imap(select_gal_from_pix,pixel_H0))
-           
+
+            if NSIDE != 32:
+                # Checking if any entry is a non-zero DataFrame and keeping only those, while also capturing their indices
+                valid_indices = [i for i, df in enumerate(selected_cat_pixels) if isinstance(df, pd.DataFrame) and not df.empty]
+
+                # Now valid_indices contains the indices of selected_cat_pixels where the entry is an actual non-empty DataFrame
+                # If you also need to keep only the actual non-empty DataFrames:
+                selected_cat_pixels = [df for df in selected_cat_pixels if isinstance(df, pd.DataFrame) and not df.empty]
+                H0_in_list = H0_in_list[valid_indices]
+                inx_in_gal = inx_in_gal[valid_indices]
+            
             if len(selected_cat_pixels) >= 1: #if we have selected more or one galaxy
                 gal_selected = pd.concat(selected_cat_pixels) #get selected galaxy 
                 RA_gal = np.array(gal_selected.RA) #get RA of galaxy 

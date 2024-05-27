@@ -19,20 +19,20 @@ import torch
 import pickle
 import corner
 
-parameters = {'population':'BBH'}
+parameters = {'population':'NSBH'}
 
 gwevents = GW_events(parameters)
 
 O3_evetns_HLV = gwevents.get_event('O3', 'HLV')
-O3_evetns_HL = gwevents.get_event('O3', 'HL')
-O3_evetns_LV = gwevents.get_event('O3', 'LV')
-O3_evetns_HV = gwevents.get_event('O3', 'HV')
+# O3_evetns_HL = gwevents.get_event('O3', 'HL')
+# O3_evetns_LV = gwevents.get_event('O3', 'LV')
+# O3_evetns_HV = gwevents.get_event('O3', 'HV')
 # O2_evetns_HLV = gwevents.get_event('O2', 'HLV')
 # O2_evetns_HL = gwevents.get_event('O2', 'HL')
 # O1_evetns_HL = gwevents.get_event('O1', 'HL')
 
 # list_events = [O1_evetns_HL, O2_evetns_HLV, O2_evetns_HL, O3_evetns_HLV, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
-list_events = [O3_evetns_HLV, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
+list_events = [O3_evetns_HLV]#, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
 list_events = np.concatenate(list_events)
 # list_events = ["GW190513_205428"] 
 for event in list_events:
