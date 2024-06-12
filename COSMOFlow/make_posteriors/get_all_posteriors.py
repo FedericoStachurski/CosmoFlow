@@ -105,7 +105,8 @@ elif run == 'O2':
 elif run == 'O3':
     if detectors == 'HLV':
         if population == 'NSBH':
-            events = [ 'GW200105_162426', 'GW200115_042309'] #'GW190814_211039',
+            events = ['GW190814_211039']
+            # events = [ 'GW200105_162426', 'GW200115_042309'] #'GW190814_211039',
         else: 
             # events = ['GW190814_211039']
             events = ['GW190408_181802', 'GW190412_053044', 'GW190503_185404', 'GW190512_180714', 'GW190513_205428',
@@ -124,7 +125,6 @@ elif run == 'O3':
 
 def load_data_GWTC(event, xyz = 0 ):
     if int(event[2:8]) <= 190930:
-        
         path_gw = '/data/wiay/federico/PhD/GWTC_2.1/'
         file_name = path_gw+'IGWN-GWTC2p1-v2-{}_PEDataRelease_mixed_nocosmo.h5'.format(event)
     else:   
@@ -138,9 +138,12 @@ def load_data_GWTC(event, xyz = 0 ):
     elif population == 'NSBH':
         if event == 'GW200115_042309':
             samples = np.array(d.get('C01:IMRPhenomNSBH:LowSpin/posterior_samples'))
+        elif event == 'GW190814_211039':
+            samples = np.array(d.get('C01:IMRPhenomXPHM/posterior_samples'))
         else: 
             samples = np.array(d.get('C01:IMRPhenomNSBH/posterior_samples'))
     d.close()
+    print(population)
     df = pd.DataFrame(samples)
     return df
 

@@ -31,7 +31,7 @@ class LikelihoodDenomiantor(object):
         prob_dec = np.cos(dec)
         prob_jn = abs(np.sin(theta_jn))
 
-        return prob_dl * prob_dec * prob_jn
+        return prob_dl #* prob_dec * prob_jn
 
     def p_theta_omega_nocosmo(self, theta):
 

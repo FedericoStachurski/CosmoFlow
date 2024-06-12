@@ -89,9 +89,15 @@ class MassPrior:
         mprime = xx - mmin
         smooth_exp = xp.exp((smooth_scale/mprime)+(smooth_scale/(mprime-smooth_scale)))
         ans = (1 + smooth_exp)**-1
+
+        all_zero_rows = np.all(ans == 0, axis=1)
+        # Change those rows to all ones
+        ans[all_zero_rows] = 1
+        
         if xp.size(xx) > 1: 
             ans[xx > mmin + smooth_scale] = 1.0
             ans[xx < mmin] = 0.0
+
         else:
             if xx > mmin + smooth_scale:
                 ans = 1
