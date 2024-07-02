@@ -339,7 +339,7 @@ class Handle_Flow(object):
     
     def temp_funct_post(self, flow_class, target_data, prior_samples, N_events, N_post, N_priors, ndim_target = 5):
 
-        target_data = self.convert_data(target_data) #convert data #####UNCOMMENT!!!!
+        # target_data = self.convert_data(target_data) #convert data #####UNCOMMENT!!!!
         scaled_theta = self.scaler_x.transform(target_data) #scale data 
         scaled_theta = np.array(scaled_theta) ### make sure the data is an array
         conditional = self.scaler_y.transform(prior_samples.T)  ### reshape conditional data 

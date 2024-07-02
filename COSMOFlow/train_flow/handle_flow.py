@@ -175,6 +175,48 @@ class Handle_Flow(object):
 
 
         return np.exp(Log_Prob)
+
+
+    def p_theta_H0_full_single_14d(self, df, conditional):
+        "Functio for evaluating the numerator, takes in all the posterior samples for singular vlaue of the conditional statement"
+        "Input: df = Data frame of posterior samples (dl, ra, dec, m1, m2) or (x,y,z, m1, m2)"
+        "       conditional = singular value of the conditional statemnt (thsi case, H0 = 70 example ) "
+        
+        "Output: p(theta|H0,D) numerator "
+        
+        if 'geocent_time' in df.columns:     
+            df.geocent_time = df.geocent_time%86164.0905
+            
+        conv_df = df    
+        # conv_df = self.convert_data(df) #convert data 
+        scaled_theta = self.scaler_x.transform(conv_df) #scale data 
+        conditional = np.repeat(conditional, len(conv_df))  #repeat condittional singualr value N times as many posterior sampels 
+        Y_H0_conditional = self.scaler_y.transform(conditional.reshape(-1,1)) #scael conditional statemnt 
+        samples = scaled_theta
+
+        if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
+            dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4],
+                         'a_1':samples[:,5], 'a_2':samples[:,6],'tilt_1':samples[:,7], 'tilt_2':samples[:,8], 'theta_jn':samples[:,9], 'phi_jl':samples[:,10],
+                 'phi_12':samples[:,11], 'psi':samples[:,12],'geocent_time':samples[:,13]}
+
+        # elif flow_class.hyperparameters['xyz'] == 1:
+        #     dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
+
+        samples = pd.DataFrame(dict_rand) #make data frame to pass 
+        scaled_theta = samples 
+        # if self.hyperparameters['log_it'] == 1:
+        #     utilities.logit_data(scaled_theta)
+        #     scaled_theta = scaled_theta[np.isfinite(scaled_theta).all(1)]
+
+        scaled_theta = np.array(scaled_theta) 
+        scaled_theta = scaled_theta.T*np.ones((1,len(Y_H0_conditional)))
+
+        conditional = np.array(Y_H0_conditional)
+        data = np.array(conditional)
+        data_scaled = torch.from_numpy(data.astype('float32'))
+        Log_Prob = self.Flow_posterior(torch.from_numpy(scaled_theta.T).float(), data_scaled)
+
+        return np.exp(Log_Prob)
     
     
     
@@ -184,7 +226,7 @@ class Handle_Flow(object):
         "       conditional = singular value of the conditional statemnt (thsi case, H0 = 70 example ) "
         
         "Output: p(theta|H0,D) numerator "
-                
+
         conv_df = self.convert_data(df) #convert data 
         scaled_theta = self.scaler_x.transform(conv_df) #scale data 
         conditional = np.repeat(conditional, len(conv_df))  #repeat condittional singualr value N times as many posterior sampels 

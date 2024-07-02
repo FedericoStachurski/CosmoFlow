@@ -145,6 +145,9 @@ def load_data_GWTC(event, xyz = 0 ):
     d.close()
     print(population)
     df = pd.DataFrame(samples)
+    df = df[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2',
+                 'a_1', 'a_2','tilt_1', 'tilt_2', 'theta_jn', 'phi_jl',
+                 'phi_12', 'psi','geocent_time', 'network_optimal_snr']]
     return df
 
 
@@ -164,10 +167,16 @@ def convert_data(df):
     if xyz == 1:
         return data[['xcoord', 'ycoord', 'zcoord','mass_1', 'mass_2']]
 
-def get_likelihoods(h0, df, N_samples, flow_class):
+def get_likelihoods(h0, df, N_samples, flow_class, dimensions = 5):
     likelihood_vertical = []
     for h in tqdm(h0):
-        likelihood_vertical.append(flow_class.p_theta_H0_full_single(df.loc[:N_samples], h))
+        if dimensions == 5:
+            likelihood_vertical.append(flow_class.p_theta_H0_full_single(df.loc[:N_samples], h))
+        elif dimensions == 14:
+            likelihood_vertical.append(flow_class.p_theta_H0_full_single_14d(df.loc[:N_samples], h))
+        else:
+            raise ValueError('Only 5 or 14 dimensional target distribution, your input is ndim  = {}'.format(dimensions))
+            
     return  np.array(likelihood_vertical).T
     
     
@@ -245,8 +254,10 @@ for GW_event in events:
     pD = denominator_class.p_D_theta(SNRs)
     pt = np.array(denominator_class.p_theta_omega_cosmo(df))
     dH = np.diff(H0vec)[0]
-    
-    likelihoods = get_likelihoods(H0vec, df, Nsamples, flow_class)
+    df_datainput = df[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2',
+                 'a_1', 'a_2','tilt_1', 'tilt_2', 'theta_jn', 'phi_jl',
+                 'phi_12', 'psi','geocent_time']]
+    likelihoods = get_likelihoods(H0vec, df_datainput, Nsamples, flow_class, dimensions = 14)
     plt.figure(figsize = (10,8))
     posterior = np.zeros(len(H0vec))
     posterio_no_w = np.zeros(len(H0vec))

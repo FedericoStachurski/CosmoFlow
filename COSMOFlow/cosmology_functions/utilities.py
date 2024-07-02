@@ -253,12 +253,12 @@ def prior_samples(N_samples, parameters_dictionary):
         samples_proposal, _ = proposal_pdf(parameters_dictionary['sigma_g'][0],parameters_dictionary['sigma_g'][1],N_samples)
         prior_samples.append(samples_proposal)
 
-    if 'delta_m' in parameters_dictionary:
-        samples_proposal, _ = proposal_pdf(parameters_dictionary['delta_m'][0],parameters_dictionary['delta_m'][1],N_samples)
-        prior_samples.append(samples_proposal)
-
     if 'lambda_peak' in parameters_dictionary:
         samples_proposal, _ = proposal_pdf(parameters_dictionary['lambda_peak'][0],parameters_dictionary['lambda_peak'][1],N_samples)
+        prior_samples.append(samples_proposal)
+
+    if 'delta_m' in parameters_dictionary:
+        samples_proposal, _ = proposal_pdf(parameters_dictionary['delta_m'][0],parameters_dictionary['delta_m'][1],N_samples)
         prior_samples.append(samples_proposal)
         
     prior_samples = np.array(prior_samples).reshape(dimensions,N_samples)

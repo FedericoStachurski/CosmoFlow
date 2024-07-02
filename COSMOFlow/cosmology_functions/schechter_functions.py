@@ -31,7 +31,7 @@ class Schechter_function(object):
 
 
     def M_grid_H0(self, low,high, H0):
-        return np.linspace(high  + 5*np.log10(H0/100),low  + 5*np.log10(H0/100), 100)
+        return np.linspace(high  + 5*np.log10(H0/100),low  + 5*np.log10(H0/100), 250)
 
     def LF(self, M,H0):
         phi_star = self.LF_para['phi_star']; alpha = self.LF_para['alpha']; Mstar = self.LF_para['Mstar']
@@ -44,6 +44,12 @@ class Schechter_function(object):
         # Mstar = Mstar + 5*np.log10(H0/100)
         # phi_star = phi_star * (H0/100)**(3)
         return phi_star * 0.4*np.log(10)*10**(-0.4*(M - Mstar)*(alpha + 2))*np.exp(-10**(-0.4*(M - Mstar)))
+
+    def LF_weight_L_ETA(self, M,H0, eta):
+        phi_star = self.LF_para['phi_star']; alpha = self.LF_para['alpha']; Mstar = self.LF_para['Mstar']
+        # Mstar = Mstar + 5*np.log10(H0/100)
+        # phi_star = phi_star * (H0/100)**(3)
+        return phi_star * 0.4*np.log(10)*10**(-0.4*(M[None,:] - Mstar)*(alpha + 1 + eta[:,None]))*np.exp(-10**(-0.4*(M[None,:] - Mstar)))
     
     def LF_weight_L_LH0(self, L,H0):
         phi_star = self.LF_para['phi_star']; alpha = self.LF_para['alpha']; Mstar = self.LF_para['Mstar']
@@ -53,6 +59,7 @@ class Schechter_function(object):
         # 
         phi_star = phi_star * (H0/100)**(3)
         return phi_star*(H0/100)**(-3)*Lstar * (R)**(alpha+1) * np.exp(-R)
+
     
     
     def cdf_LF(self, M, H0):
@@ -68,13 +75,22 @@ class Schechter_function(object):
 
     def cdf_LF_weighted_L(self, M, H0):
         a = self.LF_para['alpha']; Mstar =self.LF_para['Mstar']; Mtop = self.LF_para['Mabs_min']; Mbottom = self.LF_para['Mabs_max']
-        # Mstar = Mstar + 5*np.log10(H0/100)
+        # Mstar = Mstar + 5*np.log10(H0/100)cosmology_functions
         # Mtop = Mtop  + 5*np.log10(H0/100)
         # Mbottom = Mbottom  + 5*np.log10(H0/100)
         L_Lstar = np.power(10, -0.4*( M - Mstar ))
         Lmin_Lstar = np.power(10, -0.4*( Mbottom - Mstar ))
         Lmax_Lstar = np.power(10, -0.4*( Mtop - Mstar ))
         result = np.array((gammaincc(a+2, L_Lstar) - gammaincc(a+2, Lmax_Lstar)), dtype= float)
+        return result 
+
+    def cdf_LF_weighted_L_ETA(self,M, H0, eta):
+        a = self.LF_para['alpha']; Mstar =self.LF_para['Mstar']; Mtop = self.LF_para['Mabs_min']; Mbottom = self.LF_para['Mabs_max']
+        L_Lstar = np.power(10, -0.4*( M[None,:] - Mstar ))
+        Lmin_Lstar = np.power(10, -0.4*( Mbottom - Mstar ))
+        Lmax_Lstar = np.power(10, -0.4*( Mtop - Mstar ))
+        result = np.array((gammaincc(a+1+eta[:,None], L_Lstar) - gammaincc(a+1+eta[:,None], Lmax_Lstar)), dtype= float)
+        
         return result 
     
     
@@ -130,6 +146,22 @@ class Schechter_function(object):
     
     def w_in_out(self,Lin,Lout):
         return Lin/(Lin+Lout), 1 - (Lin/(Lin+Lout))
+
+
+    def draw_M_eta(self, Nsamples,cdfs, H0):
+        M_grid = self.M_grid_H0(self.LF_para['Mabs_max'], self.LF_para['Mabs_min'], H0)
+        # M_grid = M_grid[::-1]
+        N = np.shape(cdfs)[1]
+        # cdfs_snake = xp.asarray(np.concatenate(cdfs)) 
+        
+        cdfs_snake = xp.hstack(cdfs.T) #+np.repeat(np.arange(2), 250)
+        Mlist = np.ndarray.tolist(M_grid)
+        Mlist = N*Mlist
+        M_array = xp.asarray(Mlist)
+        cdfs_snake = cdfs_snake + xp.repeat(xp.arange(N),  np.shape(cdfs)[0])
+        t = xp.random.uniform(0,1, size = N*Nsamples) + xp.repeat(xp.arange(N), Nsamples)
+        return xp.interp(t, cdfs_snake, M_array).get()
+
     
     
     
