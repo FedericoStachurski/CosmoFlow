@@ -68,7 +68,7 @@ live_points = int(args['live_points'])
 
 def read_data(batch):
     path_name ="data_cosmoflow/galaxy_catalog/testing_data_from_MLP/"
-    data_name = "run_O3_det_['H1', 'L1', 'V1']_name_BBH_O3_NEW_multipara_catalog_True_band_K_batch_1_N_500_SNR_11_Nelect_100__Full_para_v1.csv".format(batch)
+    data_name = "run_O3_det_['H1', 'L1', 'V1']_name_BBH_O3_NEW_multipara_catalog_True_band_K_batch_1_N_250_SNR_11_Nelect_10__Full_para_v1.csv".format(batch)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
     print('Showing some of the data')
     print(GW_data.head(250))
@@ -97,50 +97,28 @@ def get_data_GW(events, N_theta):
 
 if 'O1' in runs:
     
-    flow_name_o1 = '1D_O1_H1_L1_14target_12cond_'+flow_name
+    flow_name_o1 = flow_name+'_O1_H1_L1_REALnvp_v1'
     flow_class_o1 = Handle_Flow(path, flow_name_o1, device, epoch = None)
     data_o1 = get_data_GW(GW_class.get_event('O1', 'HL'), N_theta)
     n_conditional = flow_class_o1.hyperparameters['n_conditional_inputs']
     
 if 'O2' in runs:
-    flow_name_o2_hlv = '1D_O2_H1_L1_V1_14target_12cond_'+flow_name
+    flow_name_o2_hlv = flow_name+'_O2_H1_L1_V1_REALnvp_v1'
     flow_class_o2_hlv = Handle_Flow(path, flow_name_o2_hlv, device, epoch = None)
     data_o2_hlv = get_data_GW(GW_class.get_event('O2', 'HLV'), N_theta)
     n_conditional = flow_class_o2_hlv.hyperparameters['n_conditional_inputs'] 
 
-    flow_name_o2_hl = '1D_O2_H1_L1_14target_12cond_'+flow_name
+    flow_name_o2_hl = flow_name+'_O2_H1_L1_REALnvp_v1'
     flow_class_o2_hl = Handle_Flow(path, flow_name_o2_hl, device, epoch = None)
     data_o2_hl = get_data_GW(GW_class.get_event('O2', 'HL'), N_theta)
     
     
 if 'O3' in runs: 
-    flow_name_o3_hlv = '1D_O3_H1_L1_V1_14target_12cond_'+flow_name
+    flow_name_o3_hlv = flow_name+'_O3_H1_L1_14target_4cond_1_COSMO'
     flow_class_o3_hlv = Handle_Flow(path, flow_name_o3_hlv, device, epoch = None)
     if data_type == 'Real':
-        #O3 HLV
         N_evetns_o3_hlv = len(GW_class.get_event('O3', 'HLV'))
         data_o3_hlv = get_data_GW(GW_class.get_event('O3', 'HLV'), N_theta)
-        n_conditional = flow_class_o3_hlv.hyperparameters['n_conditional_inputs']
-
-        #O3 HL
-        N_evetns_o3_hl = len(GW_class.get_event('O3', 'HL'))
-        flow_name_o3_hl = '1D_O3_H1_L1_14target_12cond_'+flow_name
-        flow_class_o3_hl = Handle_Flow(path, flow_name_o3_hl, device, epoch = None)
-        data_o3_hl = get_data_GW(GW_class.get_event('O3', 'HL'), N_theta)
-
-        #O3 LV
-        N_evetns_o3_lv = len(GW_class.get_event('O3', 'LV'))
-        flow_name_o3_lv = '1D_O3_L1_V1_14target_12cond_'+flow_name
-        flow_class_o3_lv = Handle_Flow(path, flow_name_o3_lv, device, epoch = None)
-        data_o3_lv = get_data_GW(GW_class.get_event('O3', 'LV'), N_theta)
-
-        #O3 HV
-        N_evetns_o3_hv = len(GW_class.get_event('O3', 'HV'))
-        flow_name_o3_hv = '1D_O3_H1_V1_14target_12cond_'+flow_name
-        flow_class_o3_hv = Handle_Flow(path, flow_name_o3_hv, device, epoch = None)
-        data_o3_hv = get_data_GW(GW_class.get_event('O3', 'HV'), N_theta)
-    
-    
     
     elif data_type == 'Testing':
         print(os.getcwd())
@@ -156,7 +134,13 @@ if 'O3' in runs:
         data_o3_hlv['geocent_time'] = utilities.convert_gps_sday(data_o3_hlv['geocent_time'])
         N_evetns_o3_hlv = len(data_o3_hlv)
     
-
+    n_conditional = flow_class_o3_hlv.hyperparameters['n_conditional_inputs']
+    
+    
+    # flow_name_o3_hl = flow_name+'_O3_H1_L1_SPLINE_v1'
+    # flow_class_o3_hl = Handle_Flow(path, flow_name_o3_hl, device, epoch = None)
+    # data_o3_hl = get_data_GW(GW_class.get_event('O3', 'HL'), N_theta)
+    
     # flow_name_o3_hv = flow_name+'_O3_H1_L1_SPLINE_v1'
     # flow_class_o3_hv = Handle_Flow(path, flow_name_o3_hv, device, epoch = None)
     # data_o3_hv = get_data_GW(GW_class.get_event('O3', 'HV'), N_theta)
@@ -184,9 +168,7 @@ if sampler == 'Rejection':
     while True:
         start = time.time()
         # 'H0', 'gamma', 'k', 'zp', 'beta', 'alpha', 'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak','delta_m'
-        prior_parameters = {'H0':[20,180], 'gamma':[0,12], 'k':[0,6], 'zp':[0,4],
-                            'beta':[-4,12.0], 'alpha':[1.5,12.0],  'mmax':[50.0,200.0], 'mmin':[2.0,10.0],
-                            'mu_g':[20,50], 'sigma_g':[0.4,10.0], 'lambda_peak':[0.0,1.0], 'delta_m':[0.0,10]}
+        prior_parameters = {'H0':[20,180], 'Om0':[0,1], 'w0':[-1.9,0.9], 'eta':[0.5,3]}
         prior_samples =utilities.prior_samples(N_samples,prior_parameters)
         log_prob = np.zeros(N_samples)
     
@@ -211,15 +193,13 @@ if sampler == 'Rejection':
             # N_evetns_o3_lv = len(GW_class.get_event('O3', 'LV'))
             # N_evetns_o3_hv = len(GW_class.get_event('O3', 'HV'))
             
-            log_posterior_o3_hlv = flow_class_o3_hlv.temp_funct_post(flow_class_o3_hlv, data_o3_hlv, prior_samples,
-                                                                     N_evetns_o3_hlv, N_theta, N_samples, ndim_target = 14)
-            log_posterior_o3_hl = flow_class_o3_hl.temp_funct_post(flow_class_o3_hl, data_o3_hl, prior_samples, 
-                                                                   N_evetns_o3_hl, N_theta, N_samples, ndim_target = 14)
+            log_posterior_o3_hlv = flow_class_o3_hlv.temp_funct_post(flow_class_o3_hlv, data_o3_hlv, prior_samples, N_evetns_o3_hlv, N_theta, N_samples, ndim_target = 14)
+            # log_posterior_o3_hl = flow_class_o3_hl.temp_funct_post(flow_class_o3_hl, data_o3_hl, prior_samples, N_evetns_o3_hl, N_theta, N_samples, ndim_target = 5)
             # log_posterior_o3_lv = flow_class_o3_lv.temp_funct_post(flow_class_o3_lv, data_o3_lv, prior_samples, N_evetns_o3_lv, N_theta, N_samples, ndim_target = 5)
             # log_posterior_o3_hv = flow_class_o3_hv.temp_funct_post(flow_class_o3_hv, data_o3_hv, prior_samples, N_evetns_o3_hv, N_theta, N_samples, ndim_target = 5)
 
             log_prob += log_posterior_o3_hlv 
-            log_prob += log_posterior_o3_hl
+            # log_prob += log_posterior_o3_hl
             # log_prob += log_posterior_o3_lv
             # log_prob += log_posterior_o3_hv
             
@@ -270,10 +250,7 @@ if sampler == 'Rejection':
     accepted_points = prior_points[:,inx_accept]
     
     # dictionary_samples = {'H0':accepted_points[0,:], 'gamma':accepted_points[1,:], 'k':accepted_points[2,:], 'zp':accepted_points[3,:]}
-    dictionary_samples = {'H0':accepted_points[0,:], 'gamma':accepted_points[1,:],'zp':accepted_points[3,:], 'k':accepted_points[2,:],
-                    'mmin':accepted_points[7,:], 'mmax':accepted_points[6,:], 'alpha':accepted_points[5,:],
-                      'mu_g':accepted_points[8,:], 'sigma_g':accepted_points[9,:], 'lambda_peak':accepted_points[10,:],'beta':accepted_points[4,:], 
-                     'delta_m':accepted_points[11,:]}
+    dictionary_samples = {'H0':accepted_points[0,:], 'Om0':accepted_points[1,:],'w0':accepted_points[3,:], 'eta':accepted_points[2,:]}
     # 'weights':weights, 'times':times}
     
     with open('make_posteriors/posterior_samples_rejection/FLOW_{}_Ntheta_{}_Nomega_{}_Ntotal_{}_data.pickle'.format(flow_name,N_theta, N_samples, N_total), 'wb') as handle:
@@ -285,7 +262,7 @@ if sampler == 'Rejection':
 
 elif sampler == 'Nested_AI':
     os.chdir("make_posteriors/posterior_samples_rejection/")
-    output = "nested_sampling_folders/NESSAI_{}_run_{}_FLOW_{}".format(folder_name,'O3',flow_name)
+    output = "nested_sampling_folders/NESSAI_{}_run_{}_FLOW_{}_TEST".format(folder_name,'O3',flow_name)
     logger = setup_logger(output=output)
 
     class p_Omega(Model):
@@ -299,12 +276,9 @@ elif sampler == 'Nested_AI':
             #                "zp":[0,4], "alpha":[1.5,12], "beta":[-4,12],
             #                "mmax":[50,200], "mmin":[2,10], "mu_g":[20,50], "sigma_g":[0.4,10],
             #                "lambda_peak":[0,1], "delta_m":[0,10]}
-            self.names = ["H0", "gamma", "k", "zp", "beta", "alpha",  "mmax", "mmin",
-                           "mu_g", "sigma_g", "lambda_peak", "delta_m"]
+            self.names = ["H0", "Om0", "w0", "eta"]
             # self.bounds = {'H0':[20,180], 'gamma':[0,12], 'k':[0,6], 'zp':[0,4]} 
-            self.bounds = {'H0':[20,180], 'gamma':[0,12], 'k':[0,6], 'zp':[0,4],
-                           'beta':[-4,12.0], 'alpha':[1.5,12.0],  'mmax':[50.0,200.0], 'mmin':[2.0,10.0],
-                           'mu_g':[20,50], 'sigma_g':[0.4,10.0], 'lambda_peak':[0.0,1.0], 'delta_m':[0.0,10] }
+            self.bounds = {'H0':[20,180], 'Om0':[0,1], 'w0':[-1.9,0.9], 'eta':[0.5,3.0]}
     
         def log_prior(self, x):
             """
@@ -331,49 +305,46 @@ elif sampler == 'Nested_AI':
             log_prob = np.zeros(1)
 
             if np.ndim(prior_samples) == 1:
-                prior_samples = np.reshape(prior_samples, (flow_class_o1.hyperparameters['n_conditional_inputs'],1))
+                prior_samples = np.reshape(prior_samples, (flow_class_o3_hlv.hyperparameters['n_conditional_inputs'],1))
             if 'O1' in runs:
                 N_events_o1 = len(GW_class.get_event('O1', 'HL'))
 
                 
                 log_posterior_o1 = flow_class_o1.temp_funct_post(flow_class_o1, data_o1, prior_samples,
-                                                                 N_events_o1, N_theta, N_samples, ndim_target = 14)
+                                                                 N_events_o1, N_theta, N_samples, ndim_target = 5)
                 
                 
-                log_prob += log_posterior_o1 - N_events_o1*np.log(N_theta)
+                log_prob += log_posterior_o1
                 
             if 'O2' in runs:
-                N_events_o2_hlv = len(GW_class.get_event('O2', 'HLV'))
-                N_events_o2_hl = len(GW_class.get_event('O2', 'HL'))
+                N_evetns_o2_hlv = len(GW_class.get_event('O2', 'HLV'))
+                N_evetns_o2_hl = len(GW_class.get_event('O2', 'HL'))
                 log_posterior_o2_hlv = flow_class_o2_hlv.temp_funct_post(flow_class_o2_hlv, data_o2_hlv, prior_samples,
-                                                                         N_events_o2_hlv, N_theta, N_samples, ndim_target = 14)
+                                                                         N_evetns_o2_hlv, N_theta, N_samples, ndim_target = 5)
                 log_posterior_o2_hl = flow_class_o2_hl.temp_funct_post(flow_class_o2_hl, data_o2_hl, prior_samples,
-                                                                       N_events_o2_hl, N_theta, N_samples, ndim_target = 14)
+                                                                       N_evetns_o2_hl, N_theta, N_samples, ndim_target = 5)
             
-                log_prob += log_posterior_o2_hlv - N_events_o2_hlv*np.log(N_theta)
-                log_prob += log_posterior_o2_hl - N_events_o2_hl*np.log(N_theta)
+                log_prob += log_posterior_o2_hlv + log_posterior_o2_hl
                 
             if 'O3' in runs:    
                 
-                N_events_o3_hlv = len(GW_class.get_event('O3', 'HLV'))
-                N_events_o3_hl = len(GW_class.get_event('O3', 'HL'))
-                N_events_o3_lv = len(GW_class.get_event('O3', 'LV'))
-                N_events_o3_hv = len(GW_class.get_event('O3', 'HV'))
-
+                # N_evetns_o3_hl = len(GW_class.get_event('O3', 'HL'))
+                # N_evetns_o3_lv = len(GW_class.get_event('O3', 'LV'))
+                # N_evetns_o3_hv = len(GW_class.get_event('O3', 'HV'))
                 
                 log_posterior_o3_hlv = flow_class_o3_hlv.temp_funct_post(flow_class_o3_hlv, data_o3_hlv, prior_samples,
-                                                                         N_events_o3_hlv, N_theta, N_samples, ndim_target =14)
-                log_posterior_o3_hl = flow_class_o3_hl.temp_funct_post(flow_class_o3_hl, data_o3_hl, prior_samples,
-                                                                         N_events_o3_hl, N_theta, N_samples, ndim_target = 14)
-                log_posterior_o3_lv = flow_class_o3_lv.temp_funct_post(flow_class_o3_lv, data_o3_lv, prior_samples, 
-                                                                       N_events_o3_lv,N_theta, N_samples, ndim_target = 14)
-                log_posterior_o3_hv = flow_class_o3_hv.temp_funct_post(flow_class_o3_hv, data_o3_hv, prior_samples, 
-                                                                       N_evetns_o3_hv, N_theta, N_samples, ndim_target = 14)
+                                                                         N_evetns_o3_hlv, N_theta, N_samples, ndim_target = 14)
+                # log_posterior_o3_hl = flow_class_o3_hl.temp_funct_post(flow_class_o3_hl, data_o3_hl, prior_samples, N_evetns_o3_hl,
+                #                                                        N_theta, N_samples, ndim_target = 5)
+                # log_posterior_o3_lv = flow_class_o3_lv.temp_funct_post(flow_class_o3_lv, data_o3_lv, prior_samples, N_evetns_o3_lv,
+                #                                                        N_theta, N_samples, ndim_target = 5)
+                # log_posterior_o3_hv = flow_class_o3_hv.temp_funct_post(flow_class_o3_hv, data_o3_hv, prior_samples, N_evetns_o3_hv,
+                #                                                        N_theta, N_samples, ndim_target = 5)
                 
-                log_prob += log_posterior_o3_hlv - N_events_o3_hlv*np.log(N_theta)
-                log_prob += log_posterior_o3_hl - N_events_o3_hl*np.log(N_theta)
-                log_prob += log_posterior_o3_lv - N_events_o3_lv*np.log(N_theta)
-                log_prob += log_posterior_o3_hv - N_events_o3_hv*np.log(N_theta)
+                log_prob += log_posterior_o3_hlv 
+                # log_prob += log_posterior_o3_hl
+                # log_prob += log_posterior_o3_lv
+                # log_prob += log_posterior_o3_hv
             
             return log_prob
     

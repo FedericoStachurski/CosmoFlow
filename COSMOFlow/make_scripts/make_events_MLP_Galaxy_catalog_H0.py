@@ -114,7 +114,7 @@ ap.add_argument("-name_pop", "--name_pop", required=False,
    help="type of population", default = 'BBH')
 ap.add_argument("-NSIDE", "--NSIDE", required=True,
    help="NSIDE resolution", default = 32)
-ap.add_argument("-targeted", "--targeted", required=True,
+ap.add_argument("-targeted", "--targeted", required=False,
    help="Do you want to do targeted event?", default = 'False')
 
 args = vars(ap.parse_args())
@@ -468,7 +468,11 @@ while True:
         temp_snrs.append(snr_pred[:,2])
     
     network_snr_sq = np.sum((np.array(temp_snrs)**2).T, axis = 1) #get detector netwrok snr 
-    snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
+    ################## THERE IS NO ADDED NOISE HERE FOR TESTING ################################
+    snrs_obs = np.sqrt(network_snr_sq)
+    
+    # snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
+    
     
     temp_dict['observed'] = snrs_obs   
     df_temp_snrs = pd.DataFrame(temp_dict)

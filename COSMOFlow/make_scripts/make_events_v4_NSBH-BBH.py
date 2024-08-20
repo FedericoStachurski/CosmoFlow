@@ -146,6 +146,8 @@ ap.add_argument("-approximator", "--approximator", required=False,
    help="waveform approxiamtor ", default = 'IMRPhenomXPHM')
 ap.add_argument("-name_pop", "--name_pop", required=False,
    help="type of population", default = 'BBH-powerlaw-gaussian')
+ap.add_argument("-noise_SNR", "--noise_SNR", required=False,
+   help="added noise to SNR?", default = True)
 
 args = vars(ap.parse_args())
 Name = str(args['Name_file'])
@@ -191,6 +193,7 @@ fast_zmax = int(args['fast_zmax'])
 seed = int(args['seed'])
 save_timer = int(args['save_timer'])
 approximator = str(args['approximator'])
+noise = str(args['noise_SNR'])
 
 print()
 print('Name model = {}'.format(Name))
@@ -231,6 +234,7 @@ print('device = {}'.format(device))
 print('fast_zmax = {}'.format(fast_zmax))
 print('save_timer= {}'.format(save_timer))
 print('seed = {}'.format(seed))
+print('noise SNR = {}'.format(noise))
 print()
 
 if targeted_event != 0:
@@ -608,9 +612,14 @@ while True:
     
     network_snr_sq = np.sum((np.array(temp_snrs)**2).T, axis = 1) #get detector netwrok snr 
     network_snr_sq = np.nan_to_num(network_snr_sq)
-
-    snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
-    snrs_obs[samples_m2 == 0 ] = 0
+    ################## REMOVING NOISE FOR TESTING ############################
+    if noise is True:
+        snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
+        snrs_obs[samples_m2 == 0 ] = 0
+    else:
+        snrs_obs = np.sqrt(network_snr_sq)
+        snrs_obs[samples_m2 == 0 ] = 0
+    
     # print(snrs_obs)
     temp_dict['observed'] = snrs_obs   
     df_temp_snrs = pd.DataFrame(temp_dict)

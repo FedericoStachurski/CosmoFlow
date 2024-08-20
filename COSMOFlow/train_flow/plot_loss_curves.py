@@ -46,8 +46,8 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,10))
 
 ax1.plot(loss_dict['train'],'k', label='Train', linewidth = 3)
 ax1.plot(loss_dict['val'],'r', label='Validation', alpha=0.4, linewidth = 3)
-ax1.set_ylabel('loss', fontsize = 20)
-ax1.set_xlabel('Epochs', fontsize = 20)
+ax1.set_ylabel('loss', fontsize = 30)
+ax1.set_xlabel('Epochs', fontsize = 30)
 
 
 if log == 1: 
@@ -56,8 +56,8 @@ if log == 1:
 ax1.set_ylim([np.min(loss_dict['train'])-0.1,np.max(loss_dict['train'])+0.1])
 # ax1.set_ylim([3.75,5])
 ax1.set_xlim([1,n_epochs])
-ax1.xaxis.set_tick_params(labelsize=20)
-ax1.yaxis.set_tick_params(labelsize=20)
+ax1.xaxis.set_tick_params(labelsize=30)
+ax1.yaxis.set_tick_params(labelsize=30)
 ax1.grid(True) 
 ax1.legend(fontsize = 30)
 
@@ -65,31 +65,33 @@ def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
-
+avg_kl = np.zeros(len(np.array(kl_data['KL_vals1'])))
 kls = ['KL_vals1', 'KL_vals2', 'KL_vals3', 'KL_vals4', 'KL_vals5',
        'KL_vals6', 'KL_vals7', 'KL_vals8', 'KL_vals9', 'KL_vals10', 'KL_vals11', 'KL_vals12', 'KL_vals13', 'KL_vals14']
 for i, kl_key in enumerate(kls):
     l, = ax2.plot(kl_data[str(kl_key)],linewidth=1,alpha = 0.25, )
     color = l.get_color()
     # ax2.plot(savgol_filter(np.array(kl_data[str(kl_key)]),  51, 3), linewidth=2,alpha = 0.7 , color = color, label = r'$z{}$'.format(i))
-    ax2.plot(smooth(np.array(kl_data[str(kl_key)]), npoints_filter), linewidth=2,alpha = 0.7 , color = color, label = r'$z{}$'.format(i))
-
+    ax2.plot(smooth(np.array(kl_data[str(kl_key)]), npoints_filter), linewidth=2,alpha = 0.7 , color = color)#, label = r'$z{}$'.format(i))
+    avg_kl += np.array(kl_data[str(kl_key)])
+avg_kl /= 14
+ax2.plot(smooth(np.array(avg_kl), npoints_filter), linewidth=5,alpha = 0.9 , color = 'k', label = r'average KL')
 ax2.set_xlim([1,n_epochs])
 ax2.set_ylim([1e-4,1])
 # ax2.set_xscale('log')
 if log == 1: 
     ax2.set_xscale('log')
 ax2.set_yscale('log')
-ax2.xaxis.set_tick_params(labelsize=20)
-ax2.yaxis.set_tick_params(labelsize=20)
-ax2.set_ylabel('KLdiv', fontsize = 20)
-ax2.set_xlabel('Epochs', fontsize = 20)
+ax2.xaxis.set_tick_params(labelsize=30)
+ax2.yaxis.set_tick_params(labelsize=30)
+ax2.set_ylabel('$KL$', fontsize = 30)
+ax2.set_xlabel('Epochs', fontsize = 30)
 ax2.grid(True) 
-ax2.legend(fontsize = 13)
+ax2.legend(fontsize = 30)
 
 
 fig.tight_layout()
-fig.savefig(flow+'/training.png', dpi = 50 )
+fig.savefig(flow+'/training.png', dpi = 500, bbox_inches='tight' )
 
 plt.close('all')   # Clear figure
 
@@ -113,6 +115,59 @@ df_latent = pd.DataFrame({
     'z13': latent_samples['z_samples'][:, 12],
     'z14': latent_samples['z_samples'][:, 13],
 })
+
+# Convert the DataFrame to a NumPy array
+latent_array = df_latent.to_numpy()
+
+# Compute the covariance matrix
+cov_matrix = np.cov(latent_array, rowvar=False)
+
+# Compute the correlation matrix
+std_dev = np.sqrt(np.diag(cov_matrix))
+corr_matrix = cov_matrix / np.outer(std_dev, std_dev)
+
+# Ensure values are between -1 and 1
+# corr_matrix = np.clip(corr_matrix, -1, 1)
+
+# Convert the correlation matrix to a DataFrame for easier interpretation
+corr_matrix_df = pd.DataFrame(cov_matrix, index=df_latent.columns, columns=df_latent.columns)
+
+plt.figure(figsize=(14, 12))
+plt.imshow(corr_matrix_df, interpolation='nearest',  cmap='seismic', vmin = -1.0, vmax = 1.05)
+# plt.title('Confusion Matrix', fontsize=20)
+
+# Create the colorbar and place it at the bottom with a label
+cbar = plt.colorbar(orientation='horizontal', pad=0.1, shrink=0.8, aspect=20)
+cbar.set_label('Value', fontsize=18)  # Change 'Intensity' to your desired label
+cbar.ax.tick_params(labelsize=15)  # Increase colorbar tick font size
+
+tick_marks = np.arange(len(corr_matrix_df.columns))
+plt.xticks(tick_marks, corr_matrix_df.columns, rotation=0, fontsize=15)
+plt.yticks(tick_marks, corr_matrix_df.index, fontsize=15)
+
+thresh = corr_matrix_df.values.max() / 2.
+for i, j in np.ndindex(corr_matrix_df.shape):
+    value = corr_matrix_df.iloc[i, j]
+    plt.text(j, i, f"{value:.2f}", 
+                 horizontalalignment="center",
+                 color="white" if value > thresh else "black",
+                 fontsize=15)
+
+# plt.xlabel('Predicted', fontsize=18)
+# plt.ylabel('Actual', fontsize=18)
+# Adding grid lines
+# plt.grid(which='major', color='black', linestyle='-', linewidth=1)
+
+# Set the tick marks and grid lines to appear at the center of each cell
+plt.gca().set_xticks(np.arange(-.5, len(corr_matrix_df.columns), 1), minor=True)
+plt.gca().set_yticks(np.arange(-.5, len(corr_matrix_df.index), 1), minor=True)
+plt.grid(which='minor', color='black', linestyle='-', linewidth=1)
+plt.gca().tick_params(which='minor', size=0)
+# plt.grid(True)
+plt.tight_layout()
+plt.savefig(flow+'/covariance_matrix.png', dpi = 300)
+plt.close('all') 
+
 
 gaussian = np.random.normal(np.zeros(14), np.ones(14), size = (10000,14))
 

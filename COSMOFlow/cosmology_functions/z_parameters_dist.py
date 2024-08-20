@@ -19,12 +19,13 @@ class RedshiftGW_fast_z_para(object):
                 self.magic_snr_dl = 13201.953173828133 #0.995 PERCENTILE
             else: 
                 # self.magic_snr_dl = 71404.52441406266 ### TOO small
-                self.magic_snr_dl = 109638.88392302892 * 1.2 # 99.999% quantile
+                # self.magic_snr_dl = 109638.88392302892 * 1.2 # 99.999% quantile
+                self.magic_snr_dl = 100_000# 99.999% quantile
 
         elif self.run == 'O2':
-            self.magic_snr_dl = 65004.52441406266#59645000.44 # 89547.08
+            self.magic_snr_dl = 65004.52441406266 #59645000.44 # 89547.08
         elif self.run == 'O1':
-            self.magic_snr_dl = 64859.84
+            self.magic_snr_dl = 64859.84 
 
     def zmax_H0(self,H0, SNRth):
         return cosmology.fast_dl_to_z_v2(self.magic_snr_dl/SNRth,H0)

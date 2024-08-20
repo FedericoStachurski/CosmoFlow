@@ -19,21 +19,21 @@ import torch
 import pickle
 import corner
 
-parameters = {'population':'NSBH'}
+parameters = {'population':'BBH'}
 
 gwevents = GW_events(parameters)
 
-O3_evetns_HLV = gwevents.get_event('O3', 'HLV')
+# O3_evetns_HLV = gwevents.get_event('O3', 'HLV')
 # O3_evetns_HL = gwevents.get_event('O3', 'HL')
 # O3_evetns_LV = gwevents.get_event('O3', 'LV')
 # O3_evetns_HV = gwevents.get_event('O3', 'HV')
-# O2_evetns_HLV = gwevents.get_event('O2', 'HLV')
+O2_evetns_HLV = gwevents.get_event('O2', 'HLV')
 # O2_evetns_HL = gwevents.get_event('O2', 'HL')
 # O1_evetns_HL = gwevents.get_event('O1', 'HL')
 
 # list_events = [O1_evetns_HL, O2_evetns_HLV, O2_evetns_HL, O3_evetns_HLV, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
-list_events = [O3_evetns_HLV]#, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
-list_events = np.concatenate(list_events)
+list_events = ['GW170814_103043']#, O3_evetns_HL, O3_evetns_LV, O3_evetns_HV ] 
+# list_events = np.concatenate(list_events)
 # list_events = ["GW190513_205428"] 
 for event in list_events:
     if event == "GW190513_205428":
@@ -272,9 +272,11 @@ for event in list_events:
                         fig = c1, 
                         hist_bin_factor=5,
                         levels = (0.5, 0.99),
-                        labels = [r'$D_{L}[Mpc]$',r'$m_{1,z}$', r'$m_{2,z}$', r'$RA$', r'$\delta$'],
+                        labels = [r'$D_{L}[Mpc]$',r'$m_{det,1} \: [M_{\odot}]$', r'$m_{det,2} \: [M_{\odot}]$', r'$\alpha \: [rad]$', r'$\delta \: [rad]$'],
                         label_kwargs={'fontsize': 25},
                         hist_kwargs = {'density' : 1})
+    for ax in fig.get_axes():
+        ax.tick_params(axis='both', labelsize=15)
     plt.savefig(path+folder_name+'/comparison.png', dpi = 300)
     
     plt.show()

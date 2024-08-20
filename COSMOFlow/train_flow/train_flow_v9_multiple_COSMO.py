@@ -159,7 +159,7 @@ os.chdir('..')
 #read data to be used to train the flow 
 def read_data(batch_of_data):
     path_name ="data_cosmoflow/galaxy_catalog/training_data_from_MLP/"
-    data_name ="run_O3_det_['H1', 'L1', 'V1']_name_BBH_O3_old_Testing_h0_TEST_v1_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_2__Full_para_v1.csv".format(batch_of_data)
+    data_name ="run_O3_det_['H1', 'L1', 'V1']_name_BBH_O3_NEW_multipara_COSMO_catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_2__Full_para_v1.csv".format(batch_of_data)
     print(data_name)
     GW_data = pd.read_csv(path_name+data_name,skipinitialspace=True)
                           # usecols=['snr', 'H0','gamma','kappa','zp', 'alpha', 'beta',
@@ -188,7 +188,7 @@ print((GW_data.head()))
 
 data = GW_data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2',
                  'a_1', 'a_2','tilt_1', 'tilt_2', 'theta_jn', 'phi_jl',
-                 'phi_12', 'psi','geocent_time', 'H0']]
+                 'phi_12', 'psi','geocent_time', 'H0', 'Om0', 'w0', 'eta']]
 #, 'gamma', 'k', 'zp', 'beta', 'alpha', 'mmax', 'mmin', 'mu_g', 'sigma_g', 'lambda_peak','delta_m']]
 #, 'gamma', 'k', 'zp']]
 #, 'gamma', 'mmax', 'mu_g']]
@@ -222,7 +222,7 @@ else:
     # data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'H0']]
     data = data[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2',
                  'a_1', 'a_2','tilt_1', 'tilt_2', 'theta_jn', 'phi_jl',
-                 'phi_12', 'psi','geocent_time','H0']]
+                 'phi_12', 'psi','geocent_time','H0', 'Om0', 'w0', 'eta']]
  
 
 

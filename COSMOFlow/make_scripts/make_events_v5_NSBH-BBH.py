@@ -501,7 +501,10 @@ while True:
                                            np.array(repeated_Om0).flatten(),
                                            np.array(repeated_w0).flatten())
 
-    
+    dl_fixed = cosmology.z_to_dl_H_Omegas_EoS(np.array(z).flatten(),
+                                           100,
+                                           0.3,
+                                           -1.0)
     #Make sure all are arrays
     z = np.array(z)
     dl = np.array(dl)
@@ -510,7 +513,7 @@ while True:
     if in_out is True:
         # M_abs = sch_fun.sample_M_from_cdf_weighted(100, N = nxN) #sample absolute magnitudes from H0 = 100
         M_abs = sch_fun.draw_M_eta(select,missed_cdfs_lum_fun.T, H0 = 100)
-        M_abs = M_abs + 5*np.log10(repeated_H0/100) #shift absolute magnitudes by 5log10(H0/100) to conver them 
+        M_abs = M_abs + 5 * np.log10(dl / dl_fixed) #shift absolute magnitudes by 5log10(H0/100) to conver them 
         app_samples = cosmology.app_mag(M_abs.flatten(),dl.flatten()) #compute apparent magnitudes 
         
         #Handle Magnitude threshold map
