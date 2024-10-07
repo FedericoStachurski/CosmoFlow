@@ -89,7 +89,23 @@ class MassPrior(object):
         factor2 = self.gaussian_peak(xx[None,:], self.parameters['mu_g'][:,None], self.parameters['sigma_g'][:,None], self.parameters['mmax'][:,None], self.parameters['mmin'][:,None])
         return (factor1*(1-self.parameters['lambda_peak'][:,None]) + factor2*(self.parameters['lambda_peak'][:,None]))*self.smooth_factor(xx[None,:],self.parameters['mmin'][:,None], self.parameters['delta_m'][:,None])
     
-    
+    def powerlaw_smooth_m2(self,xx, m1, beta = None , mmin = None, delta_m = None ): ##Not normalised
+        if beta is None:
+            beta = self.parameters['beta']
+            mmin = self.parameters['mmin']
+            delta_m = self.parameters['delta_m']
+        else: 
+            beta = xp.array(beta)
+            mmin = xp.array(mmin)
+            delta_m = xp.array(delta_m)
+        
+        # print(type(m1))
+        
+        factor1 = self.power_law(xx, beta, m1, mmin)
+        # print(self.smooth_factor(xx,mmin,delta_m))
+        return factor1*self.smooth_factor(xx,mmin,delta_m)
+
+
     def powerlaw_smooth_m2_vect(self,xx, m1, beta = None , mmin = None, delta_m = None ): ##Not normalised
         if beta is None:
             beta = self.parameters['beta'][:,None]
