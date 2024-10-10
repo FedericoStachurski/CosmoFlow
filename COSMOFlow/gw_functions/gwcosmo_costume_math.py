@@ -8,7 +8,8 @@ import copy as _copy
 from scipy.interpolate import interp1d as _interp1d
 from scipy.special import erf as _erf
 from scipy.special import logsumexp as _logsumexp
-from scipy.integrate import cumtrapz as _cumtrapz
+# from scipy.integrate import cumtrapz as _cumtrapz
+from scipy.integrate import cumulative_trapezoid as _cumtrapz
 
 def _S_factor(mass, mmin,delta_m):
     '''

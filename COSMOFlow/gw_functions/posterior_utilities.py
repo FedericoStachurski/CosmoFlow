@@ -1,6 +1,7 @@
 # Global Imports ####################### GWCOSMO CODE! #########################
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
+
 from scipy.optimize import fmin
 from scipy.interpolate import interp1d, UnivariateSpline
 

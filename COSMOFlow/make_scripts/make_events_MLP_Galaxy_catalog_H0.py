@@ -293,7 +293,7 @@ def select_gal_from_pix(pixels_H0s):
 
         
         #weights = L * madau(z) * (1/(1+z))
-        weights_gal = luminosities * zmax_class.time_z(z_gal_selected)
+        weighther is hte file where cumtrapz s_gal = luminosities * zmax_class.time_z(z_gal_selected)
 
         if np.sum(weights_gal) == 0.0:
             print()
@@ -467,12 +467,8 @@ while True:
         temp_dict['snr_v1'] = snr_pred[:,2]
         temp_snrs.append(snr_pred[:,2])
     
-    network_snr_sq = np.sum((np.array(temp_snrs)**2).T, axis = 1) #get detector netwrok snr 
-    ################## THERE IS NO ADDED NOISE HERE FOR TESTING ################################
-    snrs_obs = np.sqrt(network_snr_sq)
-    
-    # snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2
-    
+    network_snr_sq = np.sum((np.array(temp_snrs)**2).T, axis = 1) #get detector netwrok snr     
+    snrs_obs = np.sqrt((ncx2.rvs(2*n_det, network_snr_sq, size=nxN, loc = 0, scale = 1))) #sample from non central chi squared with non centrality parameter SNR**2 form athed filter SNR
     
     temp_dict['observed'] = snrs_obs   
     df_temp_snrs = pd.DataFrame(temp_dict)

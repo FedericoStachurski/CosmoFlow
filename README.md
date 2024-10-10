@@ -31,7 +31,7 @@ To set up and run COSMOFlow, follow these steps:
    
    ```bash
    git clone https://git.ligo.org/federico.stachurski/cosmoflow.git## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+
 
 
 ## Authors and acknowledgment
