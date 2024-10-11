@@ -13,6 +13,7 @@ from glasflow.flows import RealNVP, CouplingNSF
 import argparse
 from tqdm import tqdm
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 # Get the current script directory
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -176,6 +177,15 @@ class TrainFlowClass:
         self.Y_scale_val = Y_scale_val
         print("Data preparation complete.")
 
+        # Save data scalers X and Y
+        print("\nSaving Scalers X and Y\n")
+        print("Current directory:", os.getcwd())
+        scalerfileX = self.path + self.folder_name + '/scaler_x.sav'
+        scalerfileY = self.path + self.folder_name + '/scaler_y.sav'
+        pickle.dump(self.scaler_x, open(scalerfileX, 'wb'))
+        pickle.dump(self.scaler_y, open(scalerfileY, 'wb'))
+        print(f"Scalers saved: {scalerfileX} and {scalerfileY}")
+
     def initialize_flow(self):
         print("Initializing flow model...")
         # Initialize the flow model based on the type specified
@@ -242,7 +252,37 @@ class TrainFlowClass:
             latent_samples = dict(z_samples=z_)
         return val_loss, kl_dict, latent_samples
 
+    def _plot_and_save_metrics(self, epoch, loss_dict, kl_dict):
+        # Plot and save training/validation loss and KL divergence
+        epochs = list(range(1, epoch + 2))
 
+        # Create a plot with two y-axes
+        fig, ax1 = plt.subplots(figsize=(12, 6))
+
+        # Plot Training and Validation Loss on the left y-axis
+        ax1.plot(epochs, loss_dict['train'], label='Training Loss', color='b')
+        ax1.plot(epochs, loss_dict['val'], label='Validation Loss', color='g')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Loss')
+        ax1.tick_params(axis='y')
+        ax1.legend(loc='upper left')
+        ax1.grid(True)
+        ax1.set_ylim([np.min(np.array(loss_dict['train'])-1), np.max(np.array(loss_dict['train'])+1)])
+
+        # Plot Mean KL Divergence on the right y-axis
+        ax2 = ax1.twinx()
+        mean_kl_vals = [np.mean([kl_dict[key][i] for key in kl_dict]) for i in range(len(epochs))]
+        ax2.plot(epochs, mean_kl_vals, label='Mean KL Divergence', color='r')
+        ax2.set_ylabel('Mean KL Divergence')
+        ax2.set_yscale('log')
+        ax2.tick_params(axis='y', labelcolor='r')
+        ax2.legend(loc='upper right')
+
+        # Set the title and save the figure
+        plt.title('Training/Validation Loss and KL Divergence')
+        plt.savefig(self.path + self.folder_name + f'/metrics.png')
+        plt.close()
+        
     def train(self):
         print("Starting training process...")
         self.flow.to(self.device)  # Move the model to the specified device (CPU/GPU)
@@ -297,7 +337,7 @@ class TrainFlowClass:
             with open(self.path+self.folder_name+'/latent_data.pickle', 'wb') as handle:
                 pickle.dump(latent_samples, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
+            self._plot_and_save_metrics(epoch, loss_dict, kl_dict)
 
 # Main function to run the entire pipeline
 if __name__ == "__main__":
@@ -370,5 +410,5 @@ if __name__ == "__main__":
 
     # Start training the flow model
     train_flow.train()
-
+    print()
     print("Training complete.")
