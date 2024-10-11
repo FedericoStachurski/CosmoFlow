@@ -388,7 +388,7 @@ class Handle_Flow(object):
 
         # placeholders for function outputs
         log_likelihoods = []
-        EOSs = []
+        # EOSs = []
 
         # loop through EOS locations
         for prior in range(0,Npriors):

@@ -30,6 +30,7 @@ flow = 'trained_flows_and_curves/'+Name
 kl_data = pd.read_pickle(flow+'/kl_data.pickle')
 loss_dict = pd.read_pickle(flow+'/loss_data.pickle')
 latent_samples = pd.read_pickle(flow+'/latent_data.pickle')
+print(latent_samples)
 print('Flow is at EPOCH = {}'.format(len(loss_dict['train'])))
 print()
 # print(loss_dict)
