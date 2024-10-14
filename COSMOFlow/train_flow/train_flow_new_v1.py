@@ -26,16 +26,19 @@ from cosmology_functions import utilities, cosmology
 
 
 class DataLoaderClass:
-    def __init__(self, data_path, batches_data=1, xyz=True, scaler_type='MinMax', n_conditional=1):
+    def __init__(self, folder_name, data_path, batches_data=1, xyz=True, scaler_type='MinMax', n_inputs = 14, n_conditional=1):
         # Initialize the DataLoaderClass with the number of data batches, coordinate type, scaler type, and number of conditional variables.
         self.data_path = '../data_cosmoflow/'+data_path+'.csv'
         self.batches_data = batches_data
         self.xyz = xyz
         self.scaler_type = scaler_type
         self.n_conditional = n_conditional
+        self.n_inputs = n_inputs
         self.data = None
         self.scaler_x = None
         self.scaler_y = None
+        self.folder_name = folder_name
+        self.path = 'trained_flows_and_curves/'
 
     def load_data(self):
         print("Loading data batches...")
@@ -89,6 +92,14 @@ class DataLoaderClass:
         print("Scaling data...")
         # Scale data using the specified scaler (MinMax or Standard)
         self.scaler_x, self.scaler_y, scaled_data = utilities.scale_data(self.data, self.scaler_type, self.n_conditional)
+        # Save data scalers X and Y
+        print("\nSaving Scalers X and Y\n")
+        print("Current directory:", os.getcwd())
+        scalerfileX = self.path + self.folder_name + '/scaler_x.sav'
+        scalerfileY = self.path + self.folder_name + '/scaler_y.sav'
+        pickle.dump(self.scaler_x, open(scalerfileX, 'wb'))
+        pickle.dump(self.scaler_y, open(scalerfileY, 'wb'))
+        print(f"Scalers saved: {scalerfileX} and {scalerfileY}")
         print("Data scaling complete.")
         return scaled_data
 
@@ -105,9 +116,11 @@ class TrainFlowClass:
         self.lr_scheduler = args['learning_rate_scheduler']
         self.dp = float(args['drop_out'])
         self.save_steps = int(args['save_step'])
+        self.logit =  int(args['log_it'])
         self.vp = args['Volume_preserving']
         self.linear_transform = args.get('linear_transform', None)
         self.n_conditional = int(args['n_conditional'])
+        self.n_inputs = int(args['n_inputs'])
         self.n_neurons = int(args['neurons'])
         self.n_transforms = int(args['layers'])
         self.n_blocks_per_transform = int(args['nblock'])
@@ -116,6 +129,7 @@ class TrainFlowClass:
         self.folder_name = args['Name_folder']
         self.path = 'trained_flows_and_curves/'
         self.train_size = float(args['train_size'])
+        self.data_path = data_loader.data_path
 
         # Create the folder for saving the model if it doesn't exist
         if os.path.exists(self.path + self.folder_name):
@@ -135,23 +149,32 @@ class TrainFlowClass:
                 'n_neurons': self.n_neurons,
                 'n_transforms': self.n_transforms,
                 'n_blocks_per_transform': self.n_blocks_per_transform,
-                'n_inputs': None,  # Placeholder, will be updated after initialization
+                'n_inputs': self.n_inputs,  # Placeholder, will be updated after initialization
                 'n_conditional_inputs': self.n_conditional,
                 'flow_type': self.flow_type,
                 'log_it': args['log_it'],
                 'xyz': args['xyz'],
                 'scaler': args['Scaler'],
                 'lr_scheduler': self.lr_scheduler,
-                'volume_preserving': self.vp
+                'volume_preserving': self.vp,
+                'training_data_path': self.data_path
                 }
 
         with open(self.path + self.folder_name + '/hyperparameters.txt', 'w') as f:
             f.write(str(para))
 
+    
+    
     def prepare_data(self):
         print("Preparing data for training and validation...")
         # Split the data into training and validation sets
-        scaled_data = self.data_loader.scale_data()
+        scaled_data = self.data_loader.scale_data() 
+        ########## DATA IS SCALED FIRST, THEN LOGIT FUCNTION IS APPLIED
+        print(scaled_data)
+        # Apply logit transformation if required
+        if self.logit:
+            scaled_data = utilities.logit_transform(scaled_data)
+        
         x_train, x_val = train_test_split(scaled_data, test_size=(1.0 - self.train_size), train_size=self.train_size)
 
 
@@ -177,19 +200,11 @@ class TrainFlowClass:
         self.Y_scale_val = Y_scale_val
         print("Data preparation complete.")
 
-        # Save data scalers X and Y
-        print("\nSaving Scalers X and Y\n")
-        print("Current directory:", os.getcwd())
-        scalerfileX = self.path + self.folder_name + '/scaler_x.sav'
-        scalerfileY = self.path + self.folder_name + '/scaler_y.sav'
-        pickle.dump(self.scaler_x, open(scalerfileX, 'wb'))
-        pickle.dump(self.scaler_y, open(scalerfileY, 'wb'))
-        print(f"Scalers saved: {scalerfileX} and {scalerfileY}")
 
     def initialize_flow(self):
         print("Initializing flow model...")
         # Initialize the flow model based on the type specified
-        n_inputs = len(self.data_loader.data.columns) - self.n_conditional
+        n_inputs = self.n_inputs#len(self.data_loader.data.columns) - self.n_conditional
         if self.flow_type == 'RealNVP':
             # Initialize RealNVP model with the given parameters
             self.flow = RealNVP(
@@ -218,9 +233,6 @@ class TrainFlowClass:
         else:
             raise ValueError('Flow not implemented')
 
-        # Update the saved hyperparameters with actual number of inputs
-        with open(self.path + self.folder_name + '/hyperparameters.txt', 'a') as f:
-            f.write(f"\nn_inputs: {n_inputs}")
         print("Flow model initialized.")
 
     def _validate(self, loss_dict, kl_dict):
@@ -279,7 +291,7 @@ class TrainFlowClass:
         ax2.legend(loc='upper right')
 
         # Set the title and save the figure
-        plt.title('Training/Validation Loss and KL Divergence')
+        plt.title(self.folder_name)
         plt.savefig(self.path + self.folder_name + f'/metrics.png')
         plt.close()
         
@@ -339,6 +351,15 @@ class TrainFlowClass:
 
             self._plot_and_save_metrics(epoch, loss_dict, kl_dict)
 
+        #save flow model 
+        self.flow.load_state_dict(best_model)
+        
+        print()
+        print('Saving Flow model in {}'.format(self.path+self.folder_name))
+        print()
+        #Save flow model 
+        torch.save(self.flow.state_dict(), self.path+self.folder_name+'/flow.pt')
+
 # Main function to run the entire pipeline
 if __name__ == "__main__":
     # Argument parsing
@@ -351,6 +372,8 @@ if __name__ == "__main__":
                     help="Batch size of the data to pass")
     ap.add_argument("-n_cond", "--n_conditional", required=False, default=1,
                     help="How many conditional variables")
+    ap.add_argument("-n_inputs", "--n_inputs", required=False, default=1,
+                    help="How many input variables (features)")
     ap.add_argument("-train_size", "--train_size", required=False, default=0.75,
                     help="Percentage of training data")
     ap.add_argument("-flow_type", "--flow_type", required=False, default="RealNVP",
@@ -389,10 +412,11 @@ if __name__ == "__main__":
 
     # Data loading and preprocessing
     print("Initializing DataLoaderClass...")
-    data_loader = DataLoaderClass(data_path=args["data_path"],
+    data_loader = DataLoaderClass(folder_name = args["Name_folder"], data_path=args["data_path"],
                                   batches_data=int(args["batches_data"]),
                                   xyz=bool(int(args["xyz"])),
                                   scaler_type=args["Scaler"],
+                                  n_inputs =int(args["n_inputs"]),
                                   n_conditional=int(args["n_conditional"]))
 
     # Load and process data

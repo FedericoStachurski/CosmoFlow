@@ -1,99 +1,105 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-pd.options.mode.chained_assignment = None 
-import h5py
+import os
+import pickle
+import torch
 import numpy as np
+import pandas as pd
 import sys
-sys.path.append("..")
-from gw_functions import pdet_theta 
-from cosmology_functions import cosmology
-from cosmology_functions import utilities 
-from gw_functions.gw_SNR_v2 import run_bilby_sim
-from tqdm import tqdm
+
+# Get the current script directory
+current_dir = os.path.dirname(os.path.realpath(__file__))
+
+# Get the parent directory (where cosmology_functions is located)
+parent_dir = os.path.dirname(current_dir)
+
+# Add the parent directory to sys.path
+sys.path.append(parent_dir)
+
 from glasflow.flows import RealNVP, CouplingNSF
-import torch 
-import pickle 
-import corner
-import os 
-import multiprocessing 
-import json
-from scipy.spatial.distance import jensenshannon
-from scipy import interpolate
+from cosmology_functions import utilities, cosmology
 from scipy.special import logsumexp
-import matplotlib.pyplot as plt
-from scipy.stats import ncx2
-import bilby
-
-torch.set_printoptions(precision=12)
 
 
+class HandleFlow:
+    def __init__(self, path, flow_name, device, epoch=None, threads=1, conditional=True):
+        """
+        Initialize the HandleFlow class.
 
-class Handle_Flow(object):
-    def __init__(self, path, flow_name, device, epoch = None, threads = 1, conditional = 1):
+        Parameters:
+            path (str): Path to the model directory.
+            flow_name (str): Name of the flow model.
+            device (str): Device to run the model on (e.g., 'cpu' or 'cuda').
+            epoch (int, optional): Specific epoch to load. Defaults to None for the latest.
+            threads (int, optional): Number of threads for PyTorch. Defaults to 1.
+            conditional (bool, optional): Whether the flow is conditional. Defaults to True.
+        """
         self.path = path
         self.flow_name = flow_name
-        self.device = device 
+        self.device = device
         self.epoch = epoch
         self.threads = threads
-        if conditional == 1:
-            self.flow, self.hyperparameters, self.scaler_x, self.scaler_y = self.load_hyperparameters_scalers_flow()
-        else: 
-            self.flow, self.hyperparameters, self.scaler_x = self.load_hyperparameters_scalers_flow()
-        
+        self.conditional = conditional
+        torch.set_num_threads(self.threads)
+        self.flow, self.hyperparameters, self.scaler_x, self.scaler_y = self.load_hyperparameters_scalers_flow()
+        self.logit = int(self.hyperparameters['log_it'])
+    
     def load_hyperparameters_scalers_flow(self):
         torch.set_num_threads(self.threads)
-        # print(os.getcwd())
-        #Open hyperparameter dictionary
+        # Open hyperparameter dictionary
         path = self.path
         flow_name = self.flow_name
-        hyper = open(path+flow_name+'/'+'hyperparameters.txt', 'r').read()
+        hyper = open(path + flow_name + '/' + 'hyperparameters.txt', 'r').read()
         hyperparameters = eval(hyper)
 
         device = 'cpu'
         n_inputs = hyperparameters['n_inputs']
-        n_conditional_inputs = hyperparameters['n_conditional_inputs'] 
+        n_conditional_inputs = hyperparameters['n_conditional_inputs']
         n_neurons = hyperparameters['n_neurons']
         n_transforms = hyperparameters['n_transforms']
         n_blocks_per_transform = hyperparameters['n_blocks_per_transform']
         dropout = hyperparameters['dropout']
         flow_type = hyperparameters['flow_type']
 
-        #open scaler_x and scaler_y
-        scalerfile_x = path+flow_name+'/'+'scaler_x.sav'
+        # Open scaler_x and scaler_y
+        scalerfile_x = path + flow_name + '/' + 'scaler_x.sav'
         scaler_x = pickle.load(open(scalerfile_x, 'rb'))
 
         if n_conditional_inputs != 0:
-            scalerfile_y = path+flow_name+'/'+'scaler_y.sav'
+            scalerfile_y = path + flow_name + '/' + 'scaler_y.sav'
             scaler_y = pickle.load(open(scalerfile_y, 'rb'))
+        else:
+            scaler_y = None
 
+        # Open flow model file flow.pt
+        if self.epoch is None:
+            flow_load = torch.load(path + flow_name + '/' + 'flow.pt', map_location=self.device)
+        else:
+            flow_load = torch.load(path + flow_name + '/flows_epochs/' + 'flow_epoch_{}.pt'.format(self.epoch), map_location=self.device)
 
-        #Open flow model file flow.pt
-        if self.epoch is None: 
-            flow_load = torch.load(path+flow_name+'/'+'flow.pt', map_location=self.device)
-        else: 
-            flow_load = torch.load(path+flow_name+'/flows_epochs/'+'flow_epoch_{}.pt'.format(self.epoch), map_location=self.device)
-            
-
+        # Initialize the appropriate flow model
         if flow_type == 'RealNVP':
-            flow_empty = RealNVP(n_inputs= n_inputs,
-                n_transforms= n_transforms,
-                n_neurons= n_neurons,
-                n_conditional_inputs = n_conditional_inputs,
-                n_blocks_per_transform = n_blocks_per_transform,
-                batch_norm_between_transforms=True,
-                # batch_norm_within_blocks=True,
-                dropout_probability=dropout,
-                linear_transform='lu',
-                volume_preserving = volume_preserving)
-        elif flow_type == 'CouplingNSF':   
-                flow_empty = CouplingNSF(n_inputs= n_inputs,
-                n_transforms= n_transforms,
-                n_neurons= n_neurons,
-                n_conditional_inputs = n_conditional_inputs,
-                n_blocks_per_transform = n_blocks_per_transform,
+            flow_empty = RealNVP(
+                n_inputs=n_inputs,
+                n_transforms=n_transforms,
+                n_neurons=n_neurons,
+                n_conditional_inputs=n_conditional_inputs,
+                n_blocks_per_transform=n_blocks_per_transform,
                 batch_norm_between_transforms=True,
                 dropout_probability=dropout,
-                linear_transform='lu')
+                linear_transform='lu'
+            )
+        elif flow_type == 'CouplingNSF':
+            flow_empty = CouplingNSF(
+                n_inputs=n_inputs,
+                n_transforms=n_transforms,
+                n_neurons=n_neurons,
+                n_conditional_inputs=n_conditional_inputs,
+                n_blocks_per_transform=n_blocks_per_transform,
+                batch_norm_between_transforms=True,
+                dropout_probability=dropout,
+                linear_transform='lu'
+            )
+        else:
+            raise ValueError("Unsupported flow type")
 
         flow_empty.load_state_dict(flow_load)
         flow = flow_empty
@@ -103,345 +109,188 @@ class Handle_Flow(object):
             return flow, hyperparameters, scaler_x, scaler_y
         else:
             return flow, hyperparameters, scaler_x
-    
-    
-    def Flow_samples(self, conditional, n):
-        "Sample the flow using conditional statements"
-        n_conditional = self.hyperparameters['n_conditional_inputs']
+
+    def sample_flow(self, conditional, n_samples):
+        """
+        Sample from the flow given the conditional input.
+
+        Parameters:
+            conditional (list or array): Conditional input values.
+            n_samples (int): Number of samples to draw.
+
+        Returns:
+            np.ndarray: Samples from the flow.
+        """
         conditional = np.array(conditional).T
-        conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) #scael conditional statemnt
-        
-        # print(np.shape(self.scaler_y.inverse_transform(conditional)))
-        # print(self.scaler_y.inverse_transform(conditional))
-        
-        data = np.array(conditional)
-        
-        data_scaled = torch.from_numpy(data.astype('float32'))
-        self.flow.eval()
+        conditional_scaled = self.scaler_y.transform(conditional.reshape(-1, self.hyperparameters['n_conditional_inputs']))
+        data_scaled = torch.from_numpy(conditional_scaled.astype('float32'))
         self.flow.to('cpu')
         with torch.no_grad():
-            samples = self.flow.sample(n, conditional=data_scaled.to('cpu'))
-            samples= self.scaler_x.inverse_transform(samples.to('cpu'))
+            samples = self.flow.sample(n_samples, conditional=data_scaled)
+            if self.logit == 1:
+                samples = utilities.inverse_logit_transform(samples.numpy())
+                samples = self.scaler_x.inverse_transform(samples)
+            else:
+                samples = self.scaler_x.inverse_transform(samples.numpy())
+            
         return samples
-    
 
-    def Flow_posterior(self, target, conditional): 
-        self.flow.eval()
+    def evaluate_log_prob(self, target, conditional=None):
+        """
+        Evaluate the log-probability of the target given the conditional.
+
+        Parameters:
+            target (np.ndarray): Target values for evaluation.
+            conditional (np.ndarray, optional): Conditional values. Defaults to None.
+
+        Returns:
+            np.ndarray: Log-probability values.
+        """
+        target_tensor = torch.from_numpy(target.astype('float32')).float().to(self.device)
         self.flow.to(self.device)
         with torch.no_grad():
-            logprobx = self.flow.log_prob(target.to(self.device), conditional=conditional.to(self.device))
-            logprobx = logprobx.detach().cpu().numpy() 
-            return  logprobx
+            if conditional is not None:
+                conditional_tensor = torch.from_numpy(conditional.astype('float32')).float().to(self.device)
+                log_prob = self.flow.log_prob(target_tensor, conditional=conditional_tensor)
+            else:
+                log_prob = self.flow.log_prob(target_tensor)
+        return log_prob.cpu().numpy()
 
-    def Flow_posterior_no_conditional(self, target): 
-        self.flow.eval()
-        self.flow.to(self.device)
-        with torch.no_grad():
-            logprobx = self.flow.log_prob(target.to(self.device))
-            logprobx = logprobx.detach().cpu().numpy() 
-            return  logprobx
- 
-        
     def convert_data(self, df):
-        data = df
-        coordinates= data[['luminosity_distance', 'ra', 'dec']]
-        dl = np.array(coordinates.luminosity_distance)
-        ra = np.array(coordinates.ra)
-        dec = np.array(coordinates.dec)
-      
+        """
+        Convert data from spherical to cartesian coordinates if needed.
 
-        if self.hyperparameters['xyz'] == 0:
-            return data[['luminosity_distance', 'ra', 'dec','mass_1', 'mass_2']]
-        
-        if self.hyperparameters['xyz'] == 1:
+        Parameters:
+            df (pd.DataFrame): Dataframe containing data to be converted.
+
+        Returns:
+            pd.DataFrame: Converted data.
+        """
+        if self.hyperparameters.get('xyz', 0) == 0:
+            return df[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2']]
+        else:
+            dl = df['luminosity_distance'].to_numpy()
+            ra = df['ra'].to_numpy()
+            dec = df['dec'].to_numpy()
             x, y, z = cosmology.spherical_to_cart(dl, ra, dec)
-            data['x'] = x
-            data['y'] = y
-            data['z'] = z
-            return data[['xcoord', 'ycoord', 'zcoord','mass_1', 'mass_2']]
-    
+            df['x'], df['y'], df['z'] = x, y, z
+            return df[['x', 'y', 'z', 'mass_1', 'mass_2']]
+
+    def reshape_conditional(self, conditional, n_samples, axis=1):
+        """
+        Utility function to reshape conditional input.
+
+        Parameters:
+            conditional (np.ndarray): Conditional input.
+            n_samples (int): Number of samples to reshape to.
+            axis (int, optional): Axis to repeat along. Defaults to 1.
+
+        Returns:
+            np.ndarray: Reshaped conditional input.
+        """
+        conditional = np.repeat(conditional, n_samples, axis=axis)
+        return conditional.reshape(n_samples, -1)
+
     def p_theta_OMEGA_test(self, df, conditional):
-        n_conditional = self.hyperparameters['n_conditional_inputs'] ### Get N conditional
-        scaled_theta = self.convert_data(df) #convert data 
-        # print(scaled_theta, df)
-        scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
-        scaled_theta = np.array(scaled_theta) ## make sure it is an array 
-        N_samples = np.shape(scaled_theta)[0] ## get the Number of target data rows
-        conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) ##scale conditional, and reshape 
-        # print(conditional)
-        # print(scaled_theta)
-        # print(conditional)
-        # conditional = np.repeat(conditional, N_samples) ### Repeat conditional to match the nubmer of target rows
-        conditional = np.repeat(conditional, N_samples, axis = 1) ### Repeat conditional to match the nubmer of target rows
-        # print(np.shape(conditional))
-        # print(conditional)
-        conditional = conditional.reshape(n_conditional, N_samples).T## Reshape accordingly GOOD
-        # conditional = conditional.T.reshape(N_samples, n_conditional) ## Reshape accordingly 
-        # conditional = conditional.reshape(N_samples, n_conditional) ## Reshape accordingly GOOD
-        # conditional = conditional.reshape(n_conditional, N_samples).T ## Reshape accordingly 
-        # print(conditional)
-        
-        target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float() 
-        conditional_tensor = torch.from_numpy(conditional.astype('float32'))
-        
-        # print(target_tensor.shape, conditional_tensor.shape)
-        # print(target_tensor, conditional_tensor)
+        """
+        Evaluate log-probabilities for target data given conditional input.
 
-        Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
-        return Log_Prob.astype('float32')
-    
-    
-    
-    def p_theta_OMEGA_test_v2(self, df, conditional):
-        n_conditional = self.hyperparameters['n_conditional_inputs'] ### Get N conditional
-        scaled_theta = self.convert_data(df) #convert data 
-        # print(scaled_theta, df)
-        scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
-        scaled_theta = np.array(scaled_theta) ## make sure it is an array 
-        N_samples = np.shape(scaled_theta)[0] ## get the Number of target data rows
-        conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional)) ##scale conditional, and reshape 
-        # print(conditional)
-        # print(scaled_theta)
-        # print(conditional)
-        # conditional = np.repeat(conditional, N_samples) ### Repeat conditional to match the nubmer of target rows
-        conditional = np.repeat(conditional, N_samples, axis = 1) ### Repeat conditional to match the nubmer of target rows
-        print(np.shape(conditional))
-        # print(conditional)
-        # conditional = conditional.T.reshape(N_samples, n_conditional) ## Reshape accordingly 
-        # conditional = conditional.reshape(N_samples, n_conditional) ## Reshape accordingly GOOD
-        # conditional = conditional.reshape(n_conditional, N_samples).T ## Reshape accordingly 
-        # print(conditional)
+        Parameters:
+            df (pd.DataFrame): Dataframe containing target data.
+            conditional (list or array): Conditional input values.
 
-        target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float() 
-        conditional_tensor = torch.from_numpy(conditional.astype('float32'))
-
-        # print(target_tensor.shape, conditional_tensor.shape)
-        # print(target_tensor, conditional_tensor)
-
-        Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
-        return Log_Prob.astype('float32')
-
-    
-    def p_theta_OMEGA_test_batching(self, df, conditional):
+        Returns:
+            np.ndarray: Log-probability values.
+        """
         n_conditional = self.hyperparameters['n_conditional_inputs']
-        conditional = conditional.T
-        N_priors = np.shape(conditional)[0]
-        N_samples = len(df) ## check how many rows the data has
-        df = pd.concat([df]*N_priors, ignore_index=True) ### start batching by repeating the dataframe Nprior times
-        
-        # print(df)
-        scaled_theta = self.convert_data(df) #convert data 
-        scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
-        scaled_theta = np.array(scaled_theta) ### make sure the data is an array
-        conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional))  ### reshape conditional data 
-        # print(conditional)
-        # conditional = np.repeat(conditional, N_samples, axis = 0)
-        # print(np.shape(conditional))
-        # print(conditional)
-        
-        
-        # conditional = (np.repeat(conditional, N_samples).reshape(int(N_samples*N_priors), n_conditional ))
-        # print(conditional[:,0])
-        # print(scaled_theta[0,:])
-        conditional = (np.repeat(conditional, N_samples).reshape(n_conditional, int(N_samples*N_priors))).T 
-        ## repeat conditional to match NtargetxNprior
-
-        target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float()
-        conditional_tensor = torch.from_numpy(conditional.astype('float32'))
-        
-        # print(target_tensor, conditional_tensor)
-        Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
-        return Log_Prob.astype('float32')
-  
-
-    def p_theta_OMEGA_test_batching_Chris(self, df, conditional):
-        n_conditional = self.hyperparameters['n_conditional_inputs']
-        conditional = conditional.T
-        N_priors = np.shape(conditional)[0]
-        N_samples = len(df) ## check how many rows the data has
-        
-        
-        df = pd.concat([df]*N_priors, ignore_index=True) ### start batching by repeating the dataframe Nprior times
-
-        # print(df)
-        scaled_theta = self.convert_data(df) #convert data 
-        scaled_theta = self.scaler_x.transform(scaled_theta) #scale data 
-        scaled_theta = np.array(scaled_theta) ### make sure the data is an array
-        conditional = self.scaler_y.transform(conditional.reshape(-1,n_conditional))  ### reshape conditional data 
-        conditional = (np.repeat(conditional, N_samples).reshape(int(N_samples*N_priors),n_conditional)) 
-        ## repeat conditional to match NtargetxNprior
+        scaled_theta = self.convert_data(df)
+        scaled_theta = self.scaler_x.transform(scaled_theta)
+        N_samples = scaled_theta.shape[0]
+        conditional = self.scaler_y.transform(conditional.reshape(-1, n_conditional))
+        conditional = np.repeat(conditional, N_samples, axis=0)  # Simplified reshaping
 
         target_tensor = torch.from_numpy(scaled_theta.astype('float32')).float()
         conditional_tensor = torch.from_numpy(conditional.astype('float32'))
 
-        # print(target_tensor, conditional_tensor)
-        Log_Prob = self.Flow_posterior(target_tensor, conditional_tensor)
-        return Log_Prob.astype('float32')
-  
+        log_prob = self.evaluate_log_prob(target_tensor, conditional_tensor)
+        return log_prob.astype('float32')
 
     def flow_input(self, prior_samples, Nevents, posterior_samples):
-        
-        N_prior_values, N_prior_components = np.shape(prior_samples)
+        """
+        Prepare flow input data from prior and posterior samples.
 
-        # data array
-        Nevents, N_samples_per_event, N_gw_params = np.shape(posterior_samples)
-        
-        
-        # print(N_prior_values, N_prior_components , Nevents, N_samples_per_event, N_gw_params)
-        # initialise empty conditional array
-        conditional_array_to_flow = np.zeros((N_prior_values, Nevents, N_samples_per_event, N_prior_components))
+        Parameters:
+            prior_samples (np.ndarray): Prior samples.
+            Nevents (int): Number of events.
+            posterior_samples (np.ndarray): Posterior samples.
 
-        # initialise empty data array
-        data_array_to_flow = np.zeros((N_prior_values, Nevents, N_samples_per_event, N_gw_params))
+        Returns:
+            tuple: Flow data and conditional reshaped for flow input.
+        """
+        N_prior_values, N_prior_components = prior_samples.shape
+        Nevents, N_samples_per_event, N_gw_params = posterior_samples.shape
 
-        # loop through EOSs
-        for i in range(0, N_prior_values):
+        # Repeat prior and posterior samples for flow input
+        conditional_array_to_flow = np.repeat(prior_samples[:, np.newaxis, np.newaxis, :], Nevents * N_samples_per_event, axis=1)
+        data_array_to_flow = np.tile(posterior_samples, (N_prior_values, 1, 1, 1))
 
-            # loop through events (1 in this case)
-            for j in range(0, Nevents):
+        # Reshape for flow input
+        flow_data = data_array_to_flow.reshape(N_prior_values * N_samples_per_event * Nevents, N_gw_params)
+        flow_conditional = conditional_array_to_flow.reshape(N_prior_values * N_samples_per_event * Nevents, N_prior_components)
 
-                # loop through samples in each event
-                for k in range(0, N_samples_per_event):
-
-                    data_array_to_flow[i, j, k, :] = posterior_samples[j, k, :]
-
-                    conditional_array_to_flow[i, j, k, :] = prior_samples[i, :]
-                    
-        flow_data = np.reshape(data_array_to_flow, (N_prior_values, N_samples_per_event*Nevents, N_gw_params))
-
-        # conditional array
-        flow_conditional = np.reshape(conditional_array_to_flow, (N_prior_values, N_samples_per_event*Nevents, N_prior_components))
-                    
-            
-        if Nevents == 1:
-            flow_data = np.reshape(flow_data, (N_prior_values*N_samples_per_event*Nevents, N_gw_params))
-            flow_conditional = np.reshape(flow_conditional, (N_prior_values*N_samples_per_event*Nevents, N_prior_components))
-
-            # # check that the final reshape is successful
-            # if (data_array_to_flow[5,:]).all() == (flow_data[-1,:]).all() and (conditional_array_to_flow[5,:]).all() == (flow_conditional[-1,:]).all():
-            #     print('Batch for flow made successfully; reshaped into\n', 'data:', np.shape(flow_data), 'conditional', np.shape(flow_conditional))
-
-        else:
-
-            # testing reshaping is as expected
-            if (data_array_to_flow[0,1,0,:]).all() == (flow_data[0,-1,:]).all() and (conditional_array_to_flow[0,1,0,:]).all() == (flow_conditional[0,-1,:]).all():
-                flow_data = np.reshape(flow_data, (N_prior_values*N_samples_per_event*Nevents, N_gw_params))
-                flow_conditional = np.reshape(flow_conditional, (N_prior_values*N_samples_per_event*Nevents, N_prior_components))
-            else:
-                print('arrays reshaped incorrectly')
-
-
-            
-          
         return flow_data, flow_conditional
-    
-    
-    
-    def temp_funct_post(self, flow_class, target_data, prior_samples, N_events, N_post, N_priors, ndim_target = 5):
 
-        # target_data = self.convert_data(target_data) #convert data #####UNCOMMENT!!!!
-        scaled_theta = self.scaler_x.transform(target_data) #scale data 
-        scaled_theta = np.array(scaled_theta) ### make sure the data is an array
-        conditional = self.scaler_y.transform(prior_samples.T)  ### reshape conditional data 
+    def temp_funct_post(self, target_data, prior_samples, N_events, N_post, N_priors, ndim_target=5):
+        """
+        Evaluate posterior probabilities for the given target and prior samples.
 
-        # print(prior_samples, conditional)
+        Parameters:
+            target_data (np.ndarray): Target data values.
+            prior_samples (np.ndarray): Prior samples.
+            N_events (int): Number of events.
+            N_post (int): Number of posterior samples.
+            N_priors (int): Number of prior samples.
+            ndim_target (int, optional): Dimensionality of the target data. Defaults to 5.
 
-        target_tensor , conditional_tensor = self.flow_input(conditional, N_post , np.array(scaled_theta).reshape(N_events,N_post, ndim_target)) ### Change 1 to 5
+        Returns:
+            np.ndarray: Log-posterior values.
+        """
+        scaled_theta = self.scaler_x.transform(target_data)
+        conditional = self.scaler_y.transform(prior_samples.T)
 
+        target_tensor, conditional_tensor = self.flow_input(conditional, N_post, scaled_theta.reshape(N_events, N_post, ndim_target))
         target_tensor = torch.from_numpy(target_tensor.astype('float32')).float()
         conditional_tensor = torch.from_numpy(conditional_tensor.astype('float32'))
 
+        log_post = self.evaluate_log_prob(target_tensor, conditional_tensor)
+        return self.evaluate_flow_output(log_post, N_events, N_post, N_priors)
 
-        # print(np.shape(target_tensor), np.shape(conditional_tensor))
-        # print(target_tensor, conditional_tensor)
-        log_post = self.Flow_posterior(target_tensor, conditional_tensor)
-        log_post = self.evaluate_flow_output(log_post, N_events, N_post, N_priors)
-        return log_post
-    
-    
-    
     def evaluate_flow_output(self, flow_output_array, Nevents, N_samples_per_event, Npriors):
-                # take in the data from the flow
-        # the number of log probs need to be divided up into the correct number
-        # per PCA, per event, each sample
+        """
+        Process and reshape flow output into log-posterior probabilities.
 
-        # if 1 event, keep things in 2d, and then just pad with an extra dimension for the flow
+        Parameters:
+            flow_output_array (np.ndarray): Flow output array.
+            Nevents (int): Number of events.
+            N_samples_per_event (int): Number of samples per event.
+            Npriors (int): Number of priors.
 
-        # number of log probs out of the flow
-        N_log_probs = len(flow_output_array)
-
-        # plt.hist(flow_output_array, bins = 1000)
-        # plt.savefig(outdir + 'log_probs_from_flow.pdf')
-        # plt.close()
-
-        # reshape to 2D, collating samples from all events
-        log_probs_2d = np.reshape(flow_output_array, (Npriors, N_samples_per_event*Nevents), 'C')
-
-        # reshape back into 3D
+        Returns:
+            np.ndarray: Log-posterior probabilities.
+        """
+        # Reshape flow output
         log_probs_3d = np.reshape(flow_output_array, (Npriors, Nevents, N_samples_per_event), 'C')
-
-        # placeholders for looping
-        # log probs
         event_prob = np.zeros((Npriors, Nevents))
-        # log posterior
         sum_over_events = np.zeros((Npriors))
 
-        # placeholders for function outputs
-        log_likelihoods = []
-        # EOSs = []
+        # Calculate log-posterior for each prior
+        for prior in range(Npriors):
+            for event in range(Nevents):
+                event_prob[prior, event] = logsumexp(log_probs_3d[prior, event, :]) - np.log(len(log_probs_3d[prior, event, :]))
+            sum_over_events[prior] = np.sum(event_prob[prior, :])
 
-        # loop through EOS locations
-        for prior in range(0,Npriors):
+        return sum_over_events
 
-            # loop through events
-            for event in range(0,Nevents):
-
-                # log sum exp over samples in an event and take log mean
-                # i.e. subtract the log number of samples
-                event_prob[prior, event] = logsumexp(log_probs_3d[prior, event,:]) - np.log(len(log_probs_3d[prior, event,:]))
-                # prior on GW samples is uniform
-
-            # sum over log_probs from all events for a given EOS
-            # we have 1 event here
-            sum_over_events[prior] = np.sum(event_prob[prior, :])  
-
-        # log posterior on EOS is log likelihood plus log prior
-        log_posterior = sum_over_events
-
-        return log_posterior
-
-
-    def p_theta_H0_full_single(self, df, conditional):
-        "Functio for evaluating the numerator, takes in all the posterior samples for singular vlaue of the conditional statement"
-        "Input: df = Data frame of posterior samples (dl, ra, dec, m1, m2) or (x,y,z, m1, m2)"
-        "       conditional = singular value of the conditional statemnt (thsi case, H0 = 70 example ) "
-        
-        "Output: p(theta|H0,D) numerator "
-
-        conv_df = self.convert_data(df) #convert data 
-        scaled_theta = self.scaler_x.transform(df) #scale data 
-        conditional = np.repeat(conditional, len(df))  #repeat condittional singualr value N times as many posterior sampels 
-        Y_H0_conditional = self.scaler_y.transform(conditional.reshape(-1,1)) #scael conditional statemnt 
-        samples = scaled_theta
-
-        if self.hyperparameters['xyz'] == 0: #check if in sherical or cartesian coordiantes 
-            dict_rand = {'luminosity_distance':samples[:,0], 'ra':samples[:,1], 'dec':samples[:,2], 'm1':samples[:,3], 'm2':samples[:,4]}
-
-        # elif flow_class.hyperparameters['xyz'] == 1:
-        #     dict_rand = {'x':samples[:,0], 'y':samples[:,1], 'z':samples[:,2],'m1':samples[:,3], 'm2':samples[:,4]}
-
-        samples = pd.DataFrame(dict_rand) #make data frame to pass 
-        scaled_theta = samples 
-        # if self.hyperparameters['log_it'] == 1:
-        #     utilities.logit_data(scaled_theta)
-        #     scaled_theta = scaled_theta[np.isfinite(scaled_theta).all(1)]
-
-        scaled_theta = np.array(scaled_theta) 
-        scaled_theta = scaled_theta.T*np.ones((1,len(Y_H0_conditional)))
-
-        conditional = np.array(Y_H0_conditional)
-        data = np.array(conditional)
-        data_scaled = torch.from_numpy(data.astype('float32'))
-        Log_Prob = self.Flow_posterior(torch.from_numpy(scaled_theta.T).float(), data_scaled)
-
-        return np.exp(Log_Prob)
+# Usage example:
+# flow_handler = HandleFlow(path='model_path', flow_name='my_flow', device='cpu')
+# samples = flow_handler.sample_flow(conditional=[[70]], n_samples=1000)

@@ -10,6 +10,7 @@ from scipy.stats import entropy
 from astropy.coordinates import spherical_to_cartesian, cartesian_to_spherical
 from torch import logit, sigmoid
 import h5py
+from scipy.special import logit, expit
 
 def round_base(x, base=100):
     return int(base * round(float(x)/base))
@@ -349,6 +350,32 @@ def _MLP_luminosity_distance(z_samples,H0_samples,Om0_samples, model, device = '
     return DL_pred
 
 
+def logit_transform(data, epsilon=1e-6):
+    """
+    Apply the logit transformation to the data.
+    
+    Parameters:
+        data (np.ndarray): Data to be transformed.
+        epsilon (float, optional): Small value to avoid log(0). Defaults to 1e-6.
+    
+    Returns:
+        np.ndarray: Logit-transformed data.
+    """
+    # Apply logit transformation and ensure data is within bounds [0, 1]
+    data = np.clip(data, epsilon, 1 - epsilon)
+    return logit(data)  
+
+def inverse_logit_transform(data):
+    """
+    Apply the inverse logit transformation (sigmoid) to the data.
+
+    Parameters:
+        data (np.ndarray): Logit-transformed data to be inverted.
+
+    Returns:
+        np.ndarray: Original data from logit transformation.
+    """
+    return expit(data)
 
 
 
