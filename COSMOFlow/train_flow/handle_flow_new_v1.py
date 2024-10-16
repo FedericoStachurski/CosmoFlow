@@ -4,7 +4,8 @@ import torch
 import numpy as np
 import pandas as pd
 import sys
-
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 # Get the current script directory
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -140,17 +141,32 @@ class HandleFlow:
         Evaluate the log-probability of the target given the conditional.
 
         Parameters:
-            target (np.ndarray): Target values for evaluation.
+            target (np.ndarray or pd.Series): Target values for evaluation.
             conditional (np.ndarray, optional): Conditional values. Defaults to None.
 
         Returns:
             np.ndarray: Log-probability values.
         """
-        target_tensor = torch.from_numpy(target.astype('float32')).float().to(self.device)
+        # Ensure target is a numpy array
+        if isinstance(target, pd.Series):
+            target = target.to_numpy()
+        
+        # Scale target data appropriately
+        if self.logit == 1:
+            target = utilities.logit_transform(target)
+         
+        target_scaled = self.scaler_x.transform(target.reshape(-1, self.hyperparameters['n_inputs']) if target.ndim == 1 else target)
+        
+        target_tensor = torch.from_numpy(target_scaled.astype('float32')).float().to(self.device)
         self.flow.to(self.device)
         with torch.no_grad():
             if conditional is not None:
-                conditional_tensor = torch.from_numpy(conditional.astype('float32')).float().to(self.device)
+                if isinstance(conditional, pd.Series) or np.isscalar(conditional):
+                    conditional = np.array(conditional).reshape(-1, 1)
+                elif conditional.ndim == 1:
+                    conditional = conditional.reshape(-1, 1)
+                conditional_scaled = self.scaler_y.transform(conditional)
+                conditional_tensor = torch.from_numpy(conditional_scaled.astype('float32')).float().to(self.device)
                 log_prob = self.flow.log_prob(target_tensor, conditional=conditional_tensor)
             else:
                 log_prob = self.flow.log_prob(target_tensor)

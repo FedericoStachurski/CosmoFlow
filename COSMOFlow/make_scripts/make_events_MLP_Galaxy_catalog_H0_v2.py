@@ -834,7 +834,7 @@ output_df = GW_data[['snr', 'H0', 'luminosity_distance', 'mass_1', 'mass_2', 'ra
 
 # Save the data to a CSV file in the specified path
 detector_str = '_'.join(detectors)  # Join the list of detectors into a single string
-output_df.to_csv(path_data + 'run_{}_det_{}_name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}_Full_para_v1.csv'.format(
+output_df.to_csv(path_data + '/run_{}_det_{}_name_{}_catalog_{}_band_{}_batch_{}_N_{}_SNR_{}_Nelect_{}_Full_para_v1.csv'.format(
     run, detector_str, Name, in_out, band, int(batch), int(N), int(SNRth), int(Nselect)))
 
 
