@@ -129,7 +129,6 @@ def get_likelihoods(h0, df, N_samples, flow_class):
     likelihood_vertical = [] # Initialize an empty list
     for h in tqdm(h0): #loop over h0 values
         likelihood_vertical.append(flow_class.evaluate_log_prob(df.loc[:N_samples-1], np.repeat(h,N_samples))) # append likelihood value to the empty list
-        
     return  np.array(likelihood_vertical).T
     
     
