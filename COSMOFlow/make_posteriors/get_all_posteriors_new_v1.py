@@ -218,6 +218,8 @@ for GW_event in events:
     dH = np.diff(H0vec)[0]  # Calculate the step size for Hubble constant values
     # Select specific columns of the DataFrame needed for likelihood calculations
     df_datainput = df[['luminosity_distance', 'ra', 'dec', 'mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn', 'phi_jl', 'phi_12', 'psi', 'geocent_time']]  # Extract relevant columns for likelihood calculations
+
+    df_datainput.loc[:, 'geocent_time'] = df_datainput['geocent_time'] % 86164.1 ## Make sure the geocentric time is within 1 sidereal day in seconds
     likelihoods = get_likelihoods(H0vec, df_datainput, Nsamples, flow_class)  # Obtain likelihoods for each H0 value
 
     # Plot and save results
