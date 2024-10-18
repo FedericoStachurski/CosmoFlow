@@ -5,7 +5,7 @@ COSMOFlow uses **normalising flows** to compute complex probability distribution
 ### What does COSMOFlow do?
 COSMOFlow is designed to compute posterior distributions of the rate of expansion of the universe, specifically the **Hubble constant (H₀)**, using posterior samples from gravitational wave events such as binary black holes. This project leverages Bayesian inference and machine learning to model these distributions efficiently.
 
-![Flow Layout](COSMOFlow/Flow_diagram.pdf)
+![Flow Layout](COSMOFlow/Flow_diagram.jpg)
 
 ### Key Features:
 - **Efficient Inference**: Use trained normalising flow models to obtain Bayesian posteriors on cosmological parameters such as H₀ in seconds.
