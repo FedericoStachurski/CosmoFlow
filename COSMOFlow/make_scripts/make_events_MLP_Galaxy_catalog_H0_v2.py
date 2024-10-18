@@ -314,7 +314,7 @@ if in_out:  # Check if we are using a galaxy catalog (if 'in_out' is True)
 
     # Load the magnitude threshold map for the specified magnitude band and NSIDE resolution
     # This map contains the limiting magnitude values for each pixel in the catalog
-    mth_map_path = '/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE, band)
+    mth_map_path = '../magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE, band)
     
     try:
         # Attempt to load the magnitude threshold map as a NumPy array
