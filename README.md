@@ -79,7 +79,7 @@ Steps for Git and Environment Setup
    
    Training the NF:
 
-      python3 train_flow_new_v1.py -galaxy_catalog True -data_path run_O3_det_H1_L1_V1_name_H0_galaxy_catalogue__catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_3_Full_para_v1 -Name Flow_O3_H1_L1_V1_14target_1Cond -batch 50000 -train_size 0.8 -flow_type CouplingNSF -epochs 200 -linear_transform lu -log_it 1  -neurons 32 -layers 3 -nblock 2 -n_cond 1 -lr 0.01 -device cuda:0 -xyz 0 -Scaler MinMax -save_step 1000 -batches_data 1 -lr_scheduler CosineAnnealingLR --Volume_preserving False -n_inputs 14
+      python3 train_flow_new_v1.py -galaxy_catalog True -data_path run_O3_det_H1_L1_V1_name_H0_galaxy_catalogue__catalog_True_band_K_batch_{}_N_100000_SNR_11_Nelect_3_Full_para_v1 -Name Flow_O3_H1_L1_V1_14target_1Cond -batch 50000 -train_size 0.8 -flow_type CouplingNSF -epochs 200 -linear_transform lu -log_it 0  -neurons 32 -layers 3 -nblock 2 -n_cond 1 -lr 0.01 -device cuda:0 -xyz 0 -Scaler MinMax -save_step 1000 -batches_data 1 -lr_scheduler CosineAnnealingLR --Volume_preserving False -n_inputs 14
 
    
    Make H0 posteriors:
