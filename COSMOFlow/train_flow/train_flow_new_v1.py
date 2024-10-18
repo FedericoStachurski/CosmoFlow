@@ -26,9 +26,13 @@ from cosmology_functions import utilities, cosmology
 
 
 class DataLoaderClass:
-    def __init__(self, folder_name, data_path, batches_data=1, xyz=True, scaler_type='MinMax', n_inputs = 14, n_conditional=1):
+    def __init__(self, folder_name, data_path, batches_data=1, xyz=False, scaler_type='MinMax', n_inputs = 14, n_conditional=1, galaxy_catalogue = True):
         # Initialize the DataLoaderClass with the number of data batches, coordinate type, scaler type, and number of conditional variables.
-        self.data_path = '../data_cosmoflow/'+data_path+'.csv'
+        if galaxy_catalogue is True:
+            self.data_path = '../data_cosmoflow/galaxy_catalog/training_data_from_MLP/'+data_path+'.csv'
+        else:
+            self.data_path = '../data_cosmoflow/empty_catalog/training_data_from_MLP/'+data_path+'.csv'
+            
         self.batches_data = batches_data
         self.xyz = xyz
         self.scaler_type = scaler_type
@@ -408,6 +412,8 @@ if __name__ == "__main__":
                     help="Number of data batches to use")
     ap.add_argument("-VP", "--Volume_preserving", required=True, default=False,
                     help="Whether to enable volume preserving flow")
+    ap.add_argument("-galaxy_catalogue", "--galaxy_catalogue", required=True, default=True,
+                    help="use galaxy catalogue data (TRUE) or empty (FALSE)")
     args = vars(ap.parse_args())
 
     # Data loading and preprocessing
@@ -417,7 +423,8 @@ if __name__ == "__main__":
                                   xyz=bool(int(args["xyz"])),
                                   scaler_type=args["Scaler"],
                                   n_inputs =int(args["n_inputs"]),
-                                  n_conditional=int(args["n_conditional"]))
+                                  n_conditional=int(args["n_conditional"]),
+                                 galaxy_catalogue = bool(args["galaxy_catalogue"]))
 
     # Load and process data
     data_loader.load_data()
