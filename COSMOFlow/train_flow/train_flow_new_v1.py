@@ -26,7 +26,7 @@ from cosmology_functions import utilities, cosmology
 
 
 class DataLoaderClass:
-    def __init__(self, folder_name, data_path, batches_data=1, xyz=False, scaler_type='MinMax', n_inputs = 14, n_conditional=1, galaxy_catalogue = True):
+    def __init__(self, folder_name, data_path, batches_data=1, xyz=False, scaler_type='MinMax', n_inputs = 14, n_conditional=1, galaxy_catalogue = True, logit = False):
         # Initialize the DataLoaderClass with the number of data batches, coordinate type, scaler type, and number of conditional variables.
         if galaxy_catalogue is True:
             self.data_path = '../data_cosmoflow/galaxy_catalog/training_data_from_MLP/'+data_path+'.csv'
@@ -43,6 +43,7 @@ class DataLoaderClass:
         self.scaler_y = None
         self.folder_name = folder_name
         self.path = 'trained_flows_and_curves/'
+        self.logit = logit
 
     def load_data(self):
         print("Loading data batches...")
@@ -92,10 +93,20 @@ class DataLoaderClass:
         print("Data processing complete.")
         return GW_data
 
+
+    ########## DATA --> LOGIT --> SCALE 
+    ######### UNSCALE --> UNLOGIT --> RESAMPLED DATA
+    
     def scale_data(self):
         print("Scaling data...")
         # Scale data using the specified scaler (MinMax or Standard)
         self.scaler_x, self.scaler_y, scaled_data = utilities.scale_data(self.data, self.scaler_type, self.n_conditional)
+
+        # Apply logit transformation if required
+        if self.logit:
+            print("Applying LOG-IT function to data...")
+            scaled_data = utilities.logit_transform(scaled_data)
+        
         # Save data scalers X and Y
         print("\nSaving Scalers X and Y\n")
         print("Current directory:", os.getcwd())
@@ -176,9 +187,7 @@ class TrainFlowClass:
         ########## DATA IS SCALED FIRST, THEN LOGIT FUCNTION IS APPLIED
         ########## Data should be logit first then scaled!!!!
         print(scaled_data)
-        # Apply logit transformation if required
-        if self.logit:
-            scaled_data = utilities.logit_transform(scaled_data)
+        
         
         x_train, x_val = train_test_split(scaled_data, test_size=(1.0 - self.train_size), train_size=self.train_size)
 
@@ -425,7 +434,8 @@ if __name__ == "__main__":
                                   scaler_type=args["Scaler"],
                                   n_inputs =int(args["n_inputs"]),
                                   n_conditional=int(args["n_conditional"]),
-                                 galaxy_catalogue = bool(args["galaxy_catalogue"]))
+                                 galaxy_catalogue = bool(args["galaxy_catalogue"]),
+                                 logit = bool(int(args["log_it"])))
 
     # Load and process data
     data_loader.load_data()

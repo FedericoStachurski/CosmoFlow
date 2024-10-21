@@ -128,11 +128,12 @@ class HandleFlow:
         self.flow.to('cpu')
         with torch.no_grad():
             samples = self.flow.sample(n_samples, conditional=data_scaled)
+            samples = samples.numpy()
             if self.logit == 1:
-                samples = utilities.inverse_logit_transform(samples.numpy())
+                samples = utilities.inverse_logit_transform(samples)
                 samples = self.scaler_x.inverse_transform(samples)
             else:
-                samples = self.scaler_x.inverse_transform(samples.numpy())
+                samples = self.scaler_x.inverse_transform(samples)
             
         return samples
 
@@ -150,15 +151,20 @@ class HandleFlow:
         # Ensure target is a numpy array
         if isinstance(target, pd.Series):
             target = target.to_numpy()
-        
+
         # Data scaled first, then logit if requested
-        # Scale target data appropriately
-        #### Data should be logit first then scaled!!!
-        target_scaled = self.scaler_x.transform(target.reshape(-1, self.hyperparameters['n_inputs']) if target.ndim == 1 else target)
+        # Scale target data appropriately ########## STILL UNSURE!!!!
         if self.logit == 1:
-            target_scaled = utilities.logit_transform(target_scaled)
+            target = utilities.logit_transform(target)
         
-        target_tensor = torch.from_numpy(target_scaled.astype('float32')).float().to(self.device)
+        
+        #### Data should be logit first then scaled!!!
+        target = self.scaler_x.transform(target.reshape(-1, self.hyperparameters['n_inputs']) if target.ndim == 1 else target)
+
+      
+        
+        
+        target_tensor = torch.from_numpy(target.astype('float32')).float().to(self.device)
         self.flow.to(self.device)
         with torch.no_grad():
             if conditional is not None:
