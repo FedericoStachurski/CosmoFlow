@@ -174,6 +174,7 @@ class TrainFlowClass:
         # Split the data into training and validation sets
         scaled_data = self.data_loader.scale_data() 
         ########## DATA IS SCALED FIRST, THEN LOGIT FUCNTION IS APPLIED
+        ########## Data should be logit first then scaled!!!!
         print(scaled_data)
         # Apply logit transformation if required
         if self.logit:

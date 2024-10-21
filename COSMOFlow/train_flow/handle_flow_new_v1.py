@@ -151,11 +151,12 @@ class HandleFlow:
         if isinstance(target, pd.Series):
             target = target.to_numpy()
         
+        # Data scaled first, then logit if requested
         # Scale target data appropriately
-        if self.logit == 1:
-            target = utilities.logit_transform(target)
-         
+        #### Data should be logit first then scaled!!!
         target_scaled = self.scaler_x.transform(target.reshape(-1, self.hyperparameters['n_inputs']) if target.ndim == 1 else target)
+        if self.logit == 1:
+            target_scaled = utilities.logit_transform(target_scaled)
         
         target_tensor = torch.from_numpy(target_scaled.astype('float32')).float().to(self.device)
         self.flow.to(self.device)
