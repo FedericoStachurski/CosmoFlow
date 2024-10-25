@@ -6,6 +6,7 @@ import numpy as np
 import joblib
 import os
 import matplotlib.pyplot as plt
+import sys 
 
 # Define the MLP model
 class MLP(nn.Module):
@@ -29,7 +30,7 @@ class MLP(nn.Module):
         # Output layer
         layers.append(nn.Linear(in_size, output_size))  # Final output layer
         self.model = nn.Sequential(*layers)  # Use nn.Sequential to create the complete model
-
+        
     def forward(self, x):
         """
         Defines the forward pass of the model.
@@ -58,6 +59,19 @@ class MLP(nn.Module):
         """
         # Create save directory
         os.makedirs(save_dir, exist_ok=True)
+
+        # Save hyperparameters to a file for tracking purposes
+        hyperparameters_to_save = {
+            'input_size': X_train.shape[1],
+            'hidden_layers': [layer.out_features for layer in self.model if isinstance(layer, nn.Linear)][:-1],
+            'output_size': y_train.shape[1],
+            'batch_size': batch_size,
+            'epochs': epochs,
+            'learning_rate': learning_rate
+        }
+        hyperparameters_save_path = os.path.join(save_dir, "hyperparameters.txt")
+        with open(hyperparameters_save_path, 'w') as f:
+            f.write(str(hyperparameters_to_save))
 
         # Scale the data
         self.scaler_X = StandardScaler()
@@ -109,16 +123,16 @@ class MLP(nn.Module):
                 val_loss_history.append(val_loss)
 
             # Print average loss for the epoch
-            print(f"Epoch [{epoch+1}/{epochs}], Training Loss: {avg_train_loss:.4f}, Validation Loss: {val_loss:.4f}")
-
+            sys.stdout.write("\rEpoch [{}/{}], Training Loss: {}, Validation Loss: {}".format(epoch+1, epochs, round(avg_train_loss,4), round(val_loss,4)))
             # Plot and save the loss curves
             plt.figure()
             plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, label='Training Loss')
             plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, label='Validation Loss')
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
-            plt.title('Training and Validation Loss Curve')
+            # plt.title('Training and Validation Loss Curve')
             plt.legend()
+            plt.grid(True)
             loss_plot_path = os.path.join(save_dir, "metric.png")
             plt.savefig(loss_plot_path)
             # print(f"Training and validation loss curve saved at: {loss_plot_path}")
@@ -167,11 +181,71 @@ class MLP(nn.Module):
         scaler_y_path = os.path.join(save_dir, "scaler_y.pkl")
         joblib.dump(self.scaler_X, scaler_X_path)  # Save input data scaler
         joblib.dump(self.scaler_y, scaler_y_path)  # Save target data scaler
-        print(f"Model and scalers saved in folder: {save_dir}")
+        print("\nModel and scalers saved in folder: {}".format(save_dir))
 
-    def set_device(self):
+    def set_device(self, device):
         """
-        Sets the device to GPU if available, otherwise uses CPU.
+        Sets the device to either GPU or CPU as specified by the user.
+        
+        Parameters:
+        device (str): The desired device, either 'cuda' for GPU or 'cpu' for CPU.
         """
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if device not in ['cpu', 'cuda:0', 'cuda:1', 'cuda:2']:
+            raise ValueError("Invalid device specified. Use 'cpu' or 'cuda'.")
+        self.device = torch.device(device)
         self.to(self.device)  # Move model to the selected device
+
+############## Functions 
+
+def load_and_predict(X_test, model_dir, device='cpu'):
+    """
+    Loads the trained MLP model and makes predictions on the given test data.
+    
+    Parameters:
+    - X_test: numpy array, input test data.
+    - model_dir: str, directory where the trained model and scalers are saved (default is "models/MLP_models/file_name").
+    - device: str, the device to use ('cpu' or 'cuda').
+    
+    Returns:
+    - numpy array, predictions from the model (in original scale).
+    """
+    # Load the saved scalers
+    scaler_X_path = f"{model_dir}/scaler_X.pkl"
+    scaler_y_path = f"{model_dir}/scaler_y.pkl"
+    scaler_X = joblib.load(scaler_X_path)
+    scaler_y = joblib.load(scaler_y_path)
+
+    # Load the hyperparameters
+    hyperparameters_path = f"{model_dir}/hyperparameters.txt"
+    if os.path.exists(hyperparameters_path):
+        with open(hyperparameters_path, 'r') as f:
+            hyperparameters = eval(f.read())  # Assuming the text file has a dictionary-like structure
+            try:
+                input_size = hyperparameters['input_size']
+                hidden_layers = hyperparameters['hidden_layers']
+                output_size = hyperparameters['output_size']
+            except KeyError as e:
+                raise ValueError(f"Missing hyperparameter: {str(e)} in the hyperparameters file.")
+    else:
+        raise ValueError("Hyperparameters file not found. Cannot load model configuration.")
+
+    # Load the model
+    model = MLP(input_size=input_size, hidden_layers=hidden_layers, output_size=output_size)  # Use parameters from file
+    model_path = f"{model_dir}/mlp_model.pth"
+    model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+    model.to(device)
+
+    # Scale the test data using the loaded scaler
+    X_test_scaled = scaler_X.transform(X_test)
+
+    # Convert numpy arrays to PyTorch tensors
+    X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+
+    # Get predictions
+    model.eval()  # Set the model to evaluation mode
+    with torch.no_grad():
+        predictions = model.forward(X_test_tensor)
+        # Inverse transform the predictions to original scale
+        predictions = scaler_y.inverse_transform(predictions.cpu().numpy())
+
+    return predictions
