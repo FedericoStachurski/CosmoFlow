@@ -43,7 +43,7 @@ class MLP(nn.Module):
         """
         return self.model(x)
 
-    def train_model(self, X_train, y_train, X_val, y_val, batch_size=32, epochs=50, learning_rate=0.001, save_dir="models/MLP_models/file_name"):
+    def train_model(self, X_train, y_train, X_val, y_val, batch_size=32, epochs=50, learning_rate=0.001, save_dir="models/MLP_models/file_name", save_model_during_training = False, save_step = 100):
         """
         Trains the model using the provided training data.
         
@@ -73,6 +73,7 @@ class MLP(nn.Module):
         with open(hyperparameters_save_path, 'w') as f:
             f.write(str(hyperparameters_to_save))
 
+        
         # Scale the data
         self.scaler_X = StandardScaler()
         self.scaler_y = StandardScaler()
@@ -122,6 +123,12 @@ class MLP(nn.Module):
                 val_loss = criterion(val_outputs, y_val_tensor).item()
                 val_loss_history.append(val_loss)
 
+            if save_model_during_training:
+                if (epoch+1) % save_step == 0:
+                    self.save_model(save_dir=save_dir)
+                    sys.stdout.write("\rEpoch [{}/{}], Training Loss: {}, Validation Loss: {} | Saving Model at Epoch {}".format(epoch+1, epochs, round(avg_train_loss,4), round(val_loss,4), epoch+1) )
+                    
+                
             # Print average loss for the epoch
             sys.stdout.write("\rEpoch [{}/{}], Training Loss: {}, Validation Loss: {}".format(epoch+1, epochs, round(avg_train_loss,4), round(val_loss,4)))
             # Plot and save the loss curves
