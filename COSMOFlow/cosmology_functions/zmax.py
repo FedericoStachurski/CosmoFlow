@@ -11,6 +11,9 @@ class RedshiftGW_fast_zmax(object):
         self.z_grid = np.linspace(zmin,zmax,250)
         self.dz = np.diff(self.z_grid)[0]
         self.population = parameters['population']
+        if self.run == 'O4':
+            self.magic_snr_dl = 90000
+            
         if self.run == 'O3':
             if self.population == 'BBH':
                 self.magic_snr_dl = 71404.52441406266

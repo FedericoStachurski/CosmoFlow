@@ -13,8 +13,11 @@ class RedshiftGW_fast_z_para(object):
         self.SNRth = SNRth
         self.population = population
         self.fast = fast 
+
+        if self.run == 'O4':
+            self.magic_snr_dl = 120_000# 99.999% quantile
         
-        if self.run == 'O3':
+        elif self.run == 'O3':
             if self.population == 'NSBH':
                 self.magic_snr_dl = 13201.953173828133 #0.995 PERCENTILE
             else: 
