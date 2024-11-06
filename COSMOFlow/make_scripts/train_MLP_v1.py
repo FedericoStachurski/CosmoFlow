@@ -20,7 +20,7 @@ def parse_arguments():
                         help="Device to be used for training ('cpu' or 'cuda').")
     parser.add_argument('--data_split', type=float, default=0.2,
                         help="Fraction of the dataset to be used as validation data.")
-    parser.add_argument('--random_state', type=int, default=42,
+    parser.add_argument('--random_state', type=int, default=None,
                         help="Random state for reproducibility of data splitting.")
     parser.add_argument('--epochs', type=int, default=50,
                         help="Number of epochs for training.")
