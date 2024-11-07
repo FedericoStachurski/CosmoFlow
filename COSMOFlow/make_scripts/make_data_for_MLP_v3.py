@@ -78,7 +78,9 @@ snr = []  # Placeholder for storing signal-to-noise ratio (SNR) values
 _, _, _, a1sample, a2sample, tilt1sample, tilt2sample, RAsample, decsample, theta_jnsample, phi_jlsample, phi_12sample, psisample, phasesample, geo_time = gw_priors_v2.draw_prior(N)
 
 # Generate random samples for luminosity distance and masses
-dlsample = np.random.uniform(10, 11_000, N)  # Luminosity distance samples
+# dlsample = np.random.uniform(10, 11_000, N)  # Luminosity distance samples
+
+dlsample = np.exp(np.random.uniform(np.log(10), np.log(11_000), N)) # LOG uniform distribution for distance
 m1zsample = np.random.uniform(4, 350, N)  # Mass 1 (primary object)
 m2zsample = np.random.uniform(0.5, 15, N)  # Mass 2 (secondary object for NSBH)
 
