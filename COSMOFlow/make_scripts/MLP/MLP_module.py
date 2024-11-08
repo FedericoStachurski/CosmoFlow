@@ -10,7 +10,7 @@ import sys
 
 # Define the MLP model
 class MLP(nn.Module):
-    def __init__(self, input_size=13, hidden_layers=[64, 32], output_size=3):
+    def __init__(self, input_size=13, hidden_layers=[64, 32], output_size=3, activation_fn=nn.ReLU):
         """
         Initializes the MLP model.
         
@@ -25,7 +25,7 @@ class MLP(nn.Module):
         # Create hidden layers based on the hidden_layers list
         for hidden_size in hidden_layers:
             layers.append(nn.Linear(in_size, hidden_size))  # Add a linear layer
-            layers.append(nn.ReLU())  # Add a ReLU activation function
+            layers.append(activation_fn())  # Add a ReLU activation function
             in_size = hidden_size
         # Output layer
         layers.append(nn.Linear(in_size, output_size))  # Final output layer
@@ -43,7 +43,7 @@ class MLP(nn.Module):
         """
         return self.model(x)
 
-    def train_model(self, X_train, y_train, X_val, y_val, batch_size=32, epochs=50, learning_rate=0.001, save_dir="models/MLP_models/file_name", save_model_during_training = False, save_step = 100):
+    def train_model(self, X_train, y_train, X_val, y_val, batch_size=32, epochs=50, learning_rate=0.001, scheduler_type='StepLR', scheduler_params=None, save_dir="models/MLP_models/file_name", save_model_during_training=False, save_step=20):
         """
         Trains the model using the provided training data.
         
@@ -55,6 +55,8 @@ class MLP(nn.Module):
         - batch_size: int, number of samples per batch (default is 32).
         - epochs: int, number of epochs to train (default is 50).
         - learning_rate: float, learning rate for the optimizer (default is 0.001).
+        - scheduler_type: str, type of scheduler to use ('StepLR', 'ExponentialLR', 'CosineAnnealingLR').
+        - scheduler_params: dict, parameters for the selected scheduler.
         - save_dir: str, directory to save the training loss curve and model (default is "models/MLP_models/file_name").
         """
         # Create save directory
@@ -73,7 +75,6 @@ class MLP(nn.Module):
         with open(hyperparameters_save_path, 'w') as f:
             f.write(str(hyperparameters_to_save))
 
-        
         # Scale the data
         self.scaler_X = StandardScaler()
         self.scaler_y = StandardScaler()
@@ -95,6 +96,32 @@ class MLP(nn.Module):
         # Define loss function and optimizer
         criterion = nn.MSELoss()  # Mean Squared Error Loss for regression
         optimizer = optim.Adam(self.parameters(), lr=learning_rate)  # Adam optimizer
+
+        # Define learning rate scheduler
+        if scheduler_params is None:
+            scheduler_params = {}
+
+        if scheduler_type == 'StepLR':
+            #scheduler_params = {
+            #     'step_size': 10,  # Number of epochs between each learning rate reduction
+            #     'gamma': 0.5      # Multiplicative factor of learning rate decay
+            # }
+
+            scheduler = optim.lr_scheduler.StepLR(optimizer, **scheduler_params)
+        elif scheduler_type == 'ExponentialLR':
+            #scheduler_params = {
+            #     'gamma': 0.9  # Decay factor for each epoch
+            # }
+
+            scheduler = optim.lr_scheduler.ExponentialLR(optimizer, **scheduler_params)
+        elif scheduler_type == 'CosineAnnealingLR':
+            #scheduler_params = {
+            #     'T_max': epochs,  # Set T_max to the total number of epochs
+            #     'eta_min': 1e-5   # Minimum learning rate
+            # }
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, **scheduler_params)
+        else:
+            raise ValueError(f"Unsupported scheduler type: {scheduler_type}")
 
         # Training loop with loss tracking
         self.train()  # Set the model to training mode
@@ -123,27 +150,33 @@ class MLP(nn.Module):
                 val_loss = criterion(val_outputs, y_val_tensor).item()
                 val_loss_history.append(val_loss)
 
+            # Step the scheduler
+            scheduler.step()
+
             if save_model_during_training:
                 if (epoch+1) % save_step == 0:
                     self.save_model(save_dir=save_dir)
                     sys.stdout.write("\rEpoch [{}/{}], Training Loss: {}, Validation Loss: {} | Saving Model at Epoch {}".format(epoch+1, epochs, round(avg_train_loss,4), round(val_loss,4), epoch+1) )
                     
-                
             # Print average loss for the epoch
             sys.stdout.write("\rEpoch [{}/{}], Training Loss: {}, Validation Loss: {}".format(epoch+1, epochs, round(avg_train_loss,4), round(val_loss,4)))
+            
             # Plot and save the loss curves
             plt.figure()
             plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, label='Training Loss')
             plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, label='Validation Loss')
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
-            # plt.title('Training and Validation Loss Curve')
             plt.legend()
             plt.grid(True)
             loss_plot_path = os.path.join(save_dir, "metric.png")
             plt.savefig(loss_plot_path)
-            # print(f"Training and validation loss curve saved at: {loss_plot_path}")
+            plt.yscale('log')
+            plt.xscale('log')
+            log_loss_plot_path = os.path.join(save_dir, "log_metric.png")
+            plt.savefig(log_loss_plot_path)
             plt.close()
+
 
     def evaluate_model(self, X_test, y_test):
         """

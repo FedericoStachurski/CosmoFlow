@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import argparse
+import torch.nn as nn
+import json
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Arguments for training a neural network model.")
@@ -32,13 +34,32 @@ def parse_arguments():
                         help="Flag to save the model at intervals during training.")
     parser.add_argument('--save_step', type=int, default=100,
                         help="Frequency (in epochs) at which the model is saved during training.")
+    parser.add_argument('--scheduler_type', type=str, default='StepLR',
+                        help='Scheduler type: StepLR, ExponentialLR, CosineAnnealingLR')
+    parser.add_argument('--scheduler_params', type=str, default='{}',
+                        help='Scheduler parameters as a JSON string (e.g. \'{"step_size": 10, "gamma": 0.5}\')')
+    parser.add_argument('--activation_fn', type=str, default='ReLU',
+                        help='Activation function: ReLU, Sigmoid, Tanh')
     
     # Parse the arguments
     args = parser.parse_args()
+    
+    # Set activation function based on argument
+    activation_fn_dict = {
+        'ReLU': nn.ReLU,
+        'Sigmoid': nn.Sigmoid,
+        'Tanh': nn.Tanh
+    }
+    if args.activation_fn not in activation_fn_dict:
+        raise ValueError(f"Unsupported activation function: {args.activation_fn}. Supported functions: {list(activation_fn_dict.keys())}")
+    
     return args
 
-def train_mlp(data_path, model_save_folder, neurons, layers=None, device='cpu', data_split=0.2, random_state=42,
-              epochs=50, learning_rate=0.001, batch_size=50000, save_model_during_training=False, save_step=100):
+def train_mlp(data_path, model_save_folder, neurons, activation_fn = nn.ReLU, layers=None, 
+              device='cpu', data_split=0.2, random_state=42,
+              epochs=50, learning_rate=0.001, batch_size=50000, 
+              save_model_during_training=False, save_step=100, 
+              scheduler_type='StepLR', scheduler_params=None):
     # Load the dataset
     GW_data = pd.read_csv(data_path)
     GW_data['geocent_time'] = GW_data['geocent_time'] % 86164.1
@@ -62,22 +83,35 @@ def train_mlp(data_path, model_save_folder, neurons, layers=None, device='cpu', 
         neurons = [int(neurons)] * layers
 
     # Initialize and set device for the model
-    model = mlp.MLP(input_size=13, hidden_layers=neurons, output_size=3)
+    model = mlp.MLP(input_size=13, hidden_layers=neurons, output_size=3, activation_fn = activation_fn)
     model.set_device(device=device)
 
     # Train the model with training and validation data
     model.train_model(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val,
                       epochs=epochs, learning_rate=learning_rate,
                       batch_size=batch_size, save_dir="models/MLP_models/" + model_save_folder,
-                      save_model_during_training=save_model_during_training, save_step=save_step)
+                      save_model_during_training=save_model_during_training, save_step=save_step, scheduler_type=scheduler_type, scheduler_params=scheduler_params)
 
 if __name__ == "__main__":
     args = parse_arguments()
-    
+    # Convert scheduler_params from JSON string to dictionary
+    scheduler_params = json.loads(args.scheduler_params)
     # Print the arguments to verify
     print("Data Path:", args.data_path)
     print("Model Save Folder Path:", args.model_save_folder_path)
     print("Number of Neurons per Layer:", args.num_neurons)
+    print("Number of Layers:", args.num_layers)
+    print("Device:", args.device)
+    print("Data Split Ratio:", args.data_split)
+    print("Random State:", args.random_state)
+    print("Number of Epochs:", args.epochs)
+    print("Learning Rate:", args.learning_rate)
+    print("Batch Size:", args.batch_size)
+    print("Save Model During Training:", args.save_model_during_training)
+    print("Save Step:", args.save_step)
+    print("Scheduler Type:", args.scheduler_type)
+    print("Scheduler Parameters:", scheduler_params)
+
     
     # Train the MLP model
     train_mlp(data_path=args.data_path,
@@ -91,4 +125,6 @@ if __name__ == "__main__":
               learning_rate=args.learning_rate,
               batch_size=args.batch_size,
               save_model_during_training=args.save_model_during_training,
-              save_step=args.save_step) 
+              save_step=args.save_step,
+             scheduler_type=args.scheduler_type, 
+             scheduler_params=scheduler_params) 
