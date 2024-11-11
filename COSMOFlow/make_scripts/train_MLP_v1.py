@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 import argparse
 import torch.nn as nn
 import json
+import torch
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Arguments for training a neural network model.")
@@ -18,7 +19,7 @@ def parse_arguments():
                         help="Comma-separated list of neurons per layer, or a single value for all layers.")
     parser.add_argument('--num_layers', type=int, required=False,
                         help="Number of layers in the neural network. Ignored if a list of neurons is provided.")
-    parser.add_argument('--device', type=str, default='cpu',
+    parser.add_argument('--device', type=str, default=None, required = False,
                         help="Device to be used for training ('cpu' or 'cuda').")
     parser.add_argument('--data_split', type=float, default=0.2,
                         help="Fraction of the dataset to be used as validation data.")
@@ -43,7 +44,24 @@ def parse_arguments():
     
     # Parse the arguments
     args = parser.parse_args()
+
+    # Determine which device to use
+    if args.device is None:
+        # No user-specified device, use hierarchical strategy
+        preferred_devices = [0, 1, 2]
+        device = "cpu"  # Default to CPU
     
+        if torch.cuda.is_available():
+            # Find the highest-priority available device
+            for idx in preferred_devices:
+                if idx < torch.cuda.device_count():
+                    device = f"cuda:{idx}"
+                    break
+    else:
+        # User specified a device
+        device = args.device
+    args.device = device
+    print(f"Using device: {device}")
     # Set activation function based on argument
     activation_fn_dict = {
         'ReLU': nn.ReLU,
@@ -94,8 +112,27 @@ def train_mlp(data_path, model_save_folder, neurons, activation_fn = nn.ReLU, la
 
 if __name__ == "__main__":
     args = parse_arguments()
-    # Convert scheduler_params from JSON string to dictionary
-    scheduler_params = json.loads(args.scheduler_params)
+    # # Convert scheduler_params from JSON string to dictionary
+    # scheduler_params = json.loads(args.scheduler_params)
+    # Parse the scheduler parameters string into a dictionary
+    scheduler_params_str = args.scheduler_params
+    scheduler_params = {}
+
+    if scheduler_params_str:
+        try:
+            # Split the string by spaces to get key-value pairs
+            key_value_pairs = scheduler_params_str.split(',')
+            for pair in key_value_pairs:
+                key, value = pair.split('=')
+                # Convert the value to float or int if possible
+                if '.' in value or 'e' in value:
+                    value = float(value)
+                else:
+                    value = int(value)
+                scheduler_params[key] = value
+        except ValueError as e:
+            print(f"Error parsing scheduler parameters: {e}")
+            
     # Print the arguments to verify
     print("Data Path:", args.data_path)
     print("Model Save Folder Path:", args.model_save_folder_path)

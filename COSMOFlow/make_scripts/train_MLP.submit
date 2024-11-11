@@ -1,0 +1,17 @@
+universe = vanilla 
+executable = /home/federico/.conda/envs/cosmoflow_v1/bin/python
+arguments =  train_MLP_v1.py  --data_path data_for_MLP/training/_O3_MLP_data_HLV_1000000_det_H1_L1_V1_run_O3_approx_IMRPhenomXPHM_batch_1.csv     --model_save_folder_path O3_SNR_approx_HLV   --num_neurons 128 --num_layers 6     --data_split 0.2      --epochs 2000     --learning_rate 0.03     --batch_size 50000     --save_model_during_training  --save_step 20 --activation_fn ReLU --scheduler_type CosineAnnealingLR --scheduler_params T_max=2000,eta_min=1e-6
+
+run_as_owner = True
+getenv = True
+
+output = condor/train_MLP.out
+error = condor/train_MLP.err
+log = condor/train_MLP.log
+
+
+request_cpus = 1
+request_gpus = 1
+request_memory = 20 GB
+request_disk = 20 GB
+queue 1  

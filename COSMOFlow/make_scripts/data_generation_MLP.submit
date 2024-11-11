@@ -1,12 +1,12 @@
 universe = vanilla 
 executable = /home/federico/.conda/envs/cosmoflow_v1/bin/python
-arguments = make_data_for_MLP_v3.py -Name O4_MLP_data_HLV -type training -seed 1234 -detector H1 L1 V1 -run O4 -approximator IMRPhenomXPHM -batch 1 -N 1_000_000
+arguments = make_data_for_MLP_v3.py -Name O3_MLP_data_HLV -type training -seed 1234 -detector H1 L1 V1 -run O3 -approximator IMRPhenomXPHM -batch 1 -N 1_000_000
 
 output = condor/data_generation_MLP.out
 error = condor/data_generation_MLP.err
 log = condor/data_generation_MLP.log
 run_as_owner = True
-request_cpus = 1
+request_cpus = 10
 request_gpus = 0
 request_memory = 10 GB
 request_disk = 10 GB
