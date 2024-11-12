@@ -10,3 +10,4 @@ import gw_functions.handle_posterior_samples_GWTC
 import gw_functions.posterior_utilities 
 import gw_functions.mass_prior_multi_para_test
 import gw_functions.gw_event_names
+import gw_functions.mass_prior_v1
