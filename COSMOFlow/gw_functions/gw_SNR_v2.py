@@ -23,7 +23,7 @@ def run_bilby_sim(df,idx_n, detector, run, approximator,snr_type = 'optimal', sa
         run = run
             
         
-        data_path = '/data/wiay/federico/PhD/cosmoflow_review/COSMOFlow/psd_data/'
+        data_path = '../psd_data/'
         asds={'H1':{},'L1':{},'V1':{}}
         for det in detectors:
             data = np.genfromtxt(data_path+det+'_'+run+'_strain.txt')
