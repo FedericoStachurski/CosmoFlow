@@ -13,6 +13,8 @@ def parse_arguments():
     # Adding arguments
     parser.add_argument('--data_path', type=str, required=True,
                         help="Path to the dataset to be used.")
+    parser.add_argument('--batches', type=int, required=False, default = 1,
+                        help="batches of data to use.")
     parser.add_argument('--model_save_folder_path', type=str, required=True,
                         help="Path where the model will be saved.")
     parser.add_argument('--num_neurons', type=str, required=True,
@@ -73,13 +75,22 @@ def parse_arguments():
     
     return args
 
-def train_mlp(data_path, model_save_folder, neurons, activation_fn = nn.ReLU, layers=None, 
+def train_mlp(data_path,num_batches, model_save_folder, neurons, activation_fn = nn.ReLU, layers=None, 
               device='cpu', data_split=0.2, random_state=42,
               epochs=50, learning_rate=0.001, batch_size=50000, 
               save_model_during_training=False, save_step=100, 
               scheduler_type='StepLR', scheduler_params=None):
     # Load the dataset
-    GW_data = pd.read_csv(data_path)
+
+    if num_batches == 1:
+        # If there's only one batch, read it directly
+        GW_data = pd.read_csv(data_path.format(1))
+    else:
+        # If there are multiple batches, use the efficient concatenation approach
+        batch_data_list = (pd.read_csv(data_path.format(batch)) for batch in range(1, num_batches + 1))
+        GW_data = pd.concat(batch_data_list, ignore_index=True)
+
+    print("Data has been successfully combined into a single DataFrame.")
     GW_data['geocent_time'] = GW_data['geocent_time'] % 86164.1
 
     # Split the DataFrame into input features (X) and target values (y)
@@ -135,6 +146,7 @@ if __name__ == "__main__":
             
     # Print the arguments to verify
     print("Data Path:", args.data_path)
+    print("Number of Batches:", args.batches)
     print("Model Save Folder Path:", args.model_save_folder_path)
     print("Number of Neurons per Layer:", args.num_neurons)
     print("Number of Layers:", args.num_layers)
@@ -152,6 +164,7 @@ if __name__ == "__main__":
     
     # Train the MLP model
     train_mlp(data_path=args.data_path,
+              num_batcehs = args.batches,
               model_save_folder=args.model_save_folder_path,
               neurons=args.num_neurons,
               layers=args.num_layers,

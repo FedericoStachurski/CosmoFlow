@@ -40,7 +40,8 @@ class MassPrior:
             cupy.ndarray: Probability values.
         """
         norm = 2**0.5 / np.pi**0.5 / sigma
-        norm /= erf((high - mu) / 2**0.5 / sigma) + erf((mu - low) / 2**0.5 / sigma)
+        norm /= (erf((high - mu) / (2**0.5 * sigma)) + erf((mu - low) / (2**0.5 * sigma)) + 1e-10)  # Avoid division by very small values
+        # norm /= erf((high - mu) / 2**0.5 / sigma) + erf((mu - low) / 2**0.5 / sigma)
         prob = xp.exp(-xp.power(xx - mu, 2) / (2 * sigma**2))
         prob *= norm
         
@@ -86,7 +87,7 @@ class MassPrior:
         Returns:
             cupy.ndarray: Smoothing factor values.
         """
-        mprime = xx - mmin
+        mprime = xx - mmin + 1e-10  # Avoid division by zero
         smooth_exp = xp.exp((smooth_scale/mprime)+(smooth_scale/(mprime-smooth_scale)))
         ans = (1 + smooth_exp)**-1
 
@@ -174,7 +175,9 @@ class MassPrior:
             delta_m = xp.array(delta_m[:, None])
         
         factor1 = self.power_law(xx, beta, m1[:, None], mmin)
-        return factor1 * self.smooth_factor(xx, mmin, delta_m)
+        # Add a small constant offset to avoid zero probabilities
+        small_constant = 1e-8
+        return factor1 * self.smooth_factor(xx, mmin, delta_m) + small_constant
 
     def powerlaw_plus_peak_smooth_2gaussian_vect(self, xx):
         """
