@@ -175,4 +175,4 @@ dependencies:
       - xarray
       - xarray-einstats
 
-prefix: /home/federico/.conda/envs/cosmoflow_v1
+
