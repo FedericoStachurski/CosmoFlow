@@ -164,7 +164,7 @@ if __name__ == "__main__":
     
     # Train the MLP model
     train_mlp(data_path=args.data_path,
-              num_batcehs = args.batches,
+              num_batches = args.batches,
               model_save_folder=args.model_save_folder_path,
               neurons=args.num_neurons,
               layers=args.num_layers,
