@@ -15,7 +15,7 @@ class RedshiftGW_fast_z_para(object):
         self.fast = fast 
 
         if self.run == 'O4':
-            self.magic_snr_dl = 120_000# 99.999% quantile
+            self.magic_snr_dl = 180_000# 99.999% quantile
         
         elif self.run == 'O3':
             if self.population == 'NSBH':

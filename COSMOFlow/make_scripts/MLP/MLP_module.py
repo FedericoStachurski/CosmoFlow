@@ -289,3 +289,80 @@ def load_and_predict(X_test, model_dir, device='cpu'):
         predictions = scaler_y.inverse_transform(predictions.cpu().numpy())
 
     return predictions
+
+
+
+
+
+
+def load_model(model_dir, device='cpu'):
+    """
+    Loads the trained MLP model along with scalers and hyperparameters from the given directory.
+    
+    Parameters:
+    - model_dir: str, directory where the trained model and scalers are saved.
+    - device: str, the device to use ('cpu' or 'cuda').
+    
+    Returns:
+    - model: The loaded MLP model.
+    - scaler_X: The scaler for the input data.
+    - scaler_y: The scaler for the output data.
+    """
+    # Load the saved scalers
+    scaler_X_path = f"{model_dir}/scaler_X.pkl"
+    scaler_y_path = f"{model_dir}/scaler_y.pkl"
+    scaler_X = joblib.load(scaler_X_path)
+    scaler_y = joblib.load(scaler_y_path)
+
+    # Load the hyperparameters
+    hyperparameters_path = f"{model_dir}/hyperparameters.txt"
+    if os.path.exists(hyperparameters_path):
+        with open(hyperparameters_path, 'r') as f:
+            hyperparameters = eval(f.read())  # Assuming the text file has a dictionary-like structure
+            try:
+                input_size = hyperparameters['input_size']
+                hidden_layers = hyperparameters['hidden_layers']
+                output_size = hyperparameters['output_size']
+            except KeyError as e:
+                raise ValueError(f"Missing hyperparameter: {str(e)} in the hyperparameters file.")
+    else:
+        raise ValueError("Hyperparameters file not found. Cannot load model configuration.")
+
+    # Load the model
+    model = MLP(input_size=input_size, hidden_layers=hidden_layers, output_size=output_size)  # Use parameters from file
+    model_path = f"{model_dir}/mlp_model.pth"
+    model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+    model.to(device)
+
+    return model, scaler_X, scaler_y
+
+
+def predict(model, X_test, scaler_X, scaler_y, device='cpu'):
+    """
+    Makes predictions using the provided MLP model on the given test data.
+    
+    Parameters:
+    - model: The trained MLP model.
+    - X_test: numpy array, input test data.
+    - scaler_X: Scaler used to transform input data.
+    - scaler_y: Scaler used to inverse transform output data.
+    - device: str, the device to use ('cpu' or 'cuda').
+    
+    Returns:
+    - numpy array, predictions from the model (in original scale).
+    """
+    # Scale the test data using the loaded scaler
+    X_test_scaled = scaler_X.transform(X_test)
+
+    # Convert numpy arrays to PyTorch tensors
+    X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+
+    # Get predictions
+    model.eval()  # Set the model to evaluation mode
+    with torch.no_grad():
+        predictions = model.forward(X_test_tensor)
+        # Inverse transform the predictions to original scale
+        predictions = scaler_y.inverse_transform(predictions.cpu().numpy())
+
+    return predictions
+

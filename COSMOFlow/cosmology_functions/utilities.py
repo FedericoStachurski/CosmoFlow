@@ -396,3 +396,7 @@ def upscale_map(map,NSIDE_low,NSIDE_high):
         associated_mth_values.append(mag_threshold)
     associated_mth_values = np.array(associated_mth_values)
     return associated_mth_values
+
+
+def _in_sidereal_days(GPS_seconds):
+    return GPS_seconds%86164.0905

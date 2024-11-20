@@ -235,7 +235,7 @@ class MassPrior:
 
     
     
-    def make_cdfs_m2(self, m1, m_array_long=None, prior_pdf=None):
+    def make_cdfs_m2(self, m1, m_array_long=None, prior_pdf=None, beta = None, mmin = None, delta_m = None):
         """
         Compute the CDFs for m2.
 
@@ -252,9 +252,16 @@ class MassPrior:
         # print(xp.shape(m_vect_m2))
         if prior_pdf is None:
             if m_array_long is None:
-                pdf = self.powerlaw_smooth_m2_vect(m_vect_m2, m1)
+                if beta is None:
+                    pdf = self.powerlaw_smooth_m2_vect(m_vect_m2, m1)
+                else:
+                    pdf = self.powerlaw_smooth_m2_vect(m_vect_m2, m1, beta = beta, mmin = mmin, delta_m = delta_m)
+                
             else:
-                pdf = self.powerlaw_smooth_m2_vect(m_array_long, m1)
+                if beta is None:
+                    pdf = self.powerlaw_smooth_m2_vect(m_array_long, m1)
+                else:
+                    pdf = self.powerlaw_smooth_m2_vect(m_array_long, m1, beta = beta, mmin = mmin, delta_m = delta_m)
         else:
             pdf = prior_pdf
         cdf = xp.cumsum(pdf, axis=1)
