@@ -147,7 +147,9 @@ ap.add_argument("-save_timer", "--save_timer", required=False,
 ap.add_argument("-approximator", "--approximator", required=False,
    help="waveform approxiamtor ", default = 'IMRPhenomXPHM')
 ap.add_argument("-name_pop", "--name_pop", required=False,
-   help="type of population", default = 'BBH-powerlaw-gaussian')
+   help="type of population", default = 'BBH')
+ap.add_argument("-fast_dl", "--fast_dl", required=False,
+   help="use mLP for Dl?", default = 0)
 
 args = vars(ap.parse_args())
 Name = str(args['Name_file'])
@@ -194,6 +196,7 @@ fast_zmax = int(args['fast_zmax'])
 seed = int(args['seed'])
 save_timer = int(args['save_timer'])
 approximator = str(args['approximator'])
+fast_dl = bool(args['fast_dl'])
 
 print()
 print('Name model = {}'.format(Name))
@@ -233,11 +236,12 @@ print('Nselect = {}'.format(Nselect))
 print('threads = {}'.format(threads))
 print('device = {}'.format(device))
 print('fast_zmax = {}'.format(fast_zmax))
+print('fast_dl = {}'.format(fast_dl))
 print('save_timer= {}'.format(save_timer))
 print('seed = {}'.format(seed))
 print()
 
-if targeted_event != 0:
+if targeted_event != "0":
     print('Aiming at event: {}'.format(targeted_event))
     with open('pixel_event/'+str(targeted_event)+'.pickle', 'rb') as file:
         # Load the dictionary from the file
@@ -285,9 +289,10 @@ else:
     print('SNR approxiamtor = SNR_approximator_{}_{}_H1_L1_V1'.format(approximator, run))
 
 
-#### Load MLP for luminosity_distance
-print('Luminoisty_distance approximator : {}'.format('z_to_dl_H0Om0_model_log_uniformz'))
-model_luminosity_distance = load_model('models/MLP_models/z_to_dl_H0Om0_model_log_uniformz/model.pth', device = device)
+#if fast_dl == 1:
+    #add MLP model trained from wiay (forgot about it)
+   # print('Luminoisty_distance approximator : {}'.format('z_to_dl_H0Om0_model_log_uniformz'))
+   # model_luminosity_distance = load_model('models/MLP_models/z_to_dl_H0Om0_model_log_uniformz/model.pth', device = device)
     
     
 in_out = utilities.str2bool(in_out) #cehck if with catalogue or no catalogue
@@ -331,7 +336,7 @@ if in_out is True: #check if using a catalog
     cdfs_lum_fun = cdfs_lum_fun.T
     
     def load_cat_by_pix(pix): #load pixelated catalog 
-        loaded_pix = pd.read_csv('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/pixelated_catalogs/GLADE+_pix_NSIDE_{}/pixel_{}'.format(NSIDE,pix)) #Include NSIDE in the name of folders 
+        loaded_pix = pd.read_csv('../pixelated_catalogs/GLADE+_Nside_{}/pixel_{}.csv'.format(NSIDE,pix)) #Include NSIDE in the name of folders 
         return loaded_pix
     
     def load_pixel(pix): #load pixel from catalog
@@ -342,7 +347,7 @@ if in_out is True: #check if using a catalog
         catalog_pixelated = list(tqdm(p.imap(load_cat_by_pix,np.arange(Npix)), total = Npix, desc = 'GLADE+ catalog, NSIDE = {}'.format(NSIDE)))
 
     #load mth map for specific filter band 
-    map_mth = np.loadtxt('/data/wiay/federico/PhD/cosmoflow/COSMOFlow/magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE,band))
+    map_mth = np.loadtxt('../magnitude_threshold_maps/NSIDE_{}_mth_map_GLADE_{}.txt'.format(NSIDE,band))
     inx_0 = np.where(map_mth == 0.0 )[0] #if mag threshold is zero, set it to -inf 
     map_mth[inx_0] = -np.inf
     
@@ -489,7 +494,7 @@ while True:
     
     inx_gal = np.zeros(nxN) #define galxy indecies 
     
-    if targeted_event != 0:
+    if targeted_event != str(0):
         RA, dec = cosmology.target_ra_dec(nxN, pixels_event, NSIDE_event)
     else:     
         RA, dec = cosmology.draw_RA_Dec(nxN) #sample RA and dec 
